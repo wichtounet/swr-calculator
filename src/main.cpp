@@ -422,6 +422,14 @@ int main(int argc, const char* argv[]) {
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "server") {
+            if (args.size() < 3) {
+                std::cout << "Not enough arguments for server" << std::endl;
+                return 1;
+            }
+
+            std::string listen = args[1];
+            auto port          = atoi(args[2].c_str());
+
             httplib::Server server;
 
             server.Get("/api/simple", &server_simple_api);
@@ -430,7 +438,7 @@ int main(int argc, const char* argv[]) {
 
             server_ptr = &server;
             std::cout << "Server is starting to listen on localhost:8080" << std::endl;
-            server.listen("localhost", 8080);
+            server.listen(listen.c_str(), port);
             std::cout << "Server has exited" << std::endl;
         } else {
             std::cout << "Unhandled command \"" << command << "\"" << std::endl;
