@@ -2,10 +2,13 @@
 #include <iostream>
 #include <tuple>
 #include <chrono>
+#include <sstream>
 
 #include "data.hpp"
 #include "portfolio.hpp"
 #include "simulation.hpp"
+
+#include "httplib.h"
 
 namespace {
 
@@ -95,6 +98,88 @@ void multiple_rebalance_sheets(const std::vector<swr::allocation>& portfolio, co
     }
 
     std::cout << "\n";
+}
+
+httplib::Server * server_ptr = nullptr;
+
+void server_signal_handler(int signum) {
+    std::cout << "Received signal (" << signum << ")" << std::endl;
+
+    if (server_ptr) {
+        server_ptr->stop();
+    }
+}
+
+void install_signal_handler() {
+    struct sigaction action;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+    action.sa_handler = server_signal_handler;
+    sigaction(SIGTERM, &action, NULL);
+    sigaction(SIGINT, &action, NULL);
+
+    std::cout << "Installed the signal handler" << std::endl;
+}
+
+bool check_parameters(const httplib::Request& req, httplib::Response& res, std::vector<const char*> parameters) {
+    for (auto& param : parameters) {
+        if (!req.has_param(param)) {
+            res.set_content("Error: Missing parameter " + std::string(param), "text/plain");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void server_simple_api(const httplib::Request& req, httplib::Response& res) {
+    if (!check_parameters(req, res, {"portfolio", "inflation", "years", "wr", "start", "end"})) {
+        return;
+    }
+
+    // Parse the parameters
+    auto portfolio_base = req.get_param_value("portfolio");
+    auto portfolio      = swr::parse_portfolio(portfolio_base);
+    auto inflation      = req.get_param_value("inflation");
+    float wr            = atof(req.get_param_value("wr").c_str());
+    float years         = atoi(req.get_param_value("years").c_str());
+    float start_year    = atoi(req.get_param_value("start").c_str());
+    float end_year      = atoi(req.get_param_value("end").c_str());
+
+    // For now cannot be configured
+    bool monthly_wr = false;
+    auto rebalance  = swr::Rebalancing::MONTHLY;
+    float threshold = 0.0f;
+
+    swr::normalize_portfolio(portfolio);
+    auto values         = swr::load_values(portfolio);
+    auto inflation_data = swr::load_inflation(values, inflation);
+
+    if (values.empty()) {
+        res.set_content("Error: Invalid portfolio", "text/plain");
+        return;
+    }
+
+    if (inflation_data.empty()) {
+        res.set_content("Error: Invalid inflation", "text/plain");
+        return;
+    }
+
+    auto results = simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, monthly_wr, rebalance, threshold);
+
+    std::stringstream ss;
+
+    ss << "\"results\": {\n";
+    ss << "  \"successes\": " << results.successes << ",\n";
+    ss << "  \"failures\": " << results.failures << ",\n";
+    ss << "  \"success_rate\": " << results.success_rate << ",\n";
+    ss << "  \"tv_average\": " << results.tv_average << ",\n";
+    ss << "  \"tv_minimum\": " << results.tv_minimum << ",\n";
+    ss << "  \"tv_maximum\": " << results.tv_maximum << ",\n";
+    ss << "  \"tv_median\": " << results.tv_median << ",\n";
+    ss << "}";
+
+    res.set_content(ss.str(), "text/json");
 }
 
 } // namespace
@@ -336,6 +421,17 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "server") {
+            httplib::Server server;
+
+            server.Get("/api/simple", &server_simple_api);
+
+            install_signal_handler();
+
+            server_ptr = &server;
+            std::cout << "Server is starting to listen on localhost:8080" << std::endl;
+            server.listen("localhost", 8080);
+            std::cout << "Server has exited" << std::endl;
         } else {
             std::cout << "Unhandled command \"" << command << "\"" << std::endl;
             return 1;
