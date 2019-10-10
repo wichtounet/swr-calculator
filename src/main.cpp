@@ -156,7 +156,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     auto inflation_data = swr::load_inflation(values, inflation);
 
     if (values.empty()) {
-        res.set_content("Error: Invalid portfolio", "text/plain");
+        res.set_content(std::string("Error: Invalid portfolio: ") + portfolio_base, "text/plain");
         return;
     }
 
