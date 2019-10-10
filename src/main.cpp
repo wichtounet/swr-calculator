@@ -169,7 +169,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     std::stringstream ss;
 
-    ss << "\"{ results\": {\n";
+    ss << "{ \"results\": {\n";
     ss << "  \"successes\": " << results.successes << ",\n";
     ss << "  \"failures\": " << results.failures << ",\n";
     ss << "  \"success_rate\": " << results.success_rate << ",\n";
