@@ -5,7 +5,9 @@
 
 #include "data.hpp"
 
-std::vector<swr::data> swr::load_data(const std::string& path) {
+namespace {
+
+std::vector<swr::data> load_data(const std::string& path) {
   std::vector<swr::data> points;
 
   std::ifstream file(path);
@@ -30,7 +32,7 @@ std::vector<swr::data> swr::load_data(const std::string& path) {
 
       value.erase(std::remove(value.begin(), value.end(), ','), value.end());
 
-      data data;
+      swr::data data;
       data.month = atoi(month.c_str());
       data.year  = atoi(year.c_str());
       data.value = atof(value.c_str());
@@ -41,7 +43,24 @@ std::vector<swr::data> swr::load_data(const std::string& path) {
   return points;
 }
 
-void swr::normalize_data(std::vector<data> & values) {
+// Make sure that the data ends with a full year
+void fix_end(std::vector<swr::data> & values) {
+    while (values.back().month != 12) {
+        values.pop_back();
+    }
+}
+
+// Make sure that the data starts with a full year
+void fix_start(std::vector<swr::data> & values) {
+    while (values.front().month != 1) {
+        values.erase(values.begin());
+    }
+}
+
+void normalize_data(std::vector<swr::data> & values) {
+    fix_end(values);
+    fix_start(values);
+
     if (values.front().value == 1.0f) {
         return;
     }
@@ -56,7 +75,7 @@ void swr::normalize_data(std::vector<data> & values) {
     }
 }
 
-void swr::transform_to_returns(std::vector<data> & values) {
+void transform_to_returns(std::vector<swr::data> & values) {
     // Should already be normalized
     float previous_value = values[0].value;
 
@@ -66,6 +85,8 @@ void swr::transform_to_returns(std::vector<data> & values) {
         values[i].value = new_value;
     }
 }
+
+} // end of anonymous namespace
 
 std::vector<std::vector<swr::data>> swr::load_values(const std::vector<swr::allocation>& portfolio) {
     std::vector<std::vector<swr::data>> values;
@@ -77,7 +98,7 @@ std::vector<std::vector<swr::data>> swr::load_values(const std::vector<swr::allo
 
         std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
 
-        auto data = swr::load_data("stock-data/" + filename + ".csv");
+        auto data = load_data("stock-data/" + filename + ".csv");
 
         if (data.empty()) {
             std::cout << "Impossible to load data for asset " << asset_name << std::endl;
@@ -122,7 +143,7 @@ std::vector<swr::data> swr::load_inflation(const std::vector<std::vector<swr::da
             value.value = 1;
         }
     } else {
-        inflation_data = swr::load_data("stock-data/" + inflation + ".csv");
+        inflation_data = load_data("stock-data/" + inflation + ".csv");
 
         if (inflation_data.empty()) {
             std::cout << "Impossible to load inflation data for asset " << inflation << std::endl;

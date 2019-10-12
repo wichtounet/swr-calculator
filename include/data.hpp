@@ -13,10 +13,6 @@ struct data {
     float value;
 };
 
-std::vector<data> load_data(const std::string& path);
-void normalize_data(std::vector<data> & data);
-void transform_to_returns(std::vector<data> & data);
-
 std::vector<std::vector<swr::data>> load_values(const std::vector<swr::allocation>& portfolio);
 std::vector<swr::data> load_inflation(const std::vector<std::vector<swr::data>> & values, const std::string& inflation);
 
