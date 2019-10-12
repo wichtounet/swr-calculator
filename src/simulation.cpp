@@ -85,7 +85,19 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
         res.message = ss.str();
     }
 
-    // 2. Do the actual simulation
+    // 2. Make sure the simulation makes sense
+
+    if (end_year - start_year < years) {
+        std::stringstream ss;
+        ss << "The period is too short for a " << years << " years simulation. "
+           << "The number of years has been reduced to "
+           << (end_year - start_year);
+        res.message = ss.str();
+
+        years = end_year - start_year;
+    }
+
+    // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
     std::vector<std::vector<swr::data>::const_iterator> returns(number_of_assets);
