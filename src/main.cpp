@@ -189,7 +189,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"tv_minimum\": " << results.tv_minimum << ",\n";
     ss << "  \"tv_maximum\": " << results.tv_maximum << ",\n";
     ss << "  \"tv_median\": " << results.tv_median << ",\n";
-    ss << "  \"message\": \"" << results.message << "\"\n";
+    ss << "  \"message\": \"" << results.message << ",\"\n";
     ss << "  \"error\": \"" << (results.error ? "true" : "false") << "\"\n";
     ss << "}}";
 
