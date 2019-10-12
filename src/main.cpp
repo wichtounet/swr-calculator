@@ -148,7 +148,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     // For now cannot be configured
     bool monthly_wr = false;
-    auto rebalance  = swr::Rebalancing::MONTHLY;
+    auto rebalance  = swr::Rebalancing::NONE;
     float threshold = 0.0f;
 
     swr::normalize_portfolio(portfolio);
