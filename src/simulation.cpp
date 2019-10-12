@@ -48,6 +48,13 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     // The final results
     swr::results res;
 
+    // 0. Make sure start = end_year is not used
+    if (start_year == end_year) {
+        res.message = "The end year must be higher than the end year";
+        res.error = true;
+        return res;
+    }
+
     // 1. Adapt the start and end year with inflation and stocks
     // Note: the data is already normalized so we do not have to check for stat
     // and end months
@@ -77,11 +84,20 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     }
 
     if (changed) {
-        std::stringstream ss;
-        ss << "The period has been changed to "
-           << start_year << ":" << end_year
-           << " based on the available data";
-        res.message = ss.str();
+        // It's possible that the change is invalid
+        if (end_year == start_year) {
+            std::stringstream ss;
+            ss << "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
+            res.message = ss.str();
+            res.error = true;
+            return res;
+        } else {
+            std::stringstream ss;
+            ss << "The period has been changed to "
+               << start_year << ":" << end_year
+               << " based on the available data";
+            res.message = ss.str();
+        }
     }
 
     // 2. Make sure the simulation makes sense
