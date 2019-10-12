@@ -137,6 +137,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         return;
     }
 
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Parse the parameters
     auto portfolio_base = req.get_param_value("portfolio");
     auto portfolio      = swr::parse_portfolio(portfolio_base);
@@ -191,6 +193,10 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "}}";
 
     res.set_content(ss.str(), "text/json");
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
 }
 
 } // namespace
