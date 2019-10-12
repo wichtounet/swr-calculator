@@ -146,12 +146,22 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     float start_year    = atoi(req.get_param_value("start").c_str());
     float end_year      = atoi(req.get_param_value("end").c_str());
 
+    std::cout
+        << "DEBUG: Request port=" << portfolio_base
+        << " inf=" << inflation
+        << " wr=" << wr
+        << " years=" << years
+        << " start_year=" << start_year
+        << " end_year=" << end_year
+        << std::endl;
+
     // For now cannot be configured
     bool monthly_wr = false;
     auto rebalance  = swr::Rebalancing::NONE;
     float threshold = 0.0f;
 
     swr::normalize_portfolio(portfolio);
+
     auto values         = swr::load_values(portfolio);
     auto inflation_data = swr::load_inflation(values, inflation);
 
