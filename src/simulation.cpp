@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <sstream>
 
 namespace {
 
@@ -48,6 +49,43 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     const size_t months           = years * 12;
 
     swr::results res;
+    bool changed = false;
+
+    // 1. Adapt the start and end year with inflation and stocks
+    // Note: the data is already normalized so we do not have to check for stat
+    // and end months
+
+    if (inflation_data.front().year > start_year) {
+        start_year = inflation_data.front().year;
+        changed    = true;
+    }
+
+    if (inflation_data.back().year < end_year) {
+        end_year = inflation_data.back().year;
+        changed  = true;
+    }
+
+    for (auto& v : values) {
+        if (v.front().year > start_year) {
+            start_year = v.front().year;
+            changed    = true;
+        }
+
+        if (v.back().year < end_year) {
+            end_year = v.back().year;
+            changed  = true;
+        }
+    }
+
+    if (changed) {
+        std::stringstream ss;
+        ss << "The period has been changed to "
+           << start_year << ":" << end_year
+           << " based on the available data";
+        res.message = ss.str();
+    }
+
+    // 2. Do the actual simulation
 
     std::vector<float> terminal_values;
     std::vector<std::vector<swr::data>::const_iterator> returns(number_of_assets);
