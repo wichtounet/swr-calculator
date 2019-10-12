@@ -19,14 +19,14 @@ std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 
 struct results {
     size_t successes = 0;
-    size_t failures = 0;
+    size_t failures  = 0;
 
-    float success_rate;
+    float success_rate = 0.0f;
 
-    float tv_average;
-    float tv_minimum;
-    float tv_maximum;
-    float tv_median;
+    float tv_average = 0.0f;
+    float tv_minimum = 0.0f;
+    float tv_maximum = 0.0f;
+    float tv_median = 0.0f;
 
     std::string message;
 
