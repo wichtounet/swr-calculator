@@ -211,6 +211,12 @@ int main(int argc, const char* argv[]) {
             auto values         = swr::load_values(portfolio);
             auto inflation_data = swr::load_inflation(values, inflation);
 
+            auto yearly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, false);
+
+            if (yearly_results.message.size()) {
+                std::cout << yearly_results.message << std::endl;
+            }
+
             std::cout << "Withdrawal Rate (WR): " << wr << "%\n"
                       << "     Number of years: " << years << "\n"
                       << "               Start: " << start_year << "\n"
@@ -220,7 +226,6 @@ int main(int argc, const char* argv[]) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
-            auto yearly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, false);
             std::cout << "     Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate
                       << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
 

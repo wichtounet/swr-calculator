@@ -28,6 +28,8 @@ struct results {
     float tv_maximum;
     float tv_median;
 
+    std::string message;
+
     void compute_terminal_values(std::vector<float> & terminal_values);
 };
 
