@@ -44,16 +44,15 @@ std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance)
 }
 
 swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, float wr, size_t start_year, size_t end_year, bool monthly_wr, Rebalancing rebalance, float threshold) {
-    const size_t number_of_assets = portfolio.size();
-    const float start_value       = 1000.0f;
-    const size_t months           = years * 12;
 
+    // The final results
     swr::results res;
-    bool changed = false;
 
     // 1. Adapt the start and end year with inflation and stocks
     // Note: the data is already normalized so we do not have to check for stat
     // and end months
+
+    bool changed = false;
 
     if (inflation_data.front().year > start_year) {
         start_year = inflation_data.front().year;
@@ -96,6 +95,10 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
 
         years = end_year - start_year;
     }
+
+    const size_t months           = years * 12;
+    const size_t number_of_assets = portfolio.size();
+    const float start_value       = 1000.0f;
 
     // 3. Do the actual simulation
 
