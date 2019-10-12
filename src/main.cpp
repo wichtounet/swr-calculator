@@ -190,6 +190,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"tv_maximum\": " << results.tv_maximum << ",\n";
     ss << "  \"tv_median\": " << results.tv_median << ",\n";
     ss << "  \"message\": \"" << results.message << "\"\n";
+    ss << "  \"error\": \"" << (results.error ? "true" : "false") << "\"\n";
     ss << "}}";
 
     res.set_content(ss.str(), "text/json");
@@ -232,6 +233,10 @@ int main(int argc, const char* argv[]) {
 
             if (yearly_results.message.size()) {
                 std::cout << yearly_results.message << std::endl;
+            }
+
+            if (yearly_results.error) {
+                return 1;
             }
 
             std::cout << "Withdrawal Rate (WR): " << wr << "%\n"

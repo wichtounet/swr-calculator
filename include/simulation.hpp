@@ -29,6 +29,7 @@ struct results {
     float tv_median = 0.0f;
 
     std::string message;
+    bool error = false;
 
     void compute_terminal_values(std::vector<float> & terminal_values);
 };
