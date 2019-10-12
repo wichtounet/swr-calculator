@@ -50,7 +50,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
 
     // 0. Make sure start = end_year is not used
     if (start_year == end_year) {
-        res.message = "The end year must be higher than the end year";
+        res.message = "The end year must be higher than the start year";
         res.error = true;
         return res;
     }
