@@ -14,6 +14,10 @@ constexpr const float monthly_rebalancing_cost   = 0.005;
 constexpr const float yearly_rebalancing_cost    = 0.01;
 constexpr const float threshold_rebalancing_cost = 0.01;
 
+bool valid_year(const std::vector<swr::data> & data, size_t year) {
+    return year >= data.front().year && year <= data.back().year;
+}
+
 } // end of anonymous namespace
 
 swr::Rebalancing swr::parse_rebalance(const std::string& str) {
@@ -60,6 +64,24 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     // and end months
 
     bool changed = false;
+
+    // A. If the interval is totally out, there is nothing we can do
+
+    if (!valid_year(inflation_data, start_year) && !valid_year(inflation_data, end_year)) {
+        res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
+        res.error = true;
+        return res;
+    }
+
+    for (auto& v : values) {
+        if (!valid_year(v, start_year) && !valid_year(v, end_year)) {
+            res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
+            res.error = true;
+            return res;
+        }
+    }
+
+    // B. Try to adapt the years
 
     if (inflation_data.front().year > start_year) {
         start_year = inflation_data.front().year;
