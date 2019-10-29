@@ -108,9 +108,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     if (changed) {
         // It's possible that the change is invalid
         if (end_year == start_year) {
-            std::stringstream ss;
-            ss << "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
-            res.message = ss.str();
+            res.message = "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
             res.error = true;
             return res;
         } else {
