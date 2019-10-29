@@ -115,7 +115,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
             std::stringstream ss;
             ss << "The period has been changed to "
                << start_year << ":" << end_year
-               << " based on the available data";
+               << " based on the available data. ";
             res.message = ss.str();
         }
     }
@@ -127,7 +127,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
         ss << "The period is too short for a " << years << " years simulation. "
            << "The number of years has been reduced to "
            << (end_year - start_year);
-        res.message = ss.str();
+        res.message += ss.str();
 
         years = end_year - start_year;
     }
