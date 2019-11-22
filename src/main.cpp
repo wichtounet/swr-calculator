@@ -246,6 +246,14 @@ int main(int argc, const char* argv[]) {
                 if (results.failures) {
                     std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << std::endl;
                 }
+
+                std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% ("
+                          << results.highest_eff_wr_start_month << "/" << results.highest_eff_wr_start_year
+                          << "->" << results.highest_eff_wr_year << ")" << std::endl;
+                std::cout << "          Lowest Eff. WR: " << results.lowest_eff_wr << "% ("
+                          << results.lowest_eff_wr_start_month << "/" << results.lowest_eff_wr_start_year
+                          << "->" << results.lowest_eff_wr_year << ")" << std::endl;
+
             };
 
             auto start = std::chrono::high_resolution_clock::now();
