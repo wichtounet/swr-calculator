@@ -26,7 +26,11 @@ struct results {
     float tv_average = 0.0f;
     float tv_minimum = 0.0f;
     float tv_maximum = 0.0f;
-    float tv_median = 0.0f;
+    float tv_median  = 0.0f;
+
+    size_t worst_duration       = 0;
+    size_t worst_starting_month = 0;
+    size_t worst_starting_year  = 0;
 
     std::string message;
     bool error = false;
