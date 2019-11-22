@@ -248,12 +248,20 @@ int main(int argc, const char* argv[]) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
+            auto start = std::chrono::high_resolution_clock::now();
+
             std::cout << "     Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate
                       << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
 
             auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true);
             std::cout << "     Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate
                       << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "multiple_wr") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for multiple_wr" << std::endl;
