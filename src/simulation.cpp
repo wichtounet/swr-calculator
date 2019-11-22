@@ -162,6 +162,9 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
             size_t months = 1;
 
             for (size_t y = current_year; y <= end_year; ++y) {
+                auto starting_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                float withdrawed = 0.0f;
+
                 for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
                     // Adjust the portfolio with the returns
                     for (size_t i = 0; i < number_of_assets; ++i) {
@@ -215,6 +218,8 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                     if (monthly_wr) {
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
+                        withdrawed += withdrawal;
+
                         if (total_value > 0.0f) {
                             for (auto& value : current_values) {
                                 value = std::max(0.0f, value - (value / total_value) * (withdrawal / 12.0f));
@@ -250,6 +255,8 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                 if (!monthly_wr) {
                     auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
+                    withdrawed += withdrawal;
+
                     if (total_value > 0.0f) {
                         for (auto& value : current_values) {
                             value = std::max(0.0f, value - (value / total_value) * withdrawal);
@@ -265,6 +272,28 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                         }
                     }
                 }
+
+                // Record effective withdrawal rates
+
+                auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+
+                if (final_value > 0.0f) {
+                    auto eff_wr = withdrawed / starting_value;
+
+                    if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
+                        res.lowest_eff_wr_start_year  = current_year;
+                        res.lowest_eff_wr_start_month = current_month;
+                        res.lowest_eff_wr_year        = y;
+                        res.lowest_eff_wr             = eff_wr;
+                    }
+
+                    if (!res.highest_eff_wr_year || eff_wr > res.highest_eff_wr) {
+                        res.highest_eff_wr_start_year = current_year;
+                        res.highest_eff_wr_start_month = current_month;
+                        res.highest_eff_wr_year       = y;
+                        res.highest_eff_wr            = eff_wr;
+                    }
+                }
             }
 
             auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
@@ -278,6 +307,9 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
             terminal_values.push_back(final_value);
         }
     }
+
+    res.highest_eff_wr *= 100.0f;
+    res.lowest_eff_wr *= 100.0f;
 
     res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
     res.compute_terminal_values(terminal_values);

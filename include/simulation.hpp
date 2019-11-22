@@ -32,6 +32,16 @@ struct results {
     size_t worst_starting_month = 0;
     size_t worst_starting_year  = 0;
 
+    size_t lowest_eff_wr_year        = 0;
+    size_t lowest_eff_wr_start_year  = 0;
+    size_t lowest_eff_wr_start_month = 0;
+    float lowest_eff_wr              = 0.0f;
+
+    size_t highest_eff_wr_year        = 0;
+    size_t highest_eff_wr_start_year  = 0;
+    size_t highest_eff_wr_start_month = 0;
+    float highest_eff_wr              = 0.0f;
+
     std::string message;
     bool error = false;
 
