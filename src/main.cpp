@@ -229,6 +229,27 @@ int main(int argc, const char* argv[]) {
             auto values         = swr::load_values(portfolio);
             auto inflation_data = swr::load_inflation(values, inflation);
 
+            std::cout << "Withdrawal Rate (WR): " << wr << "%\n"
+                      << "     Number of years: " << years << "\n"
+                      << "               Start: " << start_year << "\n"
+                      << "                 End: " << end_year << "\n"
+                      << "           Portfolio: \n";
+
+            for (auto & position : portfolio) {
+                std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
+            }
+
+            auto printer = [](const std::string& message, const auto & results) {
+                std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
+                          << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum << "]" << std::endl;
+
+                if (results.failures) {
+                    std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << std::endl;
+                }
+            };
+
+            auto start = std::chrono::high_resolution_clock::now();
+
             auto yearly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, false);
 
             if (yearly_results.message.size()) {
@@ -239,23 +260,11 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            std::cout << "Withdrawal Rate (WR): " << wr << "%\n"
-                      << "     Number of years: " << years << "\n"
-                      << "               Start: " << start_year << "\n"
-                      << "                 End: " << end_year << "\n"
-                      << "           Portfolio: \n";
-            for (auto & position : portfolio) {
-                std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
-            }
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            std::cout << "     Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate
-                      << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
+            printer("Yearly", yearly_results);
 
             auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true);
-            std::cout << "     Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate
-                      << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
+
+            printer("Monthly", yearly_results);
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
