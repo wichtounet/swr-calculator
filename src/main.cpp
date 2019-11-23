@@ -189,6 +189,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"tv_minimum\": " << results.tv_minimum << ",\n";
     ss << "  \"tv_maximum\": " << results.tv_maximum << ",\n";
     ss << "  \"tv_median\": " << results.tv_median << ",\n";
+    ss << "  \"worst_duration\": " << results.worst_duration << ",\n";
+    ss << "  \"worst_starting_month\": " << results.worst_starting_month << ",\n";
+    ss << "  \"worst_starting_year\": " << results.worst_starting_year << ",\n";
     ss << "  \"message\": \"" << results.message << "\",\n";
     ss << "  \"error\": " << (results.error ? "true" : "false") << "\n";
     ss << "}}";
