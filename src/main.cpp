@@ -476,6 +476,69 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "trinity_low_yield_sheets") {
+            if (args.size() < 8) {
+                std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
+                return 1;
+            }
+
+            size_t years       = atoi(args[1].c_str());
+            size_t start_year  = atoi(args[2].c_str());
+            size_t end_year    = atoi(args[3].c_str());
+            auto portfolio     = swr::parse_portfolio(args[4]);
+            auto inflation     = args[5];
+            auto rebalance     = swr::parse_rebalance(args[6]);
+            float yield_adjust = atof(args[7].c_str());
+
+            const float start_wr = 3.0f;
+            const float end_wr   = 6.0f;
+            const float add_wr   = 0.1f;
+
+            const float portfolio_add = 10;
+
+            auto values         = swr::load_values(portfolio);
+            auto inflation_data = swr::load_inflation(values, inflation);
+
+            std::cout << "Portfolio";
+            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                std::cout << ";" << wr << "%";
+            }
+            std::cout << "\n";
+
+            for (size_t i = 0; i < portfolio.size(); ++i) {
+                if (portfolio[i].asset == "us_bonds") {
+                    for (auto & value : values[i]) {
+                        value.value = value.value - ((value.value - 1.0f) * yield_adjust);
+                    }
+
+                    break;
+                }
+            }
+
+            auto start = std::chrono::high_resolution_clock::now();
+
+            if (total_allocation(portfolio) == 0.0f) {
+                if (portfolio.size() != 2) {
+                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+                    return 1;
+                }
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    portfolio[0].allocation = float(i);
+                    portfolio[1].allocation = float(100 - i);
+
+                    multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+                }
+            } else {
+                swr::normalize_portfolio(portfolio);
+                multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+            }
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "server") {
             if (args.size() < 3) {
                 std::cout << "Not enough arguments for server" << std::endl;
