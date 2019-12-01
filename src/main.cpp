@@ -3,6 +3,7 @@
 #include <tuple>
 #include <chrono>
 #include <sstream>
+#include <iomanip>
 
 #include "data.hpp"
 #include "portfolio.hpp"
@@ -195,6 +196,75 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"message\": \"" << results.message << "\",\n";
     ss << "  \"error\": " << (results.error ? "true" : "false") << "\n";
     ss << "}}";
+
+    res.set_content(ss.str(), "text/json");
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
+}
+
+void server_retirement_api(const httplib::Request& req, httplib::Response& res) {
+    if (!check_parameters(req, res, {"expenses", "income", "wr", "sr", "nw"})) {
+        return;
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Parse the parameters
+    float wr       = atof(req.get_param_value("wr").c_str());
+    float sr       = atof(req.get_param_value("sr").c_str());
+    float income   = atoi(req.get_param_value("income").c_str());
+    float expenses = atoi(req.get_param_value("expenses").c_str());
+    float nw       = atoi(req.get_param_value("nw").c_str());
+
+    float returns   = 7.0f;
+
+    std::cout
+        << "DEBUG: Retirement Request wr=" << wr
+        << " sr=" << sr
+        << " nw=" << nw
+        << " income=" << income
+        << " expenses=" << expenses
+        << std::endl;
+
+    float fi_number = expenses * (100.0f / wr);
+
+    size_t months = 0;
+    while (nw < fi_number) {
+        nw *= 1.0f + (returns / 100.0f) / 12.0f;
+        nw += (income * sr / 100.0f) / 12.0f;
+        ++months;
+    }
+
+    // For now cannot be configured
+    bool monthly_wr = false;
+    auto rebalance  = swr::Rebalancing::YEARLY;
+    float threshold = 0.0f;
+
+    auto portfolio100   = swr::parse_portfolio("us_stocks:100;");
+    auto values100      = swr::load_values(portfolio100);
+    auto portfolio60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;");
+    auto values60      = swr::load_values(portfolio60);
+    auto portfolio40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;");
+    auto values40      = swr::load_values(portfolio40);
+
+    auto inflation_data = swr::load_inflation(values100, "us_inflation");
+
+    auto results100 = simulation(portfolio100, inflation_data, values100, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
+    auto results60  = simulation(portfolio60,  inflation_data, values60, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
+    auto results40  = simulation(portfolio40,  inflation_data, values40, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
+
+    std::stringstream ss;
+
+    ss << "{ \"results\": {\n"
+       << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
+       << "  \"years\": " << months / 12 << ",\n"
+       << "  \"months\": " << months % 12 << ",\n"
+       << "  \"success_rate_100\": " << results100.success_rate << "\n,"
+       << "  \"success_rate_60\": "  << results60.success_rate << "\n,"
+       << "  \"success_rate_40\": "  << results40.success_rate << "\n"
+       << "}}";
 
     res.set_content(ss.str(), "text/json");
 
@@ -551,6 +621,7 @@ int main(int argc, const char* argv[]) {
             httplib::Server server;
 
             server.Get("/api/simple", &server_simple_api);
+            server.Get("/api/retirement", &server_retirement_api);
 
             install_signal_handler();
 
