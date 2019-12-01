@@ -555,7 +555,7 @@ int main(int argc, const char* argv[]) {
             install_signal_handler();
 
             server_ptr = &server;
-            std::cout << "Server is starting to listen on localhost:8080" << std::endl;
+            std::cout << "Server is starting to listen on " << listen << ":" << port << std::endl;
             server.listen(listen.c_str(), port);
             std::cout << "Server has exited" << std::endl;
         } else {
