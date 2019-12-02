@@ -263,8 +263,8 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
-       << "  \"success_rate_100\": " << results100.success_rate << "\n,"
-       << "  \"success_rate_60\": "  << results60.success_rate << "\n,"
+       << "  \"success_rate_100\": " << results100.success_rate << ",\n"
+       << "  \"success_rate_60\": "  << results60.success_rate << ",\n"
        << "  \"success_rate_40\": "  << results40.success_rate << "\n"
        << "}}";
 
