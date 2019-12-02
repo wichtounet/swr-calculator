@@ -258,6 +258,8 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     std::stringstream ss;
 
     ss << "{ \"results\": {\n"
+       << "  \"message\": \"\",\n"
+       << "  \"error\": false,\n"
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
