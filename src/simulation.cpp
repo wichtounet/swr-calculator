@@ -60,6 +60,12 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
         return res;
     }
 
+    if (!years) {
+        res.message = "The number of years must be at least 1";
+        res.error = true;
+        return res;
+    }
+
     // 1. Adapt the start and end year with inflation and stocks
     // Note: the data is already normalized so we do not have to check for stat
     // and end months
