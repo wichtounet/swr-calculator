@@ -399,6 +399,63 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "analysis") {
+            if (args.size() < 2) {
+                std::cout << "Not enough arguments for analysis" << std::endl;
+                return 1;
+            }
+
+            size_t start_year = atoi(args[1].c_str());
+            size_t end_year   = atoi(args[2].c_str());
+
+            auto portfolio = swr::parse_portfolio("us_stocks:50;us_bonds:50;");
+
+            auto values         = swr::load_values(portfolio);
+            auto inflation_data = swr::load_inflation(values, "us_inflation");
+
+            auto analyzer = [&](auto & v, const std::string & name) {
+                float average = 0.0f;
+
+                float worst_month = 1.0f;
+                std::string worst_month_str;
+
+                float best_month = 0.0f;
+                std::string best_month_str;
+
+                size_t negative = 0;
+                size_t total = 0;
+
+                for (auto value : v) {
+                    if (value.year >= start_year && value.year <= end_year) {
+                        if (value.value < worst_month) {
+                            worst_month = value.value;
+                            worst_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
+                        }
+
+                        if (value.value > best_month) {
+                            best_month = value.value;
+                            best_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
+                        }
+
+                        ++total;
+
+                        if (value.value < 1.0f) {
+                            ++negative;
+                        }
+
+                        average += value.value;
+                    }
+                }
+
+                std::cout << name << " average returns: +" << 100.0f * ((average / total) - 1.0f) << "%" << std::endl;
+                std::cout << name << " best returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
+                std::cout << name << " worst returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
+                std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
+            };
+
+            analyzer(values[0], "Stocks");
+            analyzer(values[1], "Bonds");
+            analyzer(inflation_data, "Inflation");
         } else if (command == "trinity_success_sheets") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
