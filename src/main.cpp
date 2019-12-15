@@ -412,11 +412,23 @@ int main(int argc, const char* argv[]) {
             auto inflation    = args[5];
             auto rebalance    = swr::parse_rebalance(args[6]);
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 6.0f;
-            const float add_wr   = 0.1f;
+            float portfolio_add = 25;
 
-            const float portfolio_add = 25;
+            float start_wr = 3.0f;
+            float end_wr   = 6.0f;
+            float add_wr   = 0.1f;
+
+            if (args.size() > 7){
+                portfolio_add = atof(args[7].c_str());
+            }
+
+            if (args.size() > 8) {
+                start_wr = atof(args[8].c_str());
+            }
+
+            if (args.size() > 9) {
+                end_wr = atof(args[9].c_str());
+            }
 
             auto values         = swr::load_values(portfolio);
             auto inflation_data = swr::load_inflation(values, inflation);
