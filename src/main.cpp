@@ -23,34 +23,49 @@ std::vector<std::string> parse_args(int argc, const char* argv[]){
     return args;
 }
 
-void multiple_wr(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, swr::Rebalancing rebalance){
+void multiple_wr(swr::scenario scenario){
     std::cout << "           Portfolio: \n";
-    for (auto & position : portfolio) {
+    for (auto & position : scenario.portfolio) {
         std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
     }
 
     std::cout << "\n";
 
     for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
-        auto yearly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, false, rebalance);
+        scenario.wr         = wr;
+        scenario.monthly_wr = false;
+
+        auto yearly_results = swr::simulation(scenario);
         std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate << "%"
                   << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
 
-        auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true, rebalance);
+        if (yearly_results.error) {
+            std::cout << "Error in simulation: " << yearly_results.message << std::endl;
+            return;
+        }
+
+        scenario.monthly_wr = true;
+        auto monthly_results = swr::simulation(scenario);
         std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate << "%"
                   << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
+
+        if (monthly_results.error) {
+            std::cout << "Error in simulation: " << monthly_results.message << std::endl;
+            return;
+        }
     }
 }
 
-void multiple_wr_success_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
-    for (auto& position : portfolio) {
+void multiple_wr_success_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    for (auto& position : scenario.portfolio) {
         if (position.allocation > 0) {
             std::cout << position.allocation << "% " << position.asset << " ";
         }
     }
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true, rebalance);
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
         std::cout << ';' << monthly_results.success_rate;
     }
 
@@ -66,14 +81,15 @@ void csv_print(const std::string& header, const std::vector<T> & values) {
     std::cout << "\n";
 }
 
-void multiple_wr_tv_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
+void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
     std::vector<float> min_tv;
     std::vector<float> max_tv;
     std::vector<float> avg_tv;
     std::vector<float> med_tv;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true, rebalance);
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
         min_tv.push_back(monthly_results.tv_minimum);
         max_tv.push_back(monthly_results.tv_maximum);
         avg_tv.push_back(monthly_results.tv_average);
@@ -86,15 +102,16 @@ void multiple_wr_tv_sheets(const std::vector<swr::allocation>& portfolio, const 
     csv_print("MAX", max_tv);
 }
 
-void multiple_rebalance_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance, float threshold = 0.0f){
-    if (rebalance == swr::Rebalancing::THRESHOLD) {
-        std::cout << threshold << " ";
+void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
+        std::cout << scenario.threshold << " ";
     } else {
-        std::cout << rebalance << " ";
+        std::cout << scenario.rebalance << " ";
     }
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true, rebalance, threshold);
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
         std::cout << ';' << monthly_results.success_rate;
     }
 
@@ -140,45 +157,47 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
+    swr::scenario scenario;
+
     // Parse the parameters
     auto portfolio_base = req.get_param_value("portfolio");
-    auto portfolio      = swr::parse_portfolio(portfolio_base);
+    scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     auto inflation      = req.get_param_value("inflation");
-    float wr            = atof(req.get_param_value("wr").c_str());
-    float years         = atoi(req.get_param_value("years").c_str());
-    float start_year    = atoi(req.get_param_value("start").c_str());
-    float end_year      = atoi(req.get_param_value("end").c_str());
+    scenario.wr         = atof(req.get_param_value("wr").c_str());
+    scenario.years      = atoi(req.get_param_value("years").c_str());
+    scenario.start_year = atoi(req.get_param_value("start").c_str());
+    scenario.end_year   = atoi(req.get_param_value("end").c_str());
 
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
-        << " wr=" << wr
-        << " years=" << years
-        << " start_year=" << start_year
-        << " end_year=" << end_year
+        << " wr=" << scenario.wr
+        << " years=" << scenario.years
+        << " start_year=" << scenario.start_year
+        << " end_year=" << scenario.end_year
         << std::endl;
 
     // For now cannot be configured
-    bool monthly_wr = false;
-    auto rebalance  = swr::Rebalancing::NONE;
-    float threshold = 0.0f;
+    scenario.monthly_wr = false;
+    scenario.rebalance  = swr::Rebalancing::NONE;
+    scenario.threshold = 0.0f;
 
-    swr::normalize_portfolio(portfolio);
+    swr::normalize_portfolio(scenario.portfolio);
 
-    auto values         = swr::load_values(portfolio);
-    auto inflation_data = swr::load_inflation(values, inflation);
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-    if (values.empty()) {
+    if (scenario.values.empty()) {
         res.set_content(std::string("Error: Invalid portfolio: ") + portfolio_base, "text/plain");
         return;
     }
 
-    if (inflation_data.empty()) {
+    if (scenario.inflation_data.empty()) {
         res.set_content("Error: Invalid inflation", "text/plain");
         return;
     }
 
-    auto results = simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, monthly_wr, rebalance, threshold);
+    auto results = simulation(scenario);
 
     std::stringstream ss;
 
@@ -211,8 +230,10 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     auto start = std::chrono::high_resolution_clock::now();
 
+    swr::scenario scenario;
+
     // Parse the parameters
-    float wr       = atof(req.get_param_value("wr").c_str());
+    scenario.wr       = atof(req.get_param_value("wr").c_str());
     float sr       = atof(req.get_param_value("sr").c_str());
     float income   = atoi(req.get_param_value("income").c_str());
     float expenses = atoi(req.get_param_value("expenses").c_str());
@@ -221,14 +242,14 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     float returns   = 7.0f;
 
     std::cout
-        << "DEBUG: Retirement Request wr=" << wr
+        << "DEBUG: Retirement Request wr=" << scenario.wr
         << " sr=" << sr
         << " nw=" << nw
         << " income=" << income
         << " expenses=" << expenses
         << std::endl;
 
-    float fi_number = expenses * (100.0f / wr);
+    float fi_number = expenses * (100.0f / scenario.wr);
 
     size_t months = 0;
     while (nw < fi_number) {
@@ -238,9 +259,12 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     // For now cannot be configured
-    bool monthly_wr = false;
-    auto rebalance  = swr::Rebalancing::YEARLY;
-    float threshold = 0.0f;
+    scenario.monthly_wr = false;
+    scenario.rebalance  = swr::Rebalancing::YEARLY;
+    scenario.threshold  = 0.0f;
+    scenario.years      = 30;
+    scenario.start_year = 1871;
+    scenario.end_year   = 2018;
 
     auto portfolio100   = swr::parse_portfolio("us_stocks:100;");
     auto values100      = swr::load_values(portfolio100);
@@ -249,11 +273,19 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     auto portfolio40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;");
     auto values40      = swr::load_values(portfolio40);
 
-    auto inflation_data = swr::load_inflation(values100, "us_inflation");
+    scenario.inflation_data = swr::load_inflation(values100, "us_inflation");
 
-    auto results100 = simulation(portfolio100, inflation_data, values100, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
-    auto results60  = simulation(portfolio60,  inflation_data, values60, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
-    auto results40  = simulation(portfolio40,  inflation_data, values40, 30, wr, 1871, 2018, monthly_wr, rebalance, threshold);
+    scenario.portfolio = portfolio100;
+    scenario.values = values100;
+    auto results100 = simulation(scenario);
+
+    scenario.portfolio = portfolio60;
+    scenario.values = values60;
+    auto results60  = simulation(scenario);
+
+    scenario.portfolio = portfolio40;
+    scenario.values = values40;
+    auto results40  = simulation(scenario);
 
     std::stringstream ss;
 
@@ -292,25 +324,27 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            float wr          = atof(args[1].c_str());
-            size_t years      = atoi(args[2].c_str());
-            size_t start_year = atoi(args[3].c_str());
-            size_t end_year   = atoi(args[4].c_str());
-            auto portfolio    = swr::parse_portfolio(args[5]);
-            auto inflation    = args[6];
+            swr::scenario scenario;
 
-            swr::normalize_portfolio(portfolio);
+            scenario.wr         = atof(args[1].c_str());
+            scenario.years      = atoi(args[2].c_str());
+            scenario.start_year = atoi(args[3].c_str());
+            scenario.end_year   = atoi(args[4].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[5]);
+            auto inflation      = args[6];
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            swr::normalize_portfolio(scenario.portfolio);
 
-            std::cout << "Withdrawal Rate (WR): " << wr << "%\n"
-                      << "     Number of years: " << years << "\n"
-                      << "               Start: " << start_year << "\n"
-                      << "                 End: " << end_year << "\n"
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
+                      << "     Number of years: " << scenario.years << "\n"
+                      << "               Start: " << scenario.start_year << "\n"
+                      << "                 End: " << scenario.end_year << "\n"
                       << "           Portfolio: \n";
 
-            for (auto & position : portfolio) {
+            for (auto & position : scenario.portfolio) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
@@ -333,7 +367,8 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            auto yearly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, false);
+            scenario.monthly_wr = false;
+            auto yearly_results = swr::simulation(scenario);
 
             if (yearly_results.message.size()) {
                 std::cout << yearly_results.message << std::endl;
@@ -345,7 +380,8 @@ int main(int argc, const char* argv[]) {
 
             printer("Yearly", yearly_results);
 
-            auto monthly_results = swr::simulation(portfolio, inflation_data, values, years, wr, start_year, end_year, true);
+            scenario.monthly_wr = true;
+            auto monthly_results = swr::simulation(scenario);
 
             printer("Monthly", yearly_results);
 
@@ -360,38 +396,40 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            size_t years      = atoi(args[1].c_str());
-            size_t start_year = atoi(args[2].c_str());
-            size_t end_year   = atoi(args[3].c_str());
-            auto portfolio    = swr::parse_portfolio(args[4]);
-            auto inflation    = args[5];
-            auto rebalance    = swr::parse_rebalance(args[6]);
+            swr::scenario scenario;
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            std::cout << "     Number of years: " << years << "\n"
-                      << "           Rebalance: " << rebalance << "\n"
-                      << "               Start: " << start_year << "\n"
-                      << "                 End: " << end_year << "\n";
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::cout << "     Number of years: " << scenario.years << "\n"
+                      << "           Rebalance: " << scenario.rebalance << "\n"
+                      << "               Start: " << scenario.start_year << "\n"
+                      << "                 End: " << scenario.end_year << "\n";
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            if (total_allocation(portfolio) == 0.0f) {
-                if (portfolio.size() != 2) {
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
                     return 1;
                 }
 
                 for (size_t i = 0; i <= 100; i += 5) {
-                    portfolio[0].allocation = float(i);
-                    portfolio[1].allocation = float(100 - i);
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr(portfolio, inflation_data, values, years, start_year, end_year, rebalance);
+                    multiple_wr(scenario);
                 }
             } else {
-                swr::normalize_portfolio(portfolio);
-                multiple_wr(portfolio, inflation_data, values, years, start_year, end_year, rebalance);
+                swr::normalize_portfolio(scenario.portfolio);
+                multiple_wr(scenario);
             }
 
             auto end = std::chrono::high_resolution_clock::now();
@@ -462,12 +500,14 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            size_t years      = atoi(args[1].c_str());
-            size_t start_year = atoi(args[2].c_str());
-            size_t end_year   = atoi(args[3].c_str());
-            auto portfolio    = swr::parse_portfolio(args[4]);
-            auto inflation    = args[5];
-            auto rebalance    = swr::parse_rebalance(args[6]);
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
 
             float portfolio_add = 25;
 
@@ -487,13 +527,17 @@ int main(int argc, const char* argv[]) {
                 end_wr = atof(args[9].c_str());
             }
 
-            std::string exchange_rate;
             if (args.size() > 10) {
-                exchange_rate = args[10];
+                add_wr = atof(args[10].c_str());
             }
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            std::string exchange_rate;
+            if (args.size() > 11) {
+                exchange_rate = args[11];
+            }
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
             swr::data_vector exchange_data;
             if (exchange_rate.size()) {
@@ -506,21 +550,21 @@ int main(int argc, const char* argv[]) {
             }
             std::cout << "\n";
 
-            if (total_allocation(portfolio) == 0.0f) {
-                if (portfolio.size() != 2) {
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
                     return 1;
                 }
 
                 for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    portfolio[0].allocation = float(i);
-                    portfolio[1].allocation = float(100 - i);
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
                 }
             } else {
-                swr::normalize_portfolio(portfolio);
-                multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+                swr::normalize_portfolio(scenario.portfolio);
+                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
             }
         } else if (command == "trinity_tv_sheets") {
             if (args.size() < 7) {
@@ -528,19 +572,21 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            size_t years      = atoi(args[1].c_str());
-            size_t start_year = atoi(args[2].c_str());
-            size_t end_year   = atoi(args[3].c_str());
-            auto portfolio    = swr::parse_portfolio(args[4]);
-            auto inflation    = args[5];
-            auto rebalance    = swr::parse_rebalance(args[6]);
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
 
             const float start_wr = 3.0f;
             const float end_wr   = 5.0f;
             const float add_wr   = 0.25f;
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
             std::cout << "Withdrawal Rate";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -548,26 +594,28 @@ int main(int argc, const char* argv[]) {
             }
             std::cout << "\n";
 
-            swr::normalize_portfolio(portfolio);
-            multiple_wr_tv_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+            swr::normalize_portfolio(scenario.portfolio);
+            multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
         } else if (command == "rebalance_sheets") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
                 return 1;
             }
 
-            size_t years      = atoi(args[1].c_str());
-            size_t start_year = atoi(args[2].c_str());
-            size_t end_year   = atoi(args[3].c_str());
-            auto portfolio    = swr::parse_portfolio(args[4]);
-            auto inflation    = args[5];
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio    = swr::parse_portfolio(args[4]);
+            auto inflation        = args[5];
 
             const float start_wr = 3.0f;
             const float end_wr   = 6.0f;
             const float add_wr   = 0.1f;
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
             std::cout << "Rebalance";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -577,10 +625,16 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            swr::normalize_portfolio(portfolio);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::NONE);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::MONTHLY);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::YEARLY);
+            swr::normalize_portfolio(scenario.portfolio);
+
+            scenario.rebalance = swr::Rebalancing::NONE;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.rebalance = swr::Rebalancing::MONTHLY;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.rebalance = swr::Rebalancing::YEARLY;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -593,18 +647,20 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            size_t years      = atoi(args[1].c_str());
-            size_t start_year = atoi(args[2].c_str());
-            size_t end_year   = atoi(args[3].c_str());
-            auto portfolio    = swr::parse_portfolio(args[4]);
-            auto inflation    = args[5];
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
 
             const float start_wr = 3.0f;
             const float end_wr   = 6.0f;
             const float add_wr   = 0.1f;
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
             std::cout << "Rebalance";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -614,13 +670,27 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            swr::normalize_portfolio(portfolio);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.01);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.02);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.05);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.10);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.25);
-            multiple_rebalance_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, swr::Rebalancing::THRESHOLD, 0.50);
+            swr::normalize_portfolio(scenario.portfolio);
+
+            scenario.rebalance = swr::Rebalancing::THRESHOLD;
+
+            scenario.threshold = 0.01;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.threshold = 0.02;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.threshold = 0.05;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.threshold = 0.10;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.threshold = 0.25;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+            scenario.threshold = 0.50;
+            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -633,13 +703,15 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            size_t years       = atoi(args[1].c_str());
-            size_t start_year  = atoi(args[2].c_str());
-            size_t end_year    = atoi(args[3].c_str());
-            auto portfolio     = swr::parse_portfolio(args[4]);
-            auto inflation     = args[5];
-            auto rebalance     = swr::parse_rebalance(args[6]);
-            float yield_adjust = atof(args[7].c_str());
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+            float yield_adjust  = atof(args[7].c_str());
 
             const float start_wr = 3.0f;
             const float end_wr   = 6.0f;
@@ -647,8 +719,8 @@ int main(int argc, const char* argv[]) {
 
             const float portfolio_add = 10;
 
-            auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, inflation);
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
             std::cout << "Portfolio";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -656,9 +728,9 @@ int main(int argc, const char* argv[]) {
             }
             std::cout << "\n";
 
-            for (size_t i = 0; i < portfolio.size(); ++i) {
-                if (portfolio[i].asset == "us_bonds") {
-                    for (auto & value : values[i]) {
+            for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+                if (scenario.portfolio[i].asset == "us_bonds") {
+                    for (auto & value : scenario.values[i]) {
                         value.value = value.value - ((value.value - 1.0f) * yield_adjust);
                     }
 
@@ -668,21 +740,21 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            if (total_allocation(portfolio) == 0.0f) {
-                if (portfolio.size() != 2) {
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
                     return 1;
                 }
 
                 for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    portfolio[0].allocation = float(i);
-                    portfolio[1].allocation = float(100 - i);
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
                 }
             } else {
-                swr::normalize_portfolio(portfolio);
-                multiple_wr_success_sheets(portfolio, inflation_data, values, years, start_year, end_year, start_wr, end_wr, add_wr, rebalance);
+                swr::normalize_portfolio(scenario.portfolio);
+                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
             }
 
             auto end = std::chrono::high_resolution_clock::now();

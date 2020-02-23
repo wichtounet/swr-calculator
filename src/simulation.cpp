@@ -47,20 +47,22 @@ std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance)
     return out << "Unknown rebalancing";
 }
 
-swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, float wr, size_t start_year, size_t end_year, bool monthly_wr, Rebalancing rebalance, float threshold) {
+swr::results swr::simulation(scenario & scenario) {
+    auto & inflation_data = scenario.inflation_data;
+    auto & values = scenario.values;
 
     // The final results
     swr::results res;
 
     // 0. Make sure the years make some sense
 
-    if (start_year >= end_year) {
+    if (scenario.start_year >= scenario.end_year) {
         res.message = "The end year must be higher than the start year";
         res.error = true;
         return res;
     }
 
-    if (!years) {
+    if (!scenario.years) {
         res.message = "The number of years must be at least 1";
         res.error = true;
         return res;
@@ -74,14 +76,14 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
 
     // A. If the interval is totally out, there is nothing we can do
 
-    if (!valid_year(inflation_data, start_year) && !valid_year(inflation_data, end_year)) {
+    if (!valid_year(inflation_data, scenario.start_year) && !valid_year(inflation_data, scenario.end_year)) {
         res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
         res.error = true;
         return res;
     }
 
     for (auto& v : values) {
-        if (!valid_year(v, start_year) && !valid_year(v, end_year)) {
+        if (!valid_year(v, scenario.start_year) && !valid_year(v, scenario.end_year)) {
             res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
             res.error = true;
             return res;
@@ -90,38 +92,38 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
 
     // B. Try to adapt the years
 
-    if (inflation_data.front().year > start_year) {
-        start_year = inflation_data.front().year;
+    if (inflation_data.front().year > scenario.start_year) {
+        scenario.start_year = inflation_data.front().year;
         changed    = true;
     }
 
-    if (inflation_data.back().year < end_year) {
-        end_year = inflation_data.back().year;
+    if (inflation_data.back().year < scenario.end_year) {
+        scenario.end_year = inflation_data.back().year;
         changed  = true;
     }
 
     for (auto& v : values) {
-        if (v.front().year > start_year) {
-            start_year = v.front().year;
+        if (v.front().year > scenario.start_year) {
+            scenario.start_year = v.front().year;
             changed    = true;
         }
 
-        if (v.back().year < end_year) {
-            end_year = v.back().year;
+        if (v.back().year < scenario.end_year) {
+            scenario.end_year = v.back().year;
             changed  = true;
         }
     }
 
     if (changed) {
         // It's possible that the change is invalid
-        if (end_year == start_year) {
+        if (scenario.end_year == scenario.start_year) {
             res.message = "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
             res.error = true;
             return res;
         } else {
             std::stringstream ss;
             ss << "The period has been changed to "
-               << start_year << ":" << end_year
+               << scenario.start_year << ":" << scenario.end_year
                << " based on the available data. ";
             res.message = ss.str();
         }
@@ -129,18 +131,18 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
 
     // 2. Make sure the simulation makes sense
 
-    if (end_year - start_year < years) {
+    if (scenario.end_year - scenario.start_year < scenario.years) {
         std::stringstream ss;
-        ss << "The period is too short for a " << years << " years simulation. "
+        ss << "The period is too short for a " << scenario.years << " years simulation. "
            << "The number of years has been reduced to "
-           << (end_year - start_year);
+           << (scenario.end_year - scenario.start_year);
         res.message += ss.str();
 
-        years = end_year - start_year;
+        scenario.years = scenario.end_year - scenario.start_year;
     }
 
-    const size_t months           = years * 12;
-    const size_t number_of_assets = portfolio.size();
+    const size_t months           = scenario.years * 12;
+    const size_t number_of_assets = scenario.portfolio.size();
     const float start_value       = 1000.0f;
 
     // 3. Do the actual simulation
@@ -148,18 +150,18 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
     std::vector<float> terminal_values;
     std::vector<std::vector<swr::data>::const_iterator> returns(number_of_assets);
 
-    for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
+    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
             size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
             size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
 
             // The amount of money withdrawn per year
-            float withdrawal = start_value * wr / 100.0f;
+            float withdrawal = start_value * scenario.wr / 100.0f;
 
             std::vector<float> current_values(number_of_assets);
 
             for (size_t i = 0; i < number_of_assets; ++i) {
-                current_values[i] = start_value * (portfolio[i].allocation / 100.0f);
+                current_values[i] = start_value * (scenario.portfolio[i].allocation / 100.0f);
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
@@ -179,7 +181,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                     }
 
                     // Monthly Rebalance if necessary
-                    if (rebalance == Rebalancing::MONTHLY) {
+                    if (scenario.rebalance == Rebalancing::MONTHLY) {
                         // Pay the fees
                         for (size_t i = 0; i < number_of_assets; ++i) {
                             current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
@@ -188,17 +190,17 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                         for (size_t i = 0; i < number_of_assets; ++i) {
-                            current_values[i] = total_value * (portfolio[i].allocation / 100.0f);
+                            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                         }
                     }
 
                     // Threshold Rebalance if necessary
-                    if (rebalance == Rebalancing::THRESHOLD) {
+                    if (scenario.rebalance == Rebalancing::THRESHOLD) {
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                         bool rebalance = false;
                         for (size_t i = 0; i < number_of_assets; ++i) {
-                            if (std::abs((portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= threshold) {
+                            if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
                                 rebalance = true;
                                 break;
                             }
@@ -211,7 +213,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                             }
 
                             for (size_t i = 0; i < number_of_assets; ++i) {
-                                current_values[i] = total_value * (portfolio[i].allocation / 100.0f);
+                                current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                             }
                         }
                     }
@@ -221,7 +223,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                     ++inflation;
 
                     // Withdraw money from the portfolio
-                    if (monthly_wr) {
+                    if (scenario.monthly_wr) {
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                         withdrawed += withdrawal;
@@ -244,7 +246,7 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                 }
 
                 // Yearly Rebalance if necessary
-                if (rebalance == Rebalancing::YEARLY) {
+                if (scenario.rebalance == Rebalancing::YEARLY) {
                     // Pay the fees
                     for (size_t i = 0; i < number_of_assets; ++i) {
                         current_values[i] *= 1.0f - yearly_rebalancing_cost / 100.0f;
@@ -253,12 +255,12 @@ swr::results swr::simulation(const std::vector<swr::allocation>& portfolio, cons
                     auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                     for (size_t i = 0; i < number_of_assets; ++i) {
-                        current_values[i] = total_value * (portfolio[i].allocation / 100.0f);
+                        current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                     }
                 }
 
                 // Full yearly withdrawal
-                if (!monthly_wr) {
+                if (!scenario.monthly_wr) {
                     auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                     withdrawed += withdrawal;

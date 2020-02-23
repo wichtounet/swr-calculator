@@ -17,6 +17,20 @@ enum class Rebalancing : uint64_t {
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 
+struct scenario {
+    std::vector<swr::allocation>        portfolio;
+    std::vector<swr::data>              inflation_data;
+    std::vector<std::vector<swr::data>> values;
+
+    size_t      years;
+    float       wr;
+    size_t      start_year;
+    size_t      end_year;
+    bool        monthly_wr = true;
+    Rebalancing rebalance = Rebalancing::NONE;
+    float       threshold = 0.0f;
+};
+
 struct results {
     size_t successes = 0;
     size_t failures  = 0;
@@ -48,7 +62,7 @@ struct results {
     void compute_terminal_values(std::vector<float> & terminal_values);
 };
 
-results simulation(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, float wr, size_t start_year, size_t end_year, bool monthly_wr, Rebalancing rebalance = Rebalancing::NONE, float threshold = 0.0f);
+results simulation(scenario & scenario);
 
 size_t simulations_ran();
 
