@@ -531,17 +531,33 @@ int main(int argc, const char* argv[]) {
                 add_wr = atof(args[10].c_str());
             }
 
-            std::string exchange_rate;
-            if (args.size() > 11) {
-                exchange_rate = args[11];
-            }
-
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            swr::data_vector exchange_data;
-            if (exchange_rate.size()) {
-                exchange_data = swr::load_exchange(exchange_rate);
+            if (args.size() > 11) {
+                std::string country = args[11];
+
+                if (country == "switzerland") {
+                    auto exchange_data = swr::load_exchange("usd_chf");
+
+                    scenario.exchanges.resize(scenario.values.size());
+
+                    for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+                        scenario.exchanges[i] = exchange_data;
+                        if (scenario.portfolio[i].asset == "us_stocks") {
+                            scenario.exchanges[i] = exchange_data;
+                        } else {
+                            scenario.exchanges[i] = exchange_data;
+
+                            for (auto& v : scenario.exchanges[i]) {
+                                v.value = 1;
+                            }
+                        }
+                    }
+                } else {
+                    std::cout << "No support for country: " << country << std::endl;
+                    return 1;
+                }
             }
 
             std::cout << "Portfolio";

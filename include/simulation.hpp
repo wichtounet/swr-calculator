@@ -21,6 +21,7 @@ struct scenario {
     std::vector<swr::allocation>        portfolio;
     std::vector<swr::data>              inflation_data;
     std::vector<std::vector<swr::data>> values;
+    std::vector<std::vector<swr::data>> exchanges;
 
     size_t      years;
     float       wr;
