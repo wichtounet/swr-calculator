@@ -23,7 +23,7 @@ std::vector<std::string> parse_args(int argc, const char* argv[]){
     return args;
 }
 
-void multiple_wr(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, size_t start_year, size_t end_year, swr::Rebalancing rebalance){
+void multiple_wr(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, swr::Rebalancing rebalance){
     std::cout << "           Portfolio: \n";
     for (auto & position : portfolio) {
         std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
@@ -42,7 +42,7 @@ void multiple_wr(const std::vector<swr::allocation>& portfolio, const std::vecto
     }
 }
 
-void multiple_wr_success_sheets(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
+void multiple_wr_success_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
     for (auto& position : portfolio) {
         if (position.allocation > 0) {
             std::cout << position.allocation << "% " << position.asset << " ";
@@ -66,7 +66,7 @@ void csv_print(const std::string& header, const std::vector<T> & values) {
     std::cout << "\n";
 }
 
-void multiple_wr_tv_sheets(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
+void multiple_wr_tv_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance){
     std::vector<float> min_tv;
     std::vector<float> max_tv;
     std::vector<float> avg_tv;
@@ -86,7 +86,7 @@ void multiple_wr_tv_sheets(const std::vector<swr::allocation>& portfolio, const 
     csv_print("MAX", max_tv);
 }
 
-void multiple_rebalance_sheets(const std::vector<swr::allocation>& portfolio, const std::vector<swr::data>& inflation_data, const std::vector<std::vector<swr::data>>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance, float threshold = 0.0f){
+void multiple_rebalance_sheets(const std::vector<swr::allocation>& portfolio, const swr::data_vector& inflation_data, const std::vector<swr::data_vector>& values, size_t years, size_t start_year, size_t end_year, float start_wr, float end_wr, float add_wr, swr::Rebalancing rebalance, float threshold = 0.0f){
     if (rebalance == swr::Rebalancing::THRESHOLD) {
         std::cout << threshold << " ";
     } else {
@@ -487,8 +487,18 @@ int main(int argc, const char* argv[]) {
                 end_wr = atof(args[9].c_str());
             }
 
+            std::string exchange_rate;
+            if (args.size() > 10) {
+                exchange_rate = args[10];
+            }
+
             auto values         = swr::load_values(portfolio);
             auto inflation_data = swr::load_inflation(values, inflation);
+
+            swr::data_vector exchange_data;
+            if (exchange_rate.size()) {
+                exchange_data = swr::load_exchange(exchange_rate);
+            }
 
             std::cout << "Portfolio";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {

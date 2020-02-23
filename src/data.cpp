@@ -7,8 +7,8 @@
 
 namespace {
 
-std::vector<swr::data> load_data(const std::string& path) {
-  std::vector<swr::data> points;
+swr::data_vector load_data(const std::string& path) {
+  swr::data_vector points;
 
   std::ifstream file(path);
 
@@ -44,20 +44,20 @@ std::vector<swr::data> load_data(const std::string& path) {
 }
 
 // Make sure that the data ends with a full year
-void fix_end(std::vector<swr::data> & values) {
+void fix_end(swr::data_vector & values) {
     while (values.back().month != 12) {
         values.pop_back();
     }
 }
 
 // Make sure that the data starts with a full year
-void fix_start(std::vector<swr::data> & values) {
+void fix_start(swr::data_vector & values) {
     while (values.front().month != 1) {
         values.erase(values.begin());
     }
 }
 
-void normalize_data(std::vector<swr::data> & values) {
+void normalize_data(swr::data_vector & values) {
     fix_end(values);
     fix_start(values);
 
@@ -75,7 +75,7 @@ void normalize_data(std::vector<swr::data> & values) {
     }
 }
 
-void transform_to_returns(std::vector<swr::data> & values) {
+void transform_to_returns(swr::data_vector & values) {
     // Should already be normalized
     float previous_value = values[0].value;
 
@@ -88,8 +88,8 @@ void transform_to_returns(std::vector<swr::data> & values) {
 
 } // end of anonymous namespace
 
-std::vector<std::vector<swr::data>> swr::load_values(const std::vector<swr::allocation>& portfolio) {
-    std::vector<std::vector<swr::data>> values;
+std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation>& portfolio) {
+    std::vector<swr::data_vector> values;
 
     for (auto& asset : portfolio) {
         const auto & asset_name = asset.asset;
@@ -133,8 +133,8 @@ std::vector<std::vector<swr::data>> swr::load_values(const std::vector<swr::allo
     return values;
 }
 
-std::vector<swr::data> swr::load_inflation(const std::vector<std::vector<swr::data>> & values, const std::string& inflation) {
-    std::vector<swr::data> inflation_data;
+swr::data_vector swr::load_inflation(const std::vector<swr::data_vector> & values, const std::string& inflation) {
+    swr::data_vector inflation_data;
 
     if (inflation == "no_inflation") {
         inflation_data = values.front();
@@ -157,7 +157,18 @@ std::vector<swr::data> swr::load_inflation(const std::vector<std::vector<swr::da
     return inflation_data;
 }
 
-float swr::get_value(const std::vector<swr::data>& values, size_t year, size_t month) {
+swr::data_vector swr::load_exchange(const std::string& exchange) {
+    auto exchange_data = load_data("stock-data/" + exchange + ".csv");
+
+    if (exchange_data.empty()) {
+        std::cout << "Impossible to load exchange data for " << exchange << std::endl;
+        return {};
+    }
+
+    return exchange_data;
+}
+
+float swr::get_value(const swr::data_vector& values, size_t year, size_t month) {
     for (auto & data : values) {
         if (data.year == year && data.month == month) {
             return data.value;
@@ -169,7 +180,7 @@ float swr::get_value(const std::vector<swr::data>& values, size_t year, size_t m
     return 0.0f;
 }
 
-std::vector<swr::data>::const_iterator swr::get_start(const std::vector<swr::data>& values, size_t year, size_t month) {
+swr::data_vector::const_iterator swr::get_start(const swr::data_vector& values, size_t year, size_t month) {
     auto it  = values.begin();
     auto end = values.end();
 
