@@ -333,6 +333,10 @@ int main(int argc, const char* argv[]) {
             scenario.portfolio  = swr::parse_portfolio(args[5]);
             auto inflation      = args[6];
 
+            if (args.size() > 7) {
+                scenario.fees = atof(args[7].c_str()) / 100.0f;
+            }
+
             swr::normalize_portfolio(scenario.portfolio);
 
             scenario.values         = swr::load_values(scenario.portfolio);
@@ -342,6 +346,7 @@ int main(int argc, const char* argv[]) {
                       << "     Number of years: " << scenario.years << "\n"
                       << "               Start: " << scenario.start_year << "\n"
                       << "                 End: " << scenario.end_year << "\n"
+                      << "                 TER: " << 100.0f * scenario.fees << "%\n"
                       << "           Portfolio: \n";
 
             for (auto & position : scenario.portfolio) {

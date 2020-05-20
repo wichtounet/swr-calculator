@@ -30,6 +30,7 @@ struct scenario {
     bool        monthly_wr = true;
     Rebalancing rebalance = Rebalancing::NONE;
     float       threshold = 0.0f;
+    float       fees = 0.0f; // TER 1% = 0.01
 };
 
 struct results {
