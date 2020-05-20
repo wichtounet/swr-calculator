@@ -221,7 +221,7 @@ swr::results swr::simulation(scenario & scenario) {
                     // Simulate TER
                     if (scenario.fees > 0.0f) {
                         for (size_t i = 0; i < number_of_assets; ++i) {
-                            current_values[i] *= 1.0f - scenario.fees;
+                            current_values[i] *= 1.0f - (scenario.fees / 12.0f);
                         }
                     }
 
