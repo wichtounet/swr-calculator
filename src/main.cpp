@@ -353,12 +353,14 @@ int main(int argc, const char* argv[]) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
-            auto printer = [](const std::string& message, const auto & results) {
+            auto printer = [scenario](const std::string& message, const auto & results) {
                 std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
                           << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum << "]" << std::endl;
 
                 if (results.failures) {
                     std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << std::endl;
+                } else {
+                    std::cout << "         Worst duration: " << scenario.years * 12 << " months" << std::endl;
                 }
 
                 std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% ("
