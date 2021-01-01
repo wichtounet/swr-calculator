@@ -700,6 +700,80 @@ int main(int argc, const char* argv[]) {
                 swr::normalize_portfolio(scenario.portfolio);
                 multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
             }
+        } else if (command == "trinity_duration_sheets") {
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            const float start_wr = 3.0f;
+            const float end_wr   = 5.0f;
+            const float add_wr   = 0.1f;
+
+            const float portfolio_add = 20;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::cout << "Duration";
+
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = float(i);
+                scenario.portfolio[1].allocation = float(100 - i);
+
+                std::cout << ";";
+                for (auto& position : scenario.portfolio) {
+                    if (position.allocation > 0) {
+                        std::cout << position.allocation << "% " << position.asset << " ";
+                    }
+                }
+            }
+
+            std::cout << std::endl;
+
+            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                std::cout << wr;
+
+                scenario.wr = wr;
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    auto monthly_results = swr::simulation(scenario);
+
+                    if (monthly_results.worst_duration == 0) {
+                        std::cout << ";" << scenario.years * 12;
+                    } else {
+                        std::cout << ";" << monthly_results.worst_duration;
+                    }
+                }
+
+                std::cout << std::endl;
+            }
+
+            std::cout << std::endl;
+            std::cout << std::endl;
+
+            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                std::cout << wr;
+
+                scenario.wr = wr;
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    auto monthly_results = swr::simulation(scenario);
+                    std::cout << ";" << monthly_results.success_rate;
+                }
+
+                std::cout << std::endl;
+            }
         } else if (command == "trinity_tv_sheets") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
