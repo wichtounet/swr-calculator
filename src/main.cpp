@@ -444,6 +444,117 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "frequency") {
+            if (args.size() < 6) {
+                std::cout << "Not enough arguments for frequency" << std::endl;
+                return 1;
+            }
+
+            size_t start_year  = atoi(args[1].c_str());
+            size_t end_year    = atoi(args[2].c_str());
+            size_t years       = atoi(args[3].c_str());
+            size_t frequency   = atoi(args[4].c_str());
+            size_t monthly_buy = atoi(args[5].c_str());
+
+            auto portfolio = swr::parse_portfolio("ch_stocks:100;");
+            auto values    = swr::load_values(portfolio);
+
+            const auto months = years * 12;
+
+            std::vector<swr::data>::const_iterator returns;
+
+            float total = 0;
+            float max = 0;
+            size_t simulations = 0;
+
+            for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
+                for (size_t current_month = 1; current_month <= 12; ++current_month) {
+                    size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
+                    size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
+
+                    size_t months = 0;
+
+                    returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
+
+                    float net_worth = 0;
+                    size_t invested = 0;
+
+                    for (size_t y = current_year; y <= end_year; ++y) {
+                        for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                            // Adjust the portfolio with the returns
+                            net_worth *= returns->value;
+                            ++returns;
+
+                            if (months % frequency == frequency - 1) {
+                                net_worth += frequency * monthly_buy;
+                                invested += frequency * monthly_buy;
+                            }
+                        }
+                    }
+
+                    total += net_worth;
+                    ++simulations;
+
+                    max = std::max(net_worth, max);
+                }
+            }
+
+            std::array<float, 6> worst_results;
+            std::array<float, 6> best_results;
+            worst_results.fill(0.0f);
+            best_results.fill(0.0f);
+
+            for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
+                for (size_t current_month = 1; current_month <= 12; ++current_month) {
+                    size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
+                    size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
+
+                    std::array<float, 6> results;
+
+                    for (size_t freq = 1; freq <= 6; ++freq) {
+                        size_t months = 0;
+
+                        returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
+
+                        float net_worth = 0;
+                        size_t invested = 0;
+
+                        for (size_t y = current_year; y <= end_year; ++y) {
+                            for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                                // Adjust the portfolio with the returns
+                                net_worth *= returns->value;
+                                ++returns;
+
+                                if (months % freq == freq - 1) {
+                                    net_worth += freq * monthly_buy;
+                                    invested += freq * monthly_buy;
+                                }
+                            }
+                        }
+
+                        results[freq - 1] = net_worth;
+                    }
+
+                    for (size_t f = 1; f < 6; ++f) {
+                        worst_results[f] = std::max(worst_results[f], results[0] - results[f]);
+                        best_results[f] = std::min(best_results[f], results[0] - results[f]);
+                    }
+                }
+            }
+
+            std::cout << "Average: " << std::fixed << total / simulations << std::endl;
+            std::cout << "Max: " << std::fixed << max << std::endl;
+            std::cout << "Simulations: " << simulations << std::endl;
+
+            for (size_t f = 1; f < 6; ++f) {
+                std::cout << "Worst case " << f+1 << " : " << worst_results[f] << std::endl;
+            }
+
+            for (size_t f = 1; f < 6; ++f) {
+                std::cout << "Best case " << f+1 << " : " << best_results[f] << std::endl;
+            }
+
+
         } else if (command == "analysis") {
             if (args.size() < 2) {
                 std::cout << "Not enough arguments for analysis" << std::endl;
