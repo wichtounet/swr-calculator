@@ -212,6 +212,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"worst_duration\": " << results.worst_duration << ",\n";
     ss << "  \"worst_starting_month\": " << results.worst_starting_month << ",\n";
     ss << "  \"worst_starting_year\": " << results.worst_starting_year << ",\n";
+    ss << "  \"worst_tv\": " << results.worst_tv << ",\n";
+    ss << "  \"worst_tv_month\": " << results.worst_tv_month << ",\n";
+    ss << "  \"worst_tv_year\": " << results.worst_tv_year << ",\n";
+    ss << "  \"best_tv\": " << results.best_tv << ",\n";
+    ss << "  \"best_tv_month\": " << results.best_tv_month << ",\n";
+    ss << "  \"best_tv_year\": " << results.best_tv_year << ",\n";
     ss << "  \"message\": \"" << results.message << "\",\n";
     ss << "  \"error\": " << (results.error ? "true" : "false") << "\n";
     ss << "}}";
