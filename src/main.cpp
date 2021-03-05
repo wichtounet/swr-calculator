@@ -358,10 +358,13 @@ int main(int argc, const char* argv[]) {
                           << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum << "]" << std::endl;
 
                 if (results.failures) {
-                    std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << std::endl;
+                    std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << ")" << std::endl;
                 } else {
                     std::cout << "         Worst duration: " << scenario.years * 12 << " months" << std::endl;
                 }
+
+                std::cout << "         Worst result: " << results.worst_tv << " (" << results.worst_tv_month << "/" << results.worst_tv_year << ")" << std::endl;
+                std::cout << "          Best result: " << results.best_tv << " (" << results.best_tv_month << "/" << results.best_tv_year << ")" << std::endl;
 
                 std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% ("
                           << results.highest_eff_wr_start_month << "/" << results.highest_eff_wr_start_year

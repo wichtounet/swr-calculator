@@ -320,6 +320,32 @@ swr::results swr::simulation(scenario & scenario) {
             }
 
             terminal_values.push_back(final_value);
+
+            // Record periods
+
+            if (!res.best_tv_year) {
+                res.best_tv_year  = current_year;
+                res.best_tv_month = current_month;
+                res.best_tv       = final_value;
+            }
+
+            if (!res.worst_tv_year) {
+                res.worst_tv_year  = current_year;
+                res.worst_tv_month = current_month;
+                res.worst_tv       = final_value;
+            }
+
+            if (final_value < res.worst_tv) {
+                res.worst_tv_year  = current_year;
+                res.worst_tv_month = current_month;
+                res.worst_tv       = final_value;
+            }
+
+            if (final_value > res.best_tv) {
+                res.best_tv_year  = current_year;
+                res.best_tv_month = current_month;
+                res.best_tv       = final_value;
+            }
         }
     }
 

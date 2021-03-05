@@ -58,6 +58,13 @@ struct results {
     size_t highest_eff_wr_start_month = 0;
     float highest_eff_wr              = 0.0f;
 
+    size_t worst_tv       = 0;
+    size_t worst_tv_month = 0;
+    size_t worst_tv_year  = 0;
+    size_t best_tv        = 0;
+    size_t best_tv_month  = 0;
+    size_t best_tv_year   = 0;
+
     std::string message;
     bool error = false;
 
