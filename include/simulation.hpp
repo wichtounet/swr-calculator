@@ -27,10 +27,10 @@ struct scenario {
     float       wr;
     size_t      start_year;
     size_t      end_year;
-    bool        monthly_wr = true;
-    Rebalancing rebalance = Rebalancing::NONE;
-    float       threshold = 0.0f;
-    float       fees = 0.0f; // TER 1% = 0.01
+    size_t      withdraw_frequency = 1;
+    Rebalancing rebalance          = Rebalancing::NONE;
+    float       threshold          = 0.0f;
+    float       fees               = 0.0f; // TER 1% = 0.01
 };
 
 struct results {

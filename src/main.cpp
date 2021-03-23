@@ -33,7 +33,7 @@ void multiple_wr(swr::scenario scenario){
 
     for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
         scenario.wr         = wr;
-        scenario.monthly_wr = false;
+        scenario.withdraw_frequency = 12;
 
         auto yearly_results = swr::simulation(scenario);
         std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate << "%"
@@ -44,7 +44,7 @@ void multiple_wr(swr::scenario scenario){
             return;
         }
 
-        scenario.monthly_wr = true;
+        scenario.withdraw_frequency = 1;
         auto monthly_results = swr::simulation(scenario);
         std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate << "%"
                   << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
@@ -178,7 +178,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << std::endl;
 
     // For now cannot be configured
-    scenario.monthly_wr = false;
+    scenario.withdraw_frequency = 12;
     scenario.rebalance  = swr::Rebalancing::NONE;
     scenario.threshold = 0.0f;
 
@@ -265,12 +265,12 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     // For now cannot be configured
-    scenario.monthly_wr = false;
-    scenario.rebalance  = swr::Rebalancing::YEARLY;
-    scenario.threshold  = 0.0f;
-    scenario.years      = 30;
-    scenario.start_year = 1871;
-    scenario.end_year   = 2018;
+    scenario.withdraw_frequency = 12;
+    scenario.rebalance          = swr::Rebalancing::YEARLY;
+    scenario.threshold          = 0.0f;
+    scenario.years              = 30;
+    scenario.start_year         = 1871;
+    scenario.end_year           = 2018;
 
     auto portfolio100   = swr::parse_portfolio("us_stocks:100;");
     auto values100      = swr::load_values(portfolio100);
@@ -383,7 +383,7 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            scenario.monthly_wr = false;
+            scenario.withdraw_frequency = 12;
             auto yearly_results = swr::simulation(scenario);
 
             if (yearly_results.message.size()) {
@@ -396,10 +396,10 @@ int main(int argc, const char* argv[]) {
 
             printer("Yearly", yearly_results);
 
-            scenario.monthly_wr = true;
+            scenario.withdraw_frequency = 1;
             auto monthly_results = swr::simulation(scenario);
 
-            printer("Monthly", yearly_results);
+            printer("Monthly", monthly_results);
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

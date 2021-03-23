@@ -230,17 +230,18 @@ swr::results swr::simulation(scenario & scenario) {
                     ++inflation;
 
                     // Withdraw money from the portfolio
-                    if (scenario.monthly_wr) {
+                    if ((months - 1) % scenario.withdraw_frequency == 0) {
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
-                        withdrawed += withdrawal;
+                        float withdrawal_amount = withdrawal / (12.0f / scenario.withdraw_frequency);
+                        withdrawed += withdrawal_amount;
 
                         if (total_value > 0.0f) {
                             for (auto& value : current_values) {
-                                value = std::max(0.0f, value - (value / total_value) * (withdrawal / 12.0f));
+                                value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
                             }
 
-                            if (total_value - withdrawal <= 0.0f) {
+                            if (total_value - withdrawal_amount <= 0.0f) {
                                 // Record the worst duration
                                 if (!res.worst_duration || months < res.worst_duration) {
                                     res.worst_duration       = months;
@@ -263,28 +264,6 @@ swr::results swr::simulation(scenario & scenario) {
 
                     for (size_t i = 0; i < number_of_assets; ++i) {
                         current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
-                    }
-                }
-
-                // Full yearly withdrawal
-                if (!scenario.monthly_wr) {
-                    auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
-
-                    withdrawed += withdrawal;
-
-                    if (total_value > 0.0f) {
-                        for (auto& value : current_values) {
-                            value = std::max(0.0f, value - (value / total_value) * withdrawal);
-                        }
-
-                        if (total_value - withdrawal <= 0.0f) {
-                            // Record the worst duration
-                            if (!res.worst_duration || months < res.worst_duration) {
-                                res.worst_duration       = months;
-                                res.worst_starting_month = current_month;
-                                res.worst_starting_year  = current_year;
-                            }
-                        }
                     }
                 }
 
