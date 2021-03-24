@@ -141,7 +141,7 @@ swr::results swr::simulation(scenario & scenario) {
         scenario.years = scenario.end_year - scenario.start_year;
     }
 
-    const size_t months           = scenario.years * 12;
+    const size_t total_months           = scenario.years * 12;
     const size_t number_of_assets = scenario.portfolio.size();
     const float start_value       = 1000.0f;
 
@@ -152,8 +152,8 @@ swr::results swr::simulation(scenario & scenario) {
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
-            size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
+            size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
+            size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
 
             // The amount of money withdrawn per year
             float withdrawal = start_value * scenario.wr / 100.0f;
@@ -168,10 +168,11 @@ swr::results swr::simulation(scenario & scenario) {
             auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
 
             size_t months = 1;
+            size_t withdrawals = 0;
 
             for (size_t y = current_year; y <= end_year; ++y) {
                 auto starting_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
-                float withdrawed = 0.0f;
+                float withdrawn = 0.0f;
 
                 for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
                     // Adjust the portfolio with the returns
@@ -233,8 +234,16 @@ swr::results swr::simulation(scenario & scenario) {
                     if ((months - 1) % scenario.withdraw_frequency == 0) {
                         auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
-                        float withdrawal_amount = withdrawal / (12.0f / scenario.withdraw_frequency);
-                        withdrawed += withdrawal_amount;
+
+                        auto periods = scenario.withdraw_frequency;
+                        if ((months - 1) + scenario.withdraw_frequency > total_months) {
+                            periods = total_months - (months - 1);
+                        }
+
+                        withdrawals += periods;
+
+                        float withdrawal_amount = withdrawal / (12.0f / periods);
+                        withdrawn += withdrawal_amount;
 
                         if (total_value > 0.0f) {
                             for (auto& value : current_values) {
@@ -272,7 +281,7 @@ swr::results swr::simulation(scenario & scenario) {
                 auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
                 if (final_value > 0.0f) {
-                    auto eff_wr = withdrawed / starting_value;
+                    auto eff_wr = withdrawn / starting_value;
 
                     if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
                         res.lowest_eff_wr_start_year  = current_year;
