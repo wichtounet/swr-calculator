@@ -453,6 +453,109 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "withdraw_frequency") {
+            if (args.size() < 7) {
+                std::cout << "Not enough arguments for withdraw_frequency" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.wr         = atof(args[1].c_str());
+            scenario.years      = atoi(args[2].c_str());
+            scenario.start_year = atoi(args[3].c_str());
+            scenario.end_year   = atoi(args[4].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[5]);
+            auto inflation      = args[6];
+
+            if (args.size() > 7) {
+                scenario.fees = atof(args[7].c_str()) / 100.0f;
+            }
+
+            float portfolio_add = 20;
+            if (args.size() > 8){
+                portfolio_add = atof(args[8].c_str());
+            }
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
+                      << "     Number of years: " << scenario.years << "\n"
+                      << "               Start: " << scenario.start_year << "\n"
+                      << "                 End: " << scenario.end_year << "\n"
+                      << "                 TER: " << 100.0f * scenario.fees << "%\n";
+
+            std::cout << total_allocation(scenario.portfolio) << std::endl;
+
+
+            auto start = std::chrono::high_resolution_clock::now();
+
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
+                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+                    return 1;
+                }
+
+                std::cout << "portfolio;";
+                for (size_t f = 1; f <= 24; ++f) {
+                    std::cout << f << ";";
+                }
+                std::cout << std::endl;
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    for (auto& position : scenario.portfolio) {
+                        if (position.allocation > 0) {
+                            std::cout << position.allocation << "% " << position.asset << " ";
+                        }
+                    }
+
+                    for (size_t f = 1; f <= 24; ++f) {
+                        scenario.withdraw_frequency = f;
+
+                        auto results = swr::simulation(scenario);
+
+                        if (results.message.size()) {
+                            std::cout << results.message << std::endl;
+                        }
+
+                        if (results.error) {
+                            return 1;
+                        }
+
+                        std::cout << ";" << results.success_rate;
+                    }
+
+                    std::cout << std::endl;
+                }
+            } else {
+                swr::normalize_portfolio(scenario.portfolio);
+
+                for (size_t f = 1; f <= 24; ++f) {
+                    scenario.withdraw_frequency = f;
+
+                    auto results = swr::simulation(scenario);
+
+                    if (results.message.size()) {
+                        std::cout << results.message << std::endl;
+                    }
+
+                    if (results.error) {
+                        return 1;
+                    }
+
+                    std::cout << f << ";" << results.success_rate << ";" << std::endl;
+                }
+            }
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "frequency") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for frequency" << std::endl;
