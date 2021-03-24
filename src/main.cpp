@@ -486,9 +486,6 @@ int main(int argc, const char* argv[]) {
                       << "                 End: " << scenario.end_year << "\n"
                       << "                 TER: " << 100.0f * scenario.fees << "%\n";
 
-            std::cout << total_allocation(scenario.portfolio) << std::endl;
-
-
             auto start = std::chrono::high_resolution_clock::now();
 
             if (total_allocation(scenario.portfolio) == 0.0f) {

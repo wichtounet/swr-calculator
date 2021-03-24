@@ -4,6 +4,7 @@
 #include <iostream>
 #include <numeric>
 #include <sstream>
+#include <cassert>
 
 namespace {
 
@@ -298,6 +299,8 @@ swr::results swr::simulation(scenario & scenario) {
                     }
                 }
             }
+
+            assert(withdrawals == total_months);
 
             auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
