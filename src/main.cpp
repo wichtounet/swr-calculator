@@ -488,17 +488,17 @@ int main(int argc, const char* argv[]) {
 
             auto start = std::chrono::high_resolution_clock::now();
 
+            std::cout << "portfolio;";
+            for (size_t f = 1; f <= 24; ++f) {
+                std::cout << f << ";";
+            }
+            std::cout << std::endl;
+
             if (total_allocation(scenario.portfolio) == 0.0f) {
                 if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
                     return 1;
                 }
-
-                std::cout << "portfolio;";
-                for (size_t f = 1; f <= 24; ++f) {
-                    std::cout << f << ";";
-                }
-                std::cout << std::endl;
 
                 for (size_t i = 0; i <= 100; i += portfolio_add) {
                     scenario.portfolio[0].allocation = float(i);
@@ -531,6 +531,12 @@ int main(int argc, const char* argv[]) {
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
 
+                for (auto& position : scenario.portfolio) {
+                    if (position.allocation > 0) {
+                        std::cout << position.allocation << "% " << position.asset << " ";
+                    }
+                }
+
                 for (size_t f = 1; f <= 24; ++f) {
                     scenario.withdraw_frequency = f;
 
@@ -544,7 +550,34 @@ int main(int argc, const char* argv[]) {
                         return 1;
                     }
 
-                    std::cout << f << ";" << results.success_rate << ";" << std::endl;
+                    std::cout << ";" << results.success_rate;
+                }
+
+                std::cout << std::endl;
+                std::cout << std::endl;
+
+                for (float w = 3.0f; w <= 6.0f; w += 0.25f) {
+                    std::cout << w;
+
+                    scenario.wr = w;
+
+                    for (size_t f = 1; f <= 24; ++f) {
+                        scenario.withdraw_frequency = f;
+
+                        auto results = swr::simulation(scenario);
+
+                        if (results.message.size()) {
+                            std::cout << results.message << std::endl;
+                        }
+
+                        if (results.error) {
+                            return 1;
+                        }
+
+                        std::cout << ";" << results.success_rate;
+                    }
+
+                    std::cout << std::endl;
                 }
             }
 
