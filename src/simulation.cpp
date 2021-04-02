@@ -174,6 +174,7 @@ swr::results swr::simulation(scenario & scenario) {
 
             size_t months = 1;
             size_t withdrawals = 0;
+            float total_withdrawn = 0.0f;
 
             for (size_t y = current_year; y <= end_year; ++y) {
                 auto starting_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
@@ -281,6 +282,8 @@ swr::results swr::simulation(scenario & scenario) {
                     }
                 }
 
+                total_withdrawn += withdrawn;
+
                 // Yearly Rebalance if necessary
                 if (scenario.rebalance == Rebalancing::YEARLY) {
                     // Pay the fees
@@ -324,6 +327,9 @@ swr::results swr::simulation(scenario & scenario) {
 
             if (final_value > 0.0f) {
                 ++res.successes;
+
+                // Total amount of money withdrawn
+                res.withdrawn_per_year += total_withdrawn;
             } else {
                 ++res.failures;
             }
@@ -357,6 +363,8 @@ swr::results swr::simulation(scenario & scenario) {
             }
         }
     }
+
+    res.withdrawn_per_year = (res.withdrawn_per_year / scenario.years) / float(res.successes);
 
     res.highest_eff_wr *= 100.0f;
     res.lowest_eff_wr *= 100.0f;

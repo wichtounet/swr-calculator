@@ -72,6 +72,8 @@ struct results {
     size_t best_tv_month  = 0;
     size_t best_tv_year   = 0;
 
+    float withdrawn_per_year = 0;
+
     std::string message;
     bool error = false;
 
