@@ -959,6 +959,85 @@ int main(int argc, const char* argv[]) {
 
             swr::normalize_portfolio(scenario.portfolio);
             multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+        } else if (command == "current_wr") {
+            if (args.size() < 7) {
+                std::cout << "Not enough arguments for current_wr" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.method     = swr::Method::CURRENT;
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+            scenario.fees       = 0.001; // TER = 0.1%
+
+            float portfolio_add = 25;
+
+            float start_wr = 3.0f;
+            float end_wr   = 6.0f;
+            float add_wr   = 0.1f;
+
+            if (args.size() > 7){
+                portfolio_add = atof(args[7].c_str());
+            }
+
+            if (args.size() > 8) {
+                start_wr = atof(args[8].c_str());
+            }
+
+            if (args.size() > 9) {
+                end_wr = atof(args[9].c_str());
+            }
+
+            if (args.size() > 10) {
+                add_wr = atof(args[10].c_str());
+            }
+
+            if (args.size() > 11) {
+                scenario.minimum = atoi(args[11].c_str());
+            }
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::cout << "Portfolio";
+            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                std::cout << ";" << wr << "%";
+            }
+            std::cout << "\n";
+
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
+                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+                    return 1;
+                }
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                }
+
+                std::cout << '\n';
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    multiple_wr_withdrawn_sheets(scenario, start_wr, end_wr, add_wr);
+                }
+            } else {
+                swr::normalize_portfolio(scenario.portfolio);
+                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+            }
+
+            std::cout << "\n";
         } else if (command == "rebalance_sheets") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
