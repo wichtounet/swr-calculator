@@ -15,7 +15,8 @@ enum class Rebalancing : uint64_t {
 };
 
 enum class Method : uint64_t {
-    STANDARD
+    STANDARD,
+    CURRENT
 };
 
 Rebalancing parse_rebalance(const std::string& str);
@@ -36,6 +37,7 @@ struct scenario {
     float       threshold          = 0.0f;
     float       fees               = 0.0f; // TER 1% = 0.01
     Method      method             = Method::STANDARD;
+    float       minimum            = 3; // Minimum of 3% * initial
 };
 
 struct results {
