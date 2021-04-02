@@ -232,31 +232,32 @@ swr::results swr::simulation(scenario & scenario) {
                     ++inflation;
 
                     // Withdraw money from the portfolio
-                    if ((months - 1) % scenario.withdraw_frequency == 0) {
-                        auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                    if (scenario.method == Method::STANDARD) {
+                        if ((months - 1) % scenario.withdraw_frequency == 0) {
+                            auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
 
-
-                        auto periods = scenario.withdraw_frequency;
-                        if ((months - 1) + scenario.withdraw_frequency > total_months) {
-                            periods = total_months - (months - 1);
-                        }
-
-                        withdrawals += periods;
-
-                        float withdrawal_amount = withdrawal / (12.0f / periods);
-                        withdrawn += withdrawal_amount;
-
-                        if (total_value > 0.0f) {
-                            for (auto& value : current_values) {
-                                value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+                            auto periods = scenario.withdraw_frequency;
+                            if ((months - 1) + scenario.withdraw_frequency > total_months) {
+                                periods = total_months - (months - 1);
                             }
 
-                            if (total_value - withdrawal_amount <= 0.0f) {
-                                // Record the worst duration
-                                if (!res.worst_duration || months < res.worst_duration) {
-                                    res.worst_duration       = months;
-                                    res.worst_starting_month = current_month;
-                                    res.worst_starting_year  = current_year;
+                            withdrawals += periods;
+
+                            float withdrawal_amount = withdrawal / (12.0f / periods);
+                            withdrawn += withdrawal_amount;
+
+                            if (total_value > 0.0f) {
+                                for (auto& value : current_values) {
+                                    value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+                                }
+
+                                if (total_value - withdrawal_amount <= 0.0f) {
+                                    // Record the worst duration
+                                    if (!res.worst_duration || months < res.worst_duration) {
+                                        res.worst_duration       = months;
+                                        res.worst_starting_month = current_month;
+                                        res.worst_starting_year  = current_year;
+                                    }
                                 }
                             }
                         }

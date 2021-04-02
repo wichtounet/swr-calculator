@@ -14,6 +14,10 @@ enum class Rebalancing : uint64_t {
     THRESHOLD
 };
 
+enum class Method : uint64_t {
+    STANDARD
+};
+
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 
@@ -31,6 +35,7 @@ struct scenario {
     Rebalancing rebalance          = Rebalancing::NONE;
     float       threshold          = 0.0f;
     float       fees               = 0.0f; // TER 1% = 0.01
+    Method      method             = Method::STANDARD;
 };
 
 struct results {
