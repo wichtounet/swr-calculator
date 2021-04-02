@@ -56,7 +56,8 @@ void multiple_wr(swr::scenario scenario){
     }
 }
 
-void multiple_wr_success_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+template <typename F>
+void multiple_wr_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr, F functor){
     for (auto& position : scenario.portfolio) {
         if (position.allocation > 0) {
             std::cout << position.allocation << "% " << position.asset << " ";
@@ -65,11 +66,23 @@ void multiple_wr_success_sheets(swr::scenario scenario, float start_wr, float en
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
         scenario.wr = wr;
-        auto monthly_results = swr::simulation(scenario);
-        std::cout << ';' << monthly_results.success_rate;
+        auto results = swr::simulation(scenario);
+        std::cout << ';' << functor(results);
     }
 
     std::cout << "\n";
+}
+
+void multiple_wr_success_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+        return results.success_rate;
+    });
+}
+
+void multiple_wr_withdrawn_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+        return results.withdrawn_per_year;
+    });
 }
 
 template <typename T>
