@@ -259,7 +259,6 @@ swr::results swr::simulation(scenario & scenario) {
                             }
                         }
 
-                        withdrawn += withdrawal_amount;
 
                         if (total_value > 0.0f) {
                             for (auto& value : current_values) {
@@ -273,6 +272,10 @@ swr::results swr::simulation(scenario & scenario) {
                                     res.worst_starting_month = current_month;
                                     res.worst_starting_year  = current_year;
                                 }
+
+                                withdrawn += total_value;
+                            } else {
+                                withdrawn += withdrawal_amount;
                             }
                         }
                     }
