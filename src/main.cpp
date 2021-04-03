@@ -1002,6 +1002,10 @@ int main(int argc, const char* argv[]) {
                 scenario.minimum = atoi(args[11].c_str());
             }
 
+            if (args.size() > 12 && args[12] == "standard") {
+                scenario.method = swr::Method::STANDARD;
+            }
+
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
