@@ -85,6 +85,12 @@ void multiple_wr_withdrawn_sheets(swr::scenario scenario, float start_wr, float 
     });
 }
 
+void multiple_wr_duration_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+        return results.worst_duration;
+    });
+}
+
 template <typename T>
 void csv_print(const std::string& header, const std::vector<T> & values) {
     std::cout << header;
@@ -1035,6 +1041,15 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[1].allocation = float(100 - i);
 
                     multiple_wr_withdrawn_sheets(scenario, start_wr, end_wr, add_wr);
+                }
+
+                std::cout << '\n';
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    multiple_wr_duration_sheets(scenario, start_wr, end_wr, add_wr);
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
