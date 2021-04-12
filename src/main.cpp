@@ -425,6 +425,72 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "swr") {
+            if (args.size() < 6) {
+                std::cout << "Not enough arguments for swr" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+
+            if (args.size() > 6) {
+                scenario.fees = atof(args[6].c_str()) / 100.0f;
+            }
+
+            float limit = 95.0f;
+            if (args.size() > 7) {
+                limit = atof(args[7].c_str());
+            }
+
+            swr::normalize_portfolio(scenario.portfolio);
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            for (auto & position : scenario.portfolio) {
+                std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
+            }
+
+            auto start = std::chrono::high_resolution_clock::now();
+
+            scenario.withdraw_frequency = 1;
+
+            float best_wr = 0.0f;
+            swr::results best_results;
+
+            for (float wr = 6.0f; wr >= 2.0f; wr -= 0.01f) {
+                scenario.wr = wr;
+
+                auto results = swr::simulation(scenario);
+
+                if (results.message.size()) {
+                    std::cout << results.message << std::endl;
+                }
+
+                if (results.error) {
+                    return 1;
+                }
+
+                if (results.success_rate > limit) {
+                    best_results = results;
+                    best_wr = wr;
+                    break;
+                }
+            }
+
+            std::cout << "WR: " << best_wr << "(" << best_results.success_rate << ")" << std::endl;
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "multiple_wr") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for multiple_wr" << std::endl;
