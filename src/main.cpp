@@ -1314,6 +1314,11 @@ int main(int argc, const char* argv[]) {
                 scenario.wr = atof(args[8].c_str());
             }
 
+            scenario.cash_simple = true;
+            if (args.size() > 9){
+                scenario.cash_simple = args[9] == "true";
+            }
+
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 

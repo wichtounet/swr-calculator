@@ -264,16 +264,20 @@ swr::results swr::simulation(scenario & scenario) {
                         }
 
                         if (total_value > 0.0f) {
-                            // First, withdraw from cash if possible
-                            if (cash > 0.0f) {
-                                if (withdrawal_amount <= cash) {
-                                    withdrawn += withdrawal_amount;
-                                    cash -= withdrawal_amount;
-                                    withdrawal_amount = 0;
-                                } else {
-                                    withdrawn += cash;
-                                    withdrawal_amount -= cash;
-                                    cash = 0.0f;
+                            auto eff_wr = withdrawal_amount / starting_value;
+
+                            if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
+                                // First, withdraw from cash if possible
+                                if (cash > 0.0f) {
+                                    if (withdrawal_amount <= cash) {
+                                        withdrawn += withdrawal_amount;
+                                        cash -= withdrawal_amount;
+                                        withdrawal_amount = 0;
+                                    } else {
+                                        withdrawn += cash;
+                                        withdrawal_amount -= cash;
+                                        cash = 0.0f;
+                                    }
                                 }
                             }
 

@@ -41,6 +41,7 @@ struct scenario {
     Method      method             = Method::STANDARD;
     float       minimum            = 3; // Minimum of 3% * initial
     float       initial_cash       = 0.0f;
+    bool        cash_simple        = true;
 };
 
 struct results {
