@@ -145,7 +145,6 @@ swr::results swr::simulation(scenario & scenario) {
 
     const size_t total_months           = scenario.years * 12;
     const size_t number_of_assets = scenario.portfolio.size();
-    const float start_value       = 1000.0f;
 
     // 3. Do the actual simulation
 
@@ -154,19 +153,23 @@ swr::results swr::simulation(scenario & scenario) {
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
-            size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
+            const size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
+            const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
 
             // The amount of money withdrawn per year (STANDARD method)
-            float withdrawal = start_value * (scenario.wr / 100.0f);
+            float withdrawal = initial_value * (scenario.wr / 100.0f);
 
             // The minimum amount of money withdraw (CURRENT method)
-            float minimum = start_value * (scenario.minimum / 100.0f);
+            float minimum = initial_value * (scenario.minimum / 100.0f);
+
+            // The amount of cash available
+            float cash = scenario.initial_cash;
 
             std::vector<float> current_values(number_of_assets);
 
+            // Compute the initial values of the assets
             for (size_t i = 0; i < number_of_assets; ++i) {
-                current_values[i] = start_value * (scenario.portfolio[i].allocation / 100.0f);
+                current_values[i] = initial_value * (scenario.portfolio[i].allocation / 100.0f);
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
@@ -260,8 +263,20 @@ swr::results swr::simulation(scenario & scenario) {
                             }
                         }
 
-
                         if (total_value > 0.0f) {
+                            // First, withdraw from cash if possible
+                            if (cash > 0.0f) {
+                                if (withdrawal_amount <= cash) {
+                                    withdrawn += withdrawal_amount;
+                                    cash -= withdrawal_amount;
+                                    withdrawal_amount = 0;
+                                } else {
+                                    withdrawn += cash;
+                                    withdrawal_amount -= cash;
+                                    cash = 0.0f;
+                                }
+                            }
+
                             for (auto& value : current_values) {
                                 value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
                             }

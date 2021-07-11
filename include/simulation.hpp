@@ -7,6 +7,8 @@
 
 namespace swr {
 
+constexpr float initial_value = 1000.0f;
+
 enum class Rebalancing : uint64_t {
     NONE,
     MONTHLY,
@@ -38,6 +40,7 @@ struct scenario {
     float       fees               = 0.0f; // TER 1% = 0.01
     Method      method             = Method::STANDARD;
     float       minimum            = 3; // Minimum of 3% * initial
+    float       initial_cash       = 0.0f;
 };
 
 struct results {

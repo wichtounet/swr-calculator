@@ -1289,6 +1289,97 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        } else if (command == "trinity_cash") {
+            if (args.size() < 7) {
+                std::cout << "Not enough arguments for trinity_cash" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            float portfolio_add = 25;
+            if (args.size() > 7){
+                portfolio_add = atof(args[7].c_str());
+            }
+
+            scenario.wr = 4.0f;
+            if (args.size() > 8){
+                scenario.wr = atof(args[8].c_str());
+            }
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            auto start = std::chrono::high_resolution_clock::now();
+
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
+                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+                    return 1;
+                }
+
+                std::cout << "Portfolio; ";
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    for (auto& position : scenario.portfolio) {
+                        if (position.allocation > 0) {
+                            std::cout << position.allocation << "% " << position.asset << " ";
+                        }
+                    }
+                }
+
+                std::cout << "\n";
+
+                for (size_t m = 0; m < 60; ++m) {
+                    scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
+
+                    std::cout << m;
+                    for (size_t i = 0; i <= 100; i += portfolio_add) {
+                        scenario.portfolio[0].allocation = float(i);
+                        scenario.portfolio[1].allocation = float(100 - i);
+
+                        auto results = swr::simulation(scenario);
+                        std::cout << ';' << results.success_rate;
+                    }
+
+                    std::cout << "\n";
+                }
+            } else {
+                swr::normalize_portfolio(scenario.portfolio);
+
+                std::cout << "Portfolio; ";
+
+                for (auto& position : scenario.portfolio) {
+                    if (position.allocation > 0) {
+                        std::cout << position.allocation << "% " << position.asset << " ";
+                    }
+                }
+
+                std::cout << "\n";
+
+                for (size_t m = 0; m < 61; ++m) {
+                    scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
+                    auto results = swr::simulation(scenario);
+                    std::cout << m << ';' << results.success_rate;
+                    std::cout << "\n";
+                }
+            }
+
+            auto end = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "server") {
             if (args.size() < 3) {
                 std::cout << "Not enough arguments for server" << std::endl;
