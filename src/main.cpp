@@ -1309,14 +1309,19 @@ int main(int argc, const char* argv[]) {
                 portfolio_add = atof(args[7].c_str());
             }
 
-            scenario.wr = 4.0f;
+            float wr = 4.0f;
             if (args.size() > 8){
-                scenario.wr = atof(args[8].c_str());
+                wr = atof(args[8].c_str());
             }
 
             scenario.cash_simple = true;
             if (args.size() > 9){
                 scenario.cash_simple = args[9] == "true";
+            }
+
+            bool compare = false;
+            if (args.size() > 10){
+                compare = args[10] == "true";
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);
@@ -1345,9 +1350,27 @@ int main(int argc, const char* argv[]) {
                     }
                 }
 
+                if (compare) {
+                    for (size_t i = 0; i <= 100; i += portfolio_add) {
+                        scenario.portfolio[0].allocation = float(i);
+                        scenario.portfolio[1].allocation = float(100 - i);
+
+                        std::cout << ";";
+
+                        for (auto& position : scenario.portfolio) {
+                            if (position.allocation > 0) {
+                                std::cout << position.allocation << "% " << position.asset << " ";
+                            }
+                        }
+                    }
+                }
+
                 std::cout << "\n";
 
-                for (size_t m = 0; m < 60; ++m) {
+                const float withdrawal = (wr / 100.0f) * swr::initial_value;
+
+                for (size_t m = 0; m <= 60; ++m) {
+                    scenario.wr = wr;
                     scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
 
                     std::cout << m;
@@ -1359,8 +1382,23 @@ int main(int argc, const char* argv[]) {
                         std::cout << ';' << results.success_rate;
                     }
 
+                    if (compare) {
+                        float total = swr::initial_value + m * (withdrawal / 12.0f);
+                        scenario.wr = 100.0f * (withdrawal / total);
+                        scenario.initial_cash = 0;
+
+                        for (size_t i = 0; i <= 100; i += portfolio_add) {
+                            scenario.portfolio[0].allocation = float(i);
+                            scenario.portfolio[1].allocation = float(100 - i);
+
+                            auto results = swr::simulation(scenario);
+                            std::cout << ';' << results.success_rate;
+                        }
+                    }
+
                     std::cout << "\n";
                 }
+
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
 
@@ -1374,7 +1412,7 @@ int main(int argc, const char* argv[]) {
 
                 std::cout << "\n";
 
-                for (size_t m = 0; m < 61; ++m) {
+                for (size_t m = 0; m <= 60; ++m) {
                     scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
                     auto results = swr::simulation(scenario);
                     std::cout << m << ';' << results.success_rate;
@@ -1393,7 +1431,7 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            std::string listen = args[1];
+            std::string listen = args[2];
             auto port          = atoi(args[2].c_str());
 
             httplib::Server server;
