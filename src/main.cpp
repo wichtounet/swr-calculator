@@ -1325,11 +1325,13 @@ int main(int argc, const char* argv[]) {
                     return 1;
                 }
 
-                std::cout << "Portfolio; ";
+                std::cout << "Portfolio";
 
                 for (size_t i = 0; i <= 100; i += portfolio_add) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
+
+                    std::cout << ";";
 
                     for (auto& position : scenario.portfolio) {
                         if (position.allocation > 0) {
