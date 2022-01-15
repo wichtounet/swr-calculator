@@ -1431,7 +1431,7 @@ int main(int argc, const char* argv[]) {
                 return 1;
             }
 
-            std::string listen = args[2];
+            std::string listen = args[1];
             auto port          = atoi(args[2].c_str());
 
             httplib::Server server;
