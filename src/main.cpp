@@ -287,30 +287,46 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.withdraw_frequency = 12;
     scenario.rebalance          = swr::Rebalancing::YEARLY;
     scenario.threshold          = 0.0f;
-    scenario.years              = 30;
     scenario.start_year         = 1871;
     scenario.end_year           = 2018;
 
-    auto portfolio100   = swr::parse_portfolio("us_stocks:100;");
-    auto values100      = swr::load_values(portfolio100);
-    auto portfolio60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;");
-    auto values60      = swr::load_values(portfolio60);
-    auto portfolio40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;");
-    auto values40      = swr::load_values(portfolio40);
+    auto portfolio_100   = swr::parse_portfolio("us_stocks:100;");
+    auto values_100      = swr::load_values(portfolio_100);
 
-    scenario.inflation_data = swr::load_inflation(values100, "us_inflation");
+    auto portfolio_60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;");
+    auto values_60      = swr::load_values(portfolio_60);
 
-    scenario.portfolio = portfolio100;
-    scenario.values = values100;
-    auto results100 = simulation(scenario);
+    auto portfolio_40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;");
+    auto values40      = swr::load_values(portfolio_40);
 
-    scenario.portfolio = portfolio60;
-    scenario.values = values60;
-    auto results60  = simulation(scenario);
+    scenario.inflation_data = swr::load_inflation(values_100, "us_inflation");
 
-    scenario.portfolio = portfolio40;
-    scenario.values = values40;
-    auto results40  = simulation(scenario);
+    scenario.portfolio  = portfolio_100;
+    scenario.values     = values_100;
+    scenario.years              = 30;
+    auto results_30_100 = simulation(scenario);
+    scenario.years              = 40;
+    auto results_40_100 = simulation(scenario);
+    scenario.years              = 50;
+    auto results_50_100 = simulation(scenario);
+
+    scenario.portfolio = portfolio_60;
+    scenario.values    = values_60;
+    scenario.years              = 30;
+    auto results_30_60 = simulation(scenario);
+    scenario.years              = 40;
+    auto results_40_60 = simulation(scenario);
+    scenario.years              = 50;
+    auto results_50_60 = simulation(scenario);
+
+    scenario.portfolio = portfolio_40;
+    scenario.values    = values40;
+    scenario.years              = 30;
+    auto results_30_40 = simulation(scenario);
+    scenario.years              = 40;
+    auto results_40_40 = simulation(scenario);
+    scenario.years              = 50;
+    auto results_50_40 = simulation(scenario);
 
     std::stringstream ss;
 
@@ -320,9 +336,15 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
-       << "  \"success_rate_100\": " << results100.success_rate << ",\n"
-       << "  \"success_rate_60\": "  << results60.success_rate << ",\n"
-       << "  \"success_rate_40\": "  << results40.success_rate << "\n"
+       << "  \"success_rate_100\": " << results_30_100.success_rate << ",\n"
+       << "  \"success_rate_60\": "  << results_30_60.success_rate << ",\n"
+       << "  \"success_rate_40\": "  << results_30_40.success_rate << "\n"
+       << "  \"success_rate40_100\": " << results_40_100.success_rate << ",\n"
+       << "  \"success_rate40_60\": "  << results_40_60.success_rate << ",\n"
+       << "  \"success_rate40_40\": "  << results_40_40.success_rate << "\n"
+       << "  \"success_rate50_100\": " << results_50_100.success_rate << ",\n"
+       << "  \"success_rate50_60\": "  << results_50_60.success_rate << ",\n"
+       << "  \"success_rate50_40\": "  << results_50_40.success_rate << "\n"
        << "}}";
 
     res.set_content(ss.str(), "text/json");
