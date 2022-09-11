@@ -277,10 +277,14 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     float fi_number = expenses * (100.0f / scenario.wr);
 
     size_t months = 0;
-    while (nw < fi_number) {
-        nw *= 1.0f + (returns / 100.0f) / 12.0f;
-        nw += (income * sr / 100.0f) / 12.0f;
-        ++months;
+    if (nw < fi_number && !income) {
+        months = 12 * 1000;
+    } else {
+        while (nw < fi_number) {
+            nw *= 1.0f + (returns / 100.0f) / 12.0f;
+            nw += (income * sr / 100.0f) / 12.0f;
+            ++months;
+        }
     }
 
     // For now cannot be configured
@@ -288,7 +292,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.rebalance          = swr::Rebalancing::YEARLY;
     scenario.threshold          = 0.0f;
     scenario.start_year         = 1871;
-    scenario.end_year           = 2018;
+    scenario.end_year           = 2020;
 
     auto portfolio_100   = swr::parse_portfolio("us_stocks:100;");
     auto values_100      = swr::load_values(portfolio_100);
