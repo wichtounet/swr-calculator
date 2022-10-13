@@ -121,6 +121,35 @@ void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr,
     csv_print("MAX", max_tv);
 }
 
+void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal) {
+    for (float wr = start_wr; wr >= end_wr; wr -= step) {
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
+
+        if (monthly_results.success_rate >= 100.0f - goal) {
+            std::cout << ";" << wr;
+            return;
+        }
+    }
+
+    std::cout << ";0";
+}
+
+void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step) {
+    for (auto& position : scenario.portfolio) {
+        if (position.allocation > 0) {
+            std::cout << position.allocation << "% " << position.asset << " ";
+        }
+    }
+
+    failsafe_swr(scenario, start_wr, end_wr, step, 0.0f);
+    failsafe_swr(scenario, start_wr, end_wr, step, 1.0f);
+    failsafe_swr(scenario, start_wr, end_wr, step, 5.0f);
+    failsafe_swr(scenario, start_wr, end_wr, step, 10.0f);
+    failsafe_swr(scenario, start_wr, end_wr, step, 25.0f);
+    std::cout << '\n';
+}
+
 void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
     if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
         std::cout << scenario.threshold << " ";
@@ -865,6 +894,43 @@ int main(int argc, const char* argv[]) {
             analyzer(values[0], "Stocks");
             analyzer(values[1], "Bonds");
             analyzer(inflation_data, "Inflation");
+        } else if (command == "failsafe") {
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            float portfolio_add = 10;
+            if (args.size() > 7){
+                portfolio_add = atof(args[7].c_str());
+            }
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                if (scenario.portfolio.size() != 2) {
+                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+                    return 1;
+                }
+
+                std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
+
+                    failsafe_swr(scenario, 6.0f, 0.0f, 0.01f);
+                }
+            } else {
+                std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
+                swr::normalize_portfolio(scenario.portfolio);
+                failsafe_swr(scenario, 6.0f, 0.0f, 0.01f);
+            }
         } else if (command == "trinity_success_sheets") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
