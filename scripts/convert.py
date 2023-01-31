@@ -27,7 +27,10 @@ def main():
             if not row[column_index]:
                 break
 
-            number = "{}".format(row[column_index]).replace(',','.')
+            value = row[column_index]
+            value = value.replace('.', ',')
+            value = ".".join(value.rsplit(',', 1))
+            number = "{}".format(value).replace(',', '')
             print("{},{},{}".format(row[0],row[1], number))
 
 if __name__ == "__main__":
