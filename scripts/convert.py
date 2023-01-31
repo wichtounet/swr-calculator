@@ -5,29 +5,29 @@ def main():
     file_path = sys.argv[1]
     search_column = sys.argv[2]
 
-    with open(file_path) as csvfile:
-        reader = csv.reader(csvfile)
+    with open(file_path, "r") as csvfile:
+        reader = csv.reader(csvfile, delimiter=';')
         next(reader) # Drop this line
         next(reader) # Drop this line
         next(reader) # Drop this line
         next(reader) # Drop this line
         columns = next(reader)
 
-        column = -1
+        column_index = -1
         for i, arg in enumerate(columns):
             if arg == search_column:
-                column = i
+                column_index = i
                 break
 
-        if column == -1:
+        if column_index == -1:
             print("Did not find the column")
             exit(1)
 
         for row in reader:
-            if not row[column]:
+            if not row[column_index]:
                 break
 
-            number = "{}".format(row[column]).replace(',','')
+            number = "{}".format(row[column_index]).replace(',','.')
             print("{},{},{}".format(row[0],row[1], number))
 
 if __name__ == "__main__":
