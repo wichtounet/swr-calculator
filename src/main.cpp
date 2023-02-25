@@ -947,32 +947,35 @@ int main(int argc, const char* argv[]) {
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
             float portfolio_add = 25;
-
-            float start_wr = 3.0f;
-            float end_wr   = 6.0f;
-            float add_wr   = 0.1f;
-
             if (args.size() > 7){
                 portfolio_add = atof(args[7].c_str());
             }
 
+            float start_wr = 3.0f;
             if (args.size() > 8) {
                 start_wr = atof(args[8].c_str());
             }
 
+            float end_wr   = 6.0f;
             if (args.size() > 9) {
                 end_wr = atof(args[9].c_str());
             }
 
+            float add_wr   = 0.1f;
             if (args.size() > 10) {
                 add_wr = atof(args[10].c_str());
+            }
+
+            scenario.fees = 0.0f;
+            if (args.size() > 11) {
+                scenario.fees = atof(args[11].c_str());
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            if (args.size() > 11) {
-                std::string country = args[11];
+            if (args.size() > 12) {
+                std::string country = args[12];
 
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");
@@ -1028,6 +1031,11 @@ int main(int argc, const char* argv[]) {
             scenario.portfolio  = swr::parse_portfolio(args[4]);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            scenario.fees = 0.0f;
+            if (args.size() > 7) {
+                scenario.fees = atof(args[7].c_str());
+            }
 
             const float start_wr = 3.0f;
             const float end_wr   = 5.0f;
@@ -1107,6 +1115,11 @@ int main(int argc, const char* argv[]) {
             scenario.portfolio  = swr::parse_portfolio(args[4]);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            scenario.fees = 0.0f;
+            if (args.size() > 7) {
+                scenario.fees = atof(args[7].c_str());
+            }
 
             const float start_wr = 3.0f;
             const float end_wr   = 5.0f;
