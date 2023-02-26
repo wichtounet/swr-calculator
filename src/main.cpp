@@ -968,7 +968,7 @@ int main(int argc, const char* argv[]) {
 
             scenario.fees = 0.0f;
             if (args.size() > 11) {
-                scenario.fees = atof(args[11].c_str());
+                scenario.fees = atof(args[11].c_str()) / 100.0f;
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);
@@ -1034,7 +1034,7 @@ int main(int argc, const char* argv[]) {
 
             scenario.fees = 0.0f;
             if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str());
+                scenario.fees = atof(args[7].c_str()) / 100.0f;
             }
 
             const float start_wr = 3.0f;
@@ -1118,7 +1118,7 @@ int main(int argc, const char* argv[]) {
 
             scenario.fees = 0.0f;
             if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str());
+                scenario.fees = atof(args[7].c_str()) / 100.0f;
             }
 
             const float start_wr = 3.0f;
