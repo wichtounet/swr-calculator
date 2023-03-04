@@ -216,18 +216,36 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.start_year = atoi(req.get_param_value("start").c_str());
     scenario.end_year   = atoi(req.get_param_value("end").c_str());
 
+    // Parse the optional parameters
+
+    if (req.has_param("rebalance")) {
+        auto param = req.get_param_value("rebalance");
+
+        if (param == "none") {
+            scenario.rebalance = swr::Rebalancing::NONE;
+        } else if (param == "monthly") {
+            scenario.rebalance = swr::Rebalancing::MONTHLY;
+        } else if (param == "yearly") {
+            scenario.rebalance = swr::Rebalancing::YEARLY;
+        } else {
+            scenario.rebalance = swr::Rebalancing::NONE;
+        }
+    } else {
+        scenario.rebalance = swr::Rebalancing::NONE;
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
         << " wr=" << scenario.wr
         << " years=" << scenario.years
+        << " rebalance=" << scenario.rebalance
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
 
     // For now cannot be configured
     scenario.withdraw_frequency = 12;
-    scenario.rebalance  = swr::Rebalancing::NONE;
     scenario.threshold = 0.0f;
 
     swr::normalize_portfolio(scenario.portfolio);
@@ -293,6 +311,24 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     float expenses = atoi(req.get_param_value("expenses").c_str());
     float nw       = atoi(req.get_param_value("nw").c_str());
 
+    // Parse the optional parameters
+
+    if (req.has_param("rebalance")) {
+        auto param = req.get_param_value("rebalance");
+
+        if (param == "none") {
+            scenario.rebalance = swr::Rebalancing::NONE;
+        } else if (param == "monthly") {
+            scenario.rebalance = swr::Rebalancing::MONTHLY;
+        } else if (param == "yearly") {
+            scenario.rebalance = swr::Rebalancing::YEARLY;
+        } else {
+            scenario.rebalance = swr::Rebalancing::NONE;
+        }
+    } else {
+        scenario.rebalance = swr::Rebalancing::NONE;
+    }
+
     float returns   = 7.0f;
 
     std::cout
@@ -301,6 +337,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
         << " nw=" << nw
         << " income=" << income
         << " expenses=" << expenses
+        << " rebalance=" << scenario.rebalance
         << std::endl;
 
     float fi_number = expenses * (100.0f / scenario.wr);
@@ -318,10 +355,9 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     // For now cannot be configured
     scenario.withdraw_frequency = 12;
-    scenario.rebalance          = swr::Rebalancing::YEARLY;
     scenario.threshold          = 0.0f;
     scenario.start_year         = 1871;
-    scenario.end_year           = 2020;
+    scenario.end_year           = 2022;
 
     auto portfolio_100   = swr::parse_portfolio("us_stocks:100;");
     auto values_100      = swr::load_values(portfolio_100);
