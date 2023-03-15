@@ -346,7 +346,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     if (nw < fi_number && !income) {
         months = 12 * 1000;
     } else {
-        while (nw < fi_number) {
+        while (nw < fi_number && months < 1200) {
             nw *= 1.0f + (returns / 100.0f) / 12.0f;
             nw += (income * sr / 100.0f) / 12.0f;
             ++months;
