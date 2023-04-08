@@ -453,6 +453,10 @@ int main(int argc, const char* argv[]) {
                 scenario.fees = atof(args[7].c_str()) / 100.0f;
             }
 
+            if (args.size() > 8) {
+                scenario.final_threshold = atof(args[8].c_str()) / 100.0f;
+            }
+
             swr::normalize_portfolio(scenario.portfolio);
 
             scenario.values         = swr::load_values(scenario.portfolio);
@@ -1002,16 +1006,19 @@ int main(int argc, const char* argv[]) {
                 add_wr = atof(args[10].c_str());
             }
 
-            scenario.fees = 0.0f;
             if (args.size() > 11) {
                 scenario.fees = atof(args[11].c_str()) / 100.0f;
+            }
+
+            if (args.size() > 12) {
+                scenario.final_threshold = atof(args[12].c_str()) / 100.0f;
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            if (args.size() > 12) {
-                std::string country = args[12];
+            if (args.size() > 13) {
+                std::string country = args[13];
 
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");
