@@ -6,6 +6,7 @@
 #include <sstream>
 #include <cassert>
 #include <cmath>
+#include <array>
 
 namespace {
 
@@ -120,7 +121,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
     // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
-    std::vector<std::vector<swr::data>::const_iterator> returns(N);
+    std::array<std::vector<swr::data>::const_iterator, N> returns;
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
@@ -136,7 +137,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             // The amount of cash available
             float cash = scenario.initial_cash;
 
-            std::vector<float> current_values(N);
+            std::array<float, N> current_values;
 
             // Compute the initial values of the assets
             for (size_t i = 0; i < N; ++i) {
