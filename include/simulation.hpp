@@ -17,8 +17,8 @@ enum class Rebalancing : uint64_t {
 };
 
 enum class Method : uint64_t {
-    STANDARD,
-    CURRENT
+    STANDARD, // Withdraw based on the initial portfolio
+    CURRENT   // Withdraw based on the current portfolio
 };
 
 Rebalancing parse_rebalance(const std::string& str);
@@ -42,6 +42,11 @@ struct scenario {
     float       minimum            = 3; // Minimum of 3% * initial
     float       initial_cash       = 0.0f;
     bool        cash_simple        = true;
+    float       final_threshold    = 0.0f; // By default, we can go down all the way to zero
+
+    bool is_failure(float current_value) const {
+        return current_value <= final_threshold * initial_value;
+    }
 };
 
 struct results {
@@ -82,6 +87,14 @@ struct results {
     bool error = false;
 
     void compute_terminal_values(std::vector<float> & terminal_values);
+
+    void record_failure(size_t months, size_t current_month, size_t current_year) {
+        if (!worst_duration || months < worst_duration) {
+            worst_duration       = months;
+            worst_starting_month = current_month;
+            worst_starting_year  = current_year;
+        }
+    }
 };
 
 results simulation(scenario & scenario);

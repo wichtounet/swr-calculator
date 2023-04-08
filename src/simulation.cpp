@@ -173,14 +173,20 @@ swr::results swr::simulation(scenario & scenario) {
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
+            auto current_value = [&](){
+                return std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+            };
+
             auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
 
             size_t months = 1;
             size_t withdrawals = 0;
             float total_withdrawn = 0.0f;
+            bool failure = false;
 
             for (size_t y = current_year; y <= end_year; ++y) {
-                auto starting_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                const auto starting_value = current_value();
+
                 float withdrawn = 0.0f;
 
                 for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
@@ -190,6 +196,13 @@ swr::results swr::simulation(scenario & scenario) {
                         ++returns[i];
                     }
 
+                    // Stock market losses can cause failure
+                    if (scenario.is_failure(current_value())) {
+                        failure = true;
+                        res.record_failure(months, current_month, current_year);
+                        break;
+                    }
+
                     // Monthly Rebalance if necessary
                     if (scenario.rebalance == Rebalancing::MONTHLY) {
                         // Pay the fees
@@ -197,7 +210,14 @@ swr::results swr::simulation(scenario & scenario) {
                             current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
                         }
 
-                        auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                        const auto total_value = current_value();
+
+                        // Fees can cause failure
+                        if (scenario.is_failure(total_value)) {
+                            failure = true;
+                            res.record_failure(months, current_month, current_year);
+                            break;
+                        }
 
                         for (size_t i = 0; i < number_of_assets; ++i) {
                             current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
@@ -206,13 +226,15 @@ swr::results swr::simulation(scenario & scenario) {
 
                     // Threshold Rebalance if necessary
                     if (scenario.rebalance == Rebalancing::THRESHOLD) {
-                        auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
-
                         bool rebalance = false;
-                        for (size_t i = 0; i < number_of_assets; ++i) {
-                            if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
-                                rebalance = true;
-                                break;
+
+                        {
+                            const auto total_value = current_value();
+                            for (size_t i = 0; i < number_of_assets; ++i) {
+                                if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
+                                    rebalance = true;
+                                    break;
+                                }
                             }
                         }
 
@@ -220,6 +242,16 @@ swr::results swr::simulation(scenario & scenario) {
                             // Pay the fees
                             for (size_t i = 0; i < number_of_assets; ++i) {
                                 current_values[i] *= 1.0f - threshold_rebalancing_cost / 100.0f;
+                            }
+
+                            // We need to recompute the total value after the fees
+                            const auto total_value = current_value();
+
+                            // Fees can cause failure
+                            if (scenario.is_failure(total_value)) {
+                                failure = true;
+                                res.record_failure(months, current_month, current_year);
+                                break;
                             }
 
                             for (size_t i = 0; i < number_of_assets; ++i) {
@@ -233,6 +265,13 @@ swr::results swr::simulation(scenario & scenario) {
                         for (size_t i = 0; i < number_of_assets; ++i) {
                             current_values[i] *= 1.0f - (scenario.fees / 12.0f);
                         }
+
+                        // TER can cause failure
+                        if (scenario.is_failure(current_value())) {
+                            failure = true;
+                            res.record_failure(months, current_month, current_year);
+                            break;
+                        }
                     }
 
                     // Adjust the withdrawals for inflation
@@ -241,7 +280,9 @@ swr::results swr::simulation(scenario & scenario) {
                     ++inflation;
 
                     if ((months - 1) % scenario.withdraw_frequency == 0) {
-                        auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                        const auto total_value = current_value();
+
+                        assert(total_value > 0.0f); // This must be enforced before
 
                         auto periods = scenario.withdraw_frequency;
                         if ((months - 1) + scenario.withdraw_frequency > total_months) {
@@ -263,40 +304,37 @@ swr::results swr::simulation(scenario & scenario) {
                             }
                         }
 
-                        if (total_value > 0.0f) {
-                            auto eff_wr = withdrawal_amount / starting_value;
+                        auto eff_wr = withdrawal_amount / starting_value;
 
-                            if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
-                                // First, withdraw from cash if possible
-                                if (cash > 0.0f) {
-                                    if (withdrawal_amount <= cash) {
-                                        withdrawn += withdrawal_amount;
-                                        cash -= withdrawal_amount;
-                                        withdrawal_amount = 0;
-                                    } else {
-                                        withdrawn += cash;
-                                        withdrawal_amount -= cash;
-                                        cash = 0.0f;
-                                    }
+                        if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
+                            // First, withdraw from cash if possible
+                            if (cash > 0.0f) {
+                                if (withdrawal_amount <= cash) {
+                                    withdrawn += withdrawal_amount;
+                                    cash -= withdrawal_amount;
+                                    withdrawal_amount = 0;
+                                } else {
+                                    withdrawn += cash;
+                                    withdrawal_amount -= cash;
+                                    cash = 0.0f;
                                 }
                             }
+                        }
 
-                            for (auto& value : current_values) {
-                                value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
-                            }
+                        for (auto& value : current_values) {
+                            value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+                        }
 
-                            if (total_value - withdrawal_amount <= 0.0f) {
-                                // Record the worst duration
-                                if (!res.worst_duration || months < res.worst_duration) {
-                                    res.worst_duration       = months;
-                                    res.worst_starting_month = current_month;
-                                    res.worst_starting_year  = current_year;
-                                }
+                        if (scenario.is_failure(current_value())) {
+                            res.record_failure(months, current_month, current_year);
 
-                                withdrawn += total_value;
-                            } else {
-                                withdrawn += withdrawal_amount;
-                            }
+                            withdrawn += total_value;
+
+                            failure = true;
+
+                            break;
+                        } else {
+                            withdrawn += withdrawal_amount;
                         }
                     }
                 }
@@ -304,24 +342,29 @@ swr::results swr::simulation(scenario & scenario) {
                 total_withdrawn += withdrawn;
 
                 // Yearly Rebalance if necessary
-                if (scenario.rebalance == Rebalancing::YEARLY) {
+                if (!failure && scenario.rebalance == Rebalancing::YEARLY) {
                     // Pay the fees
                     for (size_t i = 0; i < number_of_assets; ++i) {
                         current_values[i] *= 1.0f - yearly_rebalancing_cost / 100.0f;
                     }
 
-                    auto total_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                    const auto total_value = current_value();
 
-                    for (size_t i = 0; i < number_of_assets; ++i) {
-                        current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+                    // Fees can cause failure
+                    if (scenario.is_failure(current_value())) {
+                        failure = true;
+                        res.record_failure(months, current_month, current_year);
+                        // Here we don't break, because we want to record eff wr
+                    } else {
+                        for (size_t i = 0; i < number_of_assets; ++i) {
+                            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+                        }
                     }
                 }
 
                 // Record effective withdrawal rates
 
-                auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
-
-                if (final_value > 0.0f) {
+                if (failure) {
                     auto eff_wr = withdrawn / starting_value;
 
                     if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
@@ -337,14 +380,22 @@ swr::results swr::simulation(scenario & scenario) {
                         res.highest_eff_wr_year       = y;
                         res.highest_eff_wr            = eff_wr;
                     }
+
+                    break;
                 }
             }
 
-            assert(withdrawals == total_months);
+            assert(failure || withdrawals == total_months);
 
-            auto final_value = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+            if (failure) {
+                assert(scenario.is_failure(current_value()));
+            } else {
+                assert(!scenario.is_failure(current_value()));
+            }
 
-            if (final_value > 0.0f) {
+            const auto final_value = failure ? 0.0f : current_value();
+
+            if (!failure) {
                 ++res.successes;
 
                 // Total amount of money withdrawn
