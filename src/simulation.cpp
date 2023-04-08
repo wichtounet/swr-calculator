@@ -20,36 +20,8 @@ bool valid_year(const std::vector<swr::data> & data, size_t year) {
     return year >= data.front().year && year <= data.back().year;
 }
 
-} // end of anonymous namespace
-
-swr::Rebalancing swr::parse_rebalance(const std::string& str) {
-    if (str == "none") {
-        return Rebalancing::NONE;
-    } else if (str == "monthly") {
-        return Rebalancing::MONTHLY;
-    } else if (str == "yearly") {
-        return Rebalancing::YEARLY;
-    } else {
-        return Rebalancing::THRESHOLD;
-    }
-}
-
-std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance){
-    switch (rebalance) {
-        case Rebalancing::NONE:
-            return out << "none";
-        case Rebalancing::MONTHLY:
-            return out << "monthly";
-        case Rebalancing::YEARLY:
-            return out << "yearly";
-        case Rebalancing::THRESHOLD:
-            return out << "threshold";
-    }
-
-    return out << "Unknown rebalancing";
-}
-
-swr::results swr::simulation(scenario & scenario) {
+template <size_t N>
+swr::results swr_simulation(swr::scenario & scenario) {
     auto & inflation_data = scenario.inflation_data;
     auto & values = scenario.values;
 
@@ -144,12 +116,11 @@ swr::results swr::simulation(scenario & scenario) {
     }
 
     const size_t total_months           = scenario.years * 12;
-    const size_t number_of_assets = scenario.portfolio.size();
 
     // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
-    std::vector<std::vector<swr::data>::const_iterator> returns(number_of_assets);
+    std::vector<std::vector<swr::data>::const_iterator> returns(N);
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
@@ -157,24 +128,28 @@ swr::results swr::simulation(scenario & scenario) {
             const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
 
             // The amount of money withdrawn per year (STANDARD method)
-            float withdrawal = initial_value * (scenario.wr / 100.0f);
+            float withdrawal = swr::initial_value * (scenario.wr / 100.0f);
 
             // The minimum amount of money withdraw (CURRENT method)
-            float minimum = initial_value * (scenario.minimum / 100.0f);
+            float minimum = swr::initial_value * (scenario.minimum / 100.0f);
 
             // The amount of cash available
             float cash = scenario.initial_cash;
 
-            std::vector<float> current_values(number_of_assets);
+            std::vector<float> current_values(N);
 
             // Compute the initial values of the assets
-            for (size_t i = 0; i < number_of_assets; ++i) {
-                current_values[i] = initial_value * (scenario.portfolio[i].allocation / 100.0f);
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation / 100.0f);
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
             auto current_value = [&](){
-                return std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+                float value = 0.0f;
+                for (size_t i = 0; i < N; ++i) {
+                    value += current_values[i];
+                }
+                return value;
             };
 
             auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
@@ -191,7 +166,7 @@ swr::results swr::simulation(scenario & scenario) {
 
                 for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
                     // Adjust the portfolio with the returns
-                    for (size_t i = 0; i < number_of_assets; ++i) {
+                    for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
                         ++returns[i];
                     }
@@ -204,9 +179,9 @@ swr::results swr::simulation(scenario & scenario) {
                     }
 
                     // Monthly Rebalance if necessary
-                    if (scenario.rebalance == Rebalancing::MONTHLY) {
+                    if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
                         // Pay the fees
-                        for (size_t i = 0; i < number_of_assets; ++i) {
+                        for (size_t i = 0; i < N; ++i) {
                             current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
                         }
 
@@ -219,18 +194,18 @@ swr::results swr::simulation(scenario & scenario) {
                             break;
                         }
 
-                        for (size_t i = 0; i < number_of_assets; ++i) {
+                        for (size_t i = 0; i < N; ++i) {
                             current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                         }
                     }
 
                     // Threshold Rebalance if necessary
-                    if (scenario.rebalance == Rebalancing::THRESHOLD) {
+                    if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
                         bool rebalance = false;
 
                         {
                             const auto total_value = current_value();
-                            for (size_t i = 0; i < number_of_assets; ++i) {
+                            for (size_t i = 0; i < N; ++i) {
                                 if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
                                     rebalance = true;
                                     break;
@@ -240,7 +215,7 @@ swr::results swr::simulation(scenario & scenario) {
 
                         if (rebalance) {
                             // Pay the fees
-                            for (size_t i = 0; i < number_of_assets; ++i) {
+                            for (size_t i = 0; i < N; ++i) {
                                 current_values[i] *= 1.0f - threshold_rebalancing_cost / 100.0f;
                             }
 
@@ -254,7 +229,7 @@ swr::results swr::simulation(scenario & scenario) {
                                 break;
                             }
 
-                            for (size_t i = 0; i < number_of_assets; ++i) {
+                            for (size_t i = 0; i < N; ++i) {
                                 current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                             }
                         }
@@ -262,7 +237,7 @@ swr::results swr::simulation(scenario & scenario) {
 
                     // Simulate TER
                     if (scenario.fees > 0.0f) {
-                        for (size_t i = 0; i < number_of_assets; ++i) {
+                        for (size_t i = 0; i < N; ++i) {
                             current_values[i] *= 1.0f - (scenario.fees / 12.0f);
                         }
 
@@ -293,9 +268,9 @@ swr::results swr::simulation(scenario & scenario) {
 
                         float withdrawal_amount = 0;
 
-                        if (scenario.method == Method::STANDARD) {
+                        if (scenario.method == swr::Method::STANDARD) {
                             withdrawal_amount = withdrawal / (12.0f / periods);
-                        } else if (scenario.method == Method::CURRENT) {
+                        } else if (scenario.method == swr::Method::CURRENT) {
                             float minimum_withdrawal = minimum / (12.0f / periods);
 
                             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
@@ -342,9 +317,9 @@ swr::results swr::simulation(scenario & scenario) {
                 total_withdrawn += withdrawn;
 
                 // Yearly Rebalance if necessary
-                if (!failure && scenario.rebalance == Rebalancing::YEARLY) {
+                if (!failure && scenario.rebalance == swr::Rebalancing::YEARLY) {
                     // Pay the fees
-                    for (size_t i = 0; i < number_of_assets; ++i) {
+                    for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= 1.0f - yearly_rebalancing_cost / 100.0f;
                     }
 
@@ -356,7 +331,7 @@ swr::results swr::simulation(scenario & scenario) {
                         res.record_failure(months, current_month, current_year);
                         // Here we don't break, because we want to record eff wr
                     } else {
-                        for (size_t i = 0; i < number_of_assets; ++i) {
+                        for (size_t i = 0; i < N; ++i) {
                             current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
                         }
                     }
@@ -445,6 +420,53 @@ swr::results swr::simulation(scenario & scenario) {
     simulations += terminal_values.size();
 
     return res;
+}
+
+} // end of anonymous namespace
+
+swr::Rebalancing swr::parse_rebalance(const std::string& str) {
+    if (str == "none") {
+        return Rebalancing::NONE;
+    } else if (str == "monthly") {
+        return Rebalancing::MONTHLY;
+    } else if (str == "yearly") {
+        return Rebalancing::YEARLY;
+    } else {
+        return Rebalancing::THRESHOLD;
+    }
+}
+
+std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance){
+    switch (rebalance) {
+        case Rebalancing::NONE:
+            return out << "none";
+        case Rebalancing::MONTHLY:
+            return out << "monthly";
+        case Rebalancing::YEARLY:
+            return out << "yearly";
+        case Rebalancing::THRESHOLD:
+            return out << "threshold";
+    }
+
+    return out << "Unknown rebalancing";
+}
+
+swr::results swr::simulation(scenario & scenario) {
+    const size_t number_of_assets = scenario.portfolio.size();
+
+    if (number_of_assets == 1) {
+        return swr_simulation<1>(scenario);
+    } else if (number_of_assets == 2) {
+        return swr_simulation<2>(scenario);
+    } else if (number_of_assets == 3) {
+        return swr_simulation<3>(scenario);
+    } else {
+        swr::results res;
+        res.message = "The number of assets is too high";
+        res.error = true;
+        return res;
+    }
+
 }
 
 void swr::results::compute_terminal_values(std::vector<float> & terminal_values) {
