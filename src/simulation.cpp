@@ -173,7 +173,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     // Stock market losses can cause failure
-                    if (scenario.is_failure(current_value())) {
+                    if (scenario.is_failure(months == total_months, current_value())) {
                         failure = true;
                         res.record_failure(months, current_month, current_year);
                         break;
@@ -189,7 +189,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                         const auto total_value = current_value();
 
                         // Fees can cause failure
-                        if (scenario.is_failure(total_value)) {
+                        if (scenario.is_failure(months == total_months, total_value)) {
                             failure = true;
                             res.record_failure(months, current_month, current_year);
                             break;
@@ -224,7 +224,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                             const auto total_value = current_value();
 
                             // Fees can cause failure
-                            if (scenario.is_failure(total_value)) {
+                            if (scenario.is_failure(months == total_months, total_value)) {
                                 failure = true;
                                 res.record_failure(months, current_month, current_year);
                                 break;
@@ -243,7 +243,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                         }
 
                         // TER can cause failure
-                        if (scenario.is_failure(current_value())) {
+                        if (scenario.is_failure(months == total_months, current_value())) {
                             failure = true;
                             res.record_failure(months, current_month, current_year);
                             break;
@@ -301,7 +301,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                             value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
                         }
 
-                        if (scenario.is_failure(current_value())) {
+                        if (scenario.is_failure(months == total_months, current_value())) {
                             res.record_failure(months, current_month, current_year);
 
                             withdrawn += total_value;
@@ -327,7 +327,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     const auto total_value = current_value();
 
                     // Fees can cause failure
-                    if (scenario.is_failure(current_value())) {
+                    if (scenario.is_failure(months == total_months, current_value())) {
                         failure = true;
                         res.record_failure(months, current_month, current_year);
                         // Here we don't break, because we want to record eff wr
@@ -362,12 +362,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
             }
 
             assert(failure || withdrawals == total_months);
-
-            if (failure) {
-                assert(scenario.is_failure(current_value()));
-            } else {
-                assert(!scenario.is_failure(current_value()));
-            }
 
             const auto final_value = failure ? 0.0f : current_value();
 
