@@ -45,13 +45,13 @@ struct scenario {
     float       final_threshold    = 0.0f; // By default, we can go down all the way to zero
 
     bool is_failure(bool end, float current_value) const {
-        // If it's the end, we need to respect the threshold
-        if (end) {
-            return current_value <= final_threshold * initial_value;
+        // If it's not the end, we simply need to not run out of money
+        if (!end) {
+            return current_value <= 0.0f;
         }
 
-        // If it's not the end, we simply need to not run out of money
-        return current_value <= 0.0f;
+        // If it's the end, we need to respect the threshold
+        return current_value <= final_threshold * initial_value;
     }
 };
 
