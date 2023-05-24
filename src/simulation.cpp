@@ -106,6 +106,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     // 2. Make sure the simulation makes sense
 
+    if (scenario.portfolio.empty()) {
+        res.message = "Cannot work with an empty portfolio";
+        res.error = true;
+        return res;
+    }
+
     if (scenario.end_year - scenario.start_year < scenario.years) {
         std::stringstream ss;
         ss << "The period is too short for a " << scenario.years << " years simulation. "
@@ -114,6 +120,36 @@ swr::results swr_simulation(swr::scenario & scenario) {
         res.message += ss.str();
 
         scenario.years = scenario.end_year - scenario.start_year;
+    }
+
+    if (scenario.glidepath){
+        auto & portfolio = scenario.portfolio;
+        if (portfolio[0].asset != "us_stocks") {
+            res.message = "The first assert must be us_stocks for glidepath";
+            res.error = true;
+            return res;
+        }
+
+        if (!scenario.gp_pass) {
+            res.message = "Invalid pass for glidepath";
+            res.error = true;
+            return res;
+        }
+
+        if (scenario.gp_pass > 0.0f && scenario.gp_goal <= portfolio[0].allocation) {
+            std::cout << scenario.gp_pass << std::endl;
+            std::cout << scenario.gp_goal << std::endl;
+            std::cout << portfolio[0].allocation << std::endl;
+            res.message = "Invalid goal/pass for glidepath";
+            res.error = true;
+            return res;
+        }
+
+        if (scenario.gp_pass < 0.0f && scenario.gp_goal >= portfolio[0].allocation) {
+            res.message = "Invalid goal/pass for glidepath";
+            res.error = true;
+            return res;
+        }
     }
 
     const size_t total_months           = scenario.years * 12;

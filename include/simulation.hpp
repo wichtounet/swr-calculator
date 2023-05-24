@@ -44,6 +44,10 @@ struct scenario {
     bool        cash_simple        = true;
     float       final_threshold    = 0.0f; // By default, we can go down all the way to zero
 
+    bool  glidepath = false;
+    float gp_pass   = 0.0f; // Monthly increase (or decrease)
+    float gp_goal   = 0.0f;
+
     bool is_failure(bool end, float current_value) const {
         // If it's not the end, we simply need to not run out of money
         if (!end) {
