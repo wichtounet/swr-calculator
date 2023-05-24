@@ -22,6 +22,72 @@ bool valid_year(const std::vector<swr::data> & data, size_t year) {
 }
 
 template <size_t N>
+auto current_value(const std::array<float, N>& current_values) {
+    float value = 0.0f;
+    for (size_t i = 0; i < N; ++i) {
+        value += current_values[i];
+    }
+    return value;
+}
+
+template <size_t N>
+bool rebalance(bool end, swr::scenario & scenario, std::array<float, N> & current_values) {
+    // Monthly Rebalance if necessary
+    if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
+        // Pay the fees
+        for (size_t i = 0; i < N; ++i) {
+            current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
+        }
+
+        const auto total_value = current_value(current_values);
+
+        // Fees can cause failure
+        if (scenario.is_failure(end, total_value)) {
+            return false;
+        }
+
+        for (size_t i = 0; i < N; ++i) {
+            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+        }
+    }
+    // Threshold Rebalance if necessary
+    if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
+        bool rebalance = false;
+
+        {
+            const auto total_value = current_value(current_values);
+            for (size_t i = 0; i < N; ++i) {
+                if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
+                    rebalance = true;
+                    break;
+                }
+            }
+        }
+
+        if (rebalance) {
+            // Pay the fees
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] *= 1.0f - threshold_rebalancing_cost / 100.0f;
+            }
+
+            // We need to recompute the total value after the fees
+            const auto total_value = current_value(current_values);
+
+            // Fees can cause failure
+            if (scenario.is_failure(end, total_value)) {
+                return false;
+            }
+
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+            }
+        }
+    }
+
+    return true;
+}
+
+template <size_t N>
 swr::results swr_simulation(swr::scenario & scenario) {
     auto & inflation_data = scenario.inflation_data;
     auto & values = scenario.values;
@@ -181,14 +247,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
-            auto current_value = [&](){
-                float value = 0.0f;
-                for (size_t i = 0; i < N; ++i) {
-                    value += current_values[i];
-                }
-                return value;
-            };
-
             auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
 
             size_t months = 1;
@@ -197,7 +255,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             bool failure = false;
 
             for (size_t y = current_year; y <= end_year; ++y) {
-                const auto starting_value = current_value();
+                const auto starting_value = current_value(current_values);
 
                 float withdrawn = 0.0f;
 
@@ -209,67 +267,17 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     // Stock market losses can cause failure
-                    if (scenario.is_failure(months == total_months, current_value())) {
+                    if (scenario.is_failure(months == total_months, current_value(current_values))) {
                         failure = true;
                         res.record_failure(months, current_month, current_year);
                         break;
                     }
 
-                    // Monthly Rebalance if necessary
-                    if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
-                        // Pay the fees
-                        for (size_t i = 0; i < N; ++i) {
-                            current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
-                        }
-
-                        const auto total_value = current_value();
-
-                        // Fees can cause failure
-                        if (scenario.is_failure(months == total_months, total_value)) {
-                            failure = true;
-                            res.record_failure(months, current_month, current_year);
-                            break;
-                        }
-
-                        for (size_t i = 0; i < N; ++i) {
-                            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
-                        }
-                    }
-
-                    // Threshold Rebalance if necessary
-                    if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
-                        bool rebalance = false;
-
-                        {
-                            const auto total_value = current_value();
-                            for (size_t i = 0; i < N; ++i) {
-                                if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
-                                    rebalance = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (rebalance) {
-                            // Pay the fees
-                            for (size_t i = 0; i < N; ++i) {
-                                current_values[i] *= 1.0f - threshold_rebalancing_cost / 100.0f;
-                            }
-
-                            // We need to recompute the total value after the fees
-                            const auto total_value = current_value();
-
-                            // Fees can cause failure
-                            if (scenario.is_failure(months == total_months, total_value)) {
-                                failure = true;
-                                res.record_failure(months, current_month, current_year);
-                                break;
-                            }
-
-                            for (size_t i = 0; i < N; ++i) {
-                                current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
-                            }
-                        }
+                    // Rebalance and check for failure
+                    if (!rebalance(months == total_months, scenario, current_values)) {
+                        failure = true;
+                        res.record_failure(months, current_month, current_year);
+                        break;
                     }
 
                     // Simulate TER
@@ -279,7 +287,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                         }
 
                         // TER can cause failure
-                        if (scenario.is_failure(months == total_months, current_value())) {
+                        if (scenario.is_failure(months == total_months, current_value(current_values))) {
                             failure = true;
                             res.record_failure(months, current_month, current_year);
                             break;
@@ -292,7 +300,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     ++inflation;
 
                     if ((months - 1) % scenario.withdraw_frequency == 0) {
-                        const auto total_value = current_value();
+                        const auto total_value = current_value(current_values);
 
                         assert(total_value > 0.0f); // This must be enforced before
 
@@ -337,7 +345,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                             value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
                         }
 
-                        if (scenario.is_failure(months == total_months, current_value())) {
+                        if (scenario.is_failure(months == total_months, current_value(current_values))) {
                             res.record_failure(months, current_month, current_year);
 
                             withdrawn += total_value;
@@ -360,10 +368,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
                         current_values[i] *= 1.0f - yearly_rebalancing_cost / 100.0f;
                     }
 
-                    const auto total_value = current_value();
+                    const auto total_value = current_value(current_values);
 
                     // Fees can cause failure
-                    if (scenario.is_failure(months == total_months, current_value())) {
+                    if (scenario.is_failure(months == total_months, total_value)) {
                         failure = true;
                         res.record_failure(months, current_month, current_year);
                         // Here we don't break, because we want to record eff wr
@@ -399,7 +407,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             assert(failure || withdrawals == total_months);
 
-            const auto final_value = failure ? 0.0f : current_value();
+            const auto final_value = failure ? 0.0f : current_value(current_values);
 
             if (!failure) {
                 ++res.successes;
