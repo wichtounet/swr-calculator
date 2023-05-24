@@ -357,12 +357,19 @@ swr::results swr_simulation(swr::scenario & scenario) {
             float total_withdrawn = 0.0f;
             bool failure = false;
 
+            auto step = [&](auto result) {
+                if (!failure && !result()) {
+                    failure = true;
+                    res.record_failure(months, current_month, current_year);
+                }
+            };
+
             for (size_t y = current_year; y <= end_year; ++y) {
                 const auto starting_value = current_value(current_values);
 
                 float withdrawn = 0.0f;
 
-                for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++months) {
                     // Adjust the portfolio with the returns
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
@@ -370,46 +377,27 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     // Stock market losses can cause failure
-                    if (scenario.is_failure(months == total_months, current_value(current_values))) {
-                        failure = true;
-                        res.record_failure(months, current_month, current_year);
-                        break;
-                    }
+                    step([&]() { return !scenario.is_failure(months == total_months, current_value(current_values)); });
 
-                    // Rebalance and check for failure
-                    if (!monthly_rebalance(months == total_months, scenario, current_values)) {
-                        failure = true;
-                        res.record_failure(months, current_month, current_year);
-                        break;
-                    }
+                    // Monthly Rebalance
+                    step([&]() { return monthly_rebalance(months == total_months, scenario, current_values); });
 
-                    // Simulate TER and check for failure
-                    if (!pay_fees(months == total_months, scenario, current_values)) {
-                        failure = true;
-                        res.record_failure(months, current_month, current_year);
-                        break;
-                    }
+                    // Simulate TER
+                    step([&]() { return pay_fees(months == total_months, scenario, current_values); });
 
                     // Adjust the withdrawals for inflation
                     withdrawal *= inflation->value;
                     minimum *= inflation->value;
                     ++inflation;
 
-                    if (!withdraw(months, total_months, scenario, current_values, cash, withdrawn, minimum, withdrawal, starting_value)) {
-                        failure = true;
-                        res.record_failure(months, current_month, current_year);
-                        break;
-                    }
+                    // Monthly withdrawal
+                    step([&]() { return withdraw(months, total_months, scenario, current_values, cash, withdrawn, minimum, withdrawal, starting_value); });
                 }
 
                 total_withdrawn += withdrawn;
 
-                // Rebalance and check for failure
-                if (!failure && !yearly_rebalance(months == total_months, scenario, current_values)) {
-                    failure = true;
-                    res.record_failure(months, current_month, current_year);
-                    // Here we don't break, because we want to record eff wr
-                }
+                // Yearly Rebalance and check for failure
+                step([&]() { return yearly_rebalance(months == total_months, scenario, current_values); });
 
                 // Record effective withdrawal rates
 
