@@ -129,6 +129,69 @@ bool pay_fees(bool end, swr::scenario & scenario, std::array<float, N> & current
 }
 
 template <size_t N>
+bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
+    const bool end = months == total_months;
+
+    if ((months - 1) % scenario.withdraw_frequency == 0) {
+
+        const auto total_value = current_value(current_values);
+
+        assert(total_value > 0.0f); // This must be enforced before
+
+        auto periods = scenario.withdraw_frequency;
+        if ((months - 1) + scenario.withdraw_frequency > total_months) {
+            periods = total_months - (months - 1);
+        }
+
+        float withdrawal_amount = 0;
+
+        // Compute the withdrawal amount based on the withdrawal strategy
+        if (scenario.method == swr::Method::STANDARD) {
+            withdrawal_amount = withdrawal / (12.0f / periods);
+        } else if (scenario.method == swr::Method::CURRENT) {
+            float minimum_withdrawal = minimum / (12.0f / periods);
+
+            withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
+            if (withdrawal_amount < minimum_withdrawal) {
+                withdrawal_amount = minimum_withdrawal;
+            }
+        }
+
+        auto eff_wr = withdrawal_amount / starting_value;
+
+        // Strategies with cash
+        if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
+            // First, withdraw from cash if possible
+            if (cash > 0.0f) {
+                if (withdrawal_amount <= cash) {
+                    withdrawn += withdrawal_amount;
+                    cash -= withdrawal_amount;
+                    withdrawal_amount = 0;
+                } else {
+                    withdrawn += cash;
+                    withdrawal_amount -= cash;
+                    cash = 0.0f;
+                }
+            }
+        }
+
+        for (auto& value : current_values) {
+            value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+        }
+
+        // Check for failure after the withdrawal
+        if (scenario.is_failure(end, current_value(current_values))) {
+            withdrawn += total_value;
+            return false;
+        }
+
+        withdrawn += withdrawal_amount;
+    }
+
+    return true;
+}
+
+template <size_t N>
 swr::results swr_simulation(swr::scenario & scenario) {
     auto & inflation_data = scenario.inflation_data;
     auto & values = scenario.values;
@@ -291,7 +354,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
             auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
 
             size_t months = 1;
-            size_t withdrawals = 0;
             float total_withdrawn = 0.0f;
             bool failure = false;
 
@@ -333,63 +395,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     minimum *= inflation->value;
                     ++inflation;
 
-                    if ((months - 1) % scenario.withdraw_frequency == 0) {
-                        const auto total_value = current_value(current_values);
-
-                        assert(total_value > 0.0f); // This must be enforced before
-
-                        auto periods = scenario.withdraw_frequency;
-                        if ((months - 1) + scenario.withdraw_frequency > total_months) {
-                            periods = total_months - (months - 1);
-                        }
-
-                        withdrawals += periods;
-
-                        float withdrawal_amount = 0;
-
-                        if (scenario.method == swr::Method::STANDARD) {
-                            withdrawal_amount = withdrawal / (12.0f / periods);
-                        } else if (scenario.method == swr::Method::CURRENT) {
-                            float minimum_withdrawal = minimum / (12.0f / periods);
-
-                            withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
-                            if (withdrawal_amount < minimum_withdrawal) {
-                                withdrawal_amount = minimum_withdrawal;
-                            }
-                        }
-
-                        auto eff_wr = withdrawal_amount / starting_value;
-
-                        if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
-                            // First, withdraw from cash if possible
-                            if (cash > 0.0f) {
-                                if (withdrawal_amount <= cash) {
-                                    withdrawn += withdrawal_amount;
-                                    cash -= withdrawal_amount;
-                                    withdrawal_amount = 0;
-                                } else {
-                                    withdrawn += cash;
-                                    withdrawal_amount -= cash;
-                                    cash = 0.0f;
-                                }
-                            }
-                        }
-
-                        for (auto& value : current_values) {
-                            value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
-                        }
-
-                        if (scenario.is_failure(months == total_months, current_value(current_values))) {
-                            res.record_failure(months, current_month, current_year);
-
-                            withdrawn += total_value;
-
-                            failure = true;
-
-                            break;
-                        } else {
-                            withdrawn += withdrawal_amount;
-                        }
+                    if (!withdraw(months, total_months, scenario, current_values, cash, withdrawn, minimum, withdrawal, starting_value)) {
+                        failure = true;
+                        res.record_failure(months, current_month, current_year);
+                        break;
                     }
                 }
 
@@ -424,8 +433,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     break;
                 }
             }
-
-            assert(failure || withdrawals == total_months);
 
             const auto final_value = failure ? 0.0f : current_value(current_values);
 
