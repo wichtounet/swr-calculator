@@ -370,6 +370,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 float withdrawn = 0.0f;
 
                 for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                    const bool end = months == total_months;
+
                     // Adjust the portfolio with the returns
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
@@ -377,13 +379,13 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     // Stock market losses can cause failure
-                    step([&]() { return !scenario.is_failure(months == total_months, current_value(current_values)); });
+                    step([&]() { return !scenario.is_failure(end, current_value(current_values)); });
 
                     // Monthly Rebalance
-                    step([&]() { return monthly_rebalance(months == total_months, scenario, current_values); });
+                    step([&]() { return monthly_rebalance(end, scenario, current_values); });
 
                     // Simulate TER
-                    step([&]() { return pay_fees(months == total_months, scenario, current_values); });
+                    step([&]() { return pay_fees(end, scenario, current_values); });
 
                     // Adjust the withdrawals for inflation
                     withdrawal *= inflation->value;
