@@ -9,3 +9,5 @@ Initial fork was to just leverage the raw data available in the stock-data folde
 This tool is intended to be a pet project for data science techniques. It is not meant to reflect any real world scenarios. 
 
 DO NOT use this as any financial advice. It's for entertainment/educational purposes only.
+
+Everything was written using R version 4.2.2
