@@ -31,6 +31,50 @@ auto current_value(const std::array<float, N>& current_values) {
 }
 
 template <size_t N>
+bool glidepath(bool end, swr::scenario & scenario, std::array<float, N> & current_values) {
+    if (scenario.glidepath) {
+        // Check if we have already reached the target
+        if (scenario.portfolio[0].allocation_ == scenario.gp_goal) {
+            return true;
+        }
+
+        scenario.portfolio[0].allocation_ += scenario.gp_pass;
+        scenario.portfolio[1].allocation_ -= scenario.gp_pass;
+
+        // Acount for float inaccuracies
+        if (scenario.gp_pass > 0.0f && scenario.portfolio[0].allocation_ > scenario.gp_goal) {
+            scenario.portfolio[0].allocation_ = scenario.gp_goal;
+            scenario.portfolio[1].allocation_ = 100.0f - scenario.gp_goal;
+        } else if (scenario.gp_pass < 0.0f && scenario.portfolio[0].allocation_ < scenario.gp_goal) {
+            scenario.portfolio[0].allocation_ = scenario.gp_goal;
+            scenario.portfolio[1].allocation_ = 100.0f - scenario.gp_goal;
+        }
+
+        // If rebalancing is not monthly, we do a rebalancing ourselves
+        // Otherwise, it will be done as the next step
+        if (scenario.rebalance == swr::Rebalancing::NONE) {
+            // Pay the fees
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] *= 1.0f - monthly_rebalancing_cost / 100.0f;
+            }
+
+            const auto total_value = current_value(current_values);
+
+            // Fees can cause failure
+            if (scenario.is_failure(end, total_value)) {
+                return false;
+            }
+
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] = total_value * (scenario.portfolio[i].allocation_ / 100.0f);
+            }
+        }
+    }
+
+    return true;
+}
+
+template <size_t N>
 bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> & current_values) {
     // Monthly Rebalance if necessary
     if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
@@ -47,9 +91,10 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> 
         }
 
         for (size_t i = 0; i < N; ++i) {
-            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+            current_values[i] = total_value * (scenario.portfolio[i].allocation_ / 100.0f);
         }
     }
+
     // Threshold Rebalance if necessary
     if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
         bool rebalance = false;
@@ -57,7 +102,7 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> 
         {
             const auto total_value = current_value(current_values);
             for (size_t i = 0; i < N; ++i) {
-                if (std::abs((scenario.portfolio[i].allocation / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
+                if (std::abs((scenario.portfolio[i].allocation_ / 100.0f) - current_values[i] / total_value) >= scenario.threshold) {
                     rebalance = true;
                     break;
                 }
@@ -79,7 +124,7 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> 
             }
 
             for (size_t i = 0; i < N; ++i) {
-                current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+                current_values[i] = total_value * (scenario.portfolio[i].allocation_ / 100.0f);
             }
         }
     }
@@ -104,7 +149,7 @@ bool yearly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> &
         }
 
         for (size_t i = 0; i < N; ++i) {
-            current_values[i] = total_value * (scenario.portfolio[i].allocation / 100.0f);
+            current_values[i] = total_value * (scenario.portfolio[i].allocation_ / 100.0f);
         }
     }
 
@@ -300,6 +345,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
             return res;
         }
 
+        if (scenario.rebalance != swr::Rebalancing::NONE && scenario.rebalance != swr::Rebalancing::MONTHLY) {
+            res.message = "Invalid rebalancing method for glidepath";
+            res.error = true;
+            return res;
+        }
+
         if (!scenario.gp_pass) {
             res.message = "Invalid pass for glidepath";
             res.error = true;
@@ -310,13 +361,16 @@ swr::results swr_simulation(swr::scenario & scenario) {
             std::cout << scenario.gp_pass << std::endl;
             std::cout << scenario.gp_goal << std::endl;
             std::cout << portfolio[0].allocation << std::endl;
-            res.message = "Invalid goal/pass for glidepath";
+            res.message = "Invalid goal/pass (1) for glidepath";
             res.error = true;
             return res;
         }
 
         if (scenario.gp_pass < 0.0f && scenario.gp_goal >= portfolio[0].allocation) {
-            res.message = "Invalid goal/pass for glidepath";
+            std::cout << scenario.gp_pass << std::endl;
+            std::cout << scenario.gp_goal << std::endl;
+            std::cout << portfolio[0].allocation << std::endl;
+            res.message = "Invalid goal/pass (2) for glidepath";
             res.error = true;
             return res;
         }
@@ -346,11 +400,16 @@ swr::results swr_simulation(swr::scenario & scenario) {
             // Used for the target threshold
             scenario.target_value_ = swr::initial_value;
 
+            // Reset the allocation for the context
+            for (auto & asset : scenario.portfolio) {
+                asset.allocation_ = asset.allocation;
+            }
+
             std::array<float, N> current_values;
 
             // Compute the initial values of the assets
             for (size_t i = 0; i < N; ++i) {
-                current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation / 100.0f);
+                current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
             }
 
@@ -383,6 +442,9 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
                     // Stock market losses can cause failure
                     step([&]() { return !scenario.is_failure(end, current_value(current_values)); });
+
+                    // Glidepath
+                    step([&]() { return glidepath(end, scenario, current_values); });
 
                     // Monthly Rebalance
                     step([&]() { return monthly_rebalance(end, scenario, current_values); });

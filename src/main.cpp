@@ -950,6 +950,8 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
+            std::cout << scenario.rebalance << std::endl;
+
             float start_wr = 3.0f;
             if (args.size() > 7) {
                 start_wr = atof(args[7].c_str());

@@ -8,6 +8,9 @@ namespace swr {
 struct allocation {
     std::string asset;
     float allocation;
+
+    // Can be changed by the system
+    float allocation_;
 };
 
 std::vector<allocation> parse_portfolio(std::string portfolio_str);
