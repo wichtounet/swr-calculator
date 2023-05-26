@@ -1054,11 +1054,15 @@ int main(int argc, const char* argv[]) {
                 scenario.final_threshold = atof(args[12].c_str()) / 100.0f;
             }
 
+            if (args.size() > 13) {
+                scenario.final_inflation = args[13] == "true";
+            }
+
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            if (args.size() > 13) {
-                std::string country = args[13];
+            if (args.size() > 14) {
+                std::string country = args[14];
 
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");

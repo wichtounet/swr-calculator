@@ -343,6 +343,9 @@ swr::results swr_simulation(swr::scenario & scenario) {
             // The amount of cash available
             float cash = scenario.initial_cash;
 
+            // Used for the target threshold
+            scenario.target_value_ = swr::initial_value;
+
             std::array<float, N> current_values;
 
             // Compute the initial values of the assets
@@ -390,6 +393,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     // Adjust the withdrawals for inflation
                     withdrawal *= inflation->value;
                     minimum *= inflation->value;
+                    scenario.target_value_ *= inflation->value;
                     ++inflation;
 
                     // Monthly withdrawal

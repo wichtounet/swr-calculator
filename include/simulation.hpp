@@ -49,11 +49,16 @@ struct scenario {
     // By default, we can go down all the way to zero
     // Setting it to 1.0f makes it so we sustain the full capital
     float final_threshold = 0.0f;
+    bool  final_inflation = true;
 
     // Configuration for equity glidepaths
     bool  glidepath = false;
     float gp_pass   = 0.0f; // Monthly increase (or decrease)
     float gp_goal   = 0.0f;
+
+    // Tempory values
+    // TODO: Should maybe be moved later into a context class
+    float target_value_ = 0.0f;
 
     bool is_failure(bool end, float current_value) const {
         // If it's not the end, we simply need to not run out of money
@@ -62,7 +67,11 @@ struct scenario {
         }
 
         // If it's the end, we need to respect the threshold
-        return current_value <= final_threshold * initial_value;
+        if (final_inflation) {
+            return current_value <= final_threshold * target_value_;
+        } else {
+            return current_value <= final_threshold * initial_value;
+        }
     }
 };
 
