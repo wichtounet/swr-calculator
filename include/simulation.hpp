@@ -40,10 +40,17 @@ struct scenario {
     float       fees               = 0.0f; // TER 1% = 0.01
     Method      method             = Method::STANDARD;
     float       minimum            = 3; // Minimum of 3% * initial
-    float       initial_cash       = 0.0f;
-    bool        cash_simple        = true;
-    float       final_threshold    = 0.0f; // By default, we can go down all the way to zero
 
+    // Configuration for adding cash to the strategy
+    float initial_cash = 0.0f;
+    bool  cash_simple  = true;
+
+    // Configuration to sustain the capital
+    // By default, we can go down all the way to zero
+    // Setting it to 1.0f makes it so we sustain the full capital
+    float final_threshold = 0.0f;
+
+    // Configuration for equity glidepaths
     bool  glidepath = false;
     float gp_pass   = 0.0f; // Monthly increase (or decrease)
     float gp_goal   = 0.0f;
