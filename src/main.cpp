@@ -981,102 +981,105 @@ int main(int argc, const char* argv[]) {
 
             std::stringstream failsafe_ss;
 
+            auto failsafe_and_success = [&](auto title) {
+                multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
+                failsafe_swr(title, scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
+            };
+
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 40;
             scenario.portfolio[1].allocation = 60;
-            multiple_wr_success_sheets("Static 40%", scenario, start_wr, end_wr, add_wr);
-            failsafe_swr("Static 40%", scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
+            failsafe_and_success("Static 40%");
 
             scenario.glidepath = true;
             scenario.gp_goal = 80.0f;
 
             scenario.gp_pass = 0.2;
-            multiple_wr_success_sheets("40->80,0.2", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->80%,+0.2");
 
             scenario.gp_pass = 0.3;
-            multiple_wr_success_sheets("40->80,0.3", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->80%,+0.3");
 
             scenario.gp_pass = 0.4;
-            multiple_wr_success_sheets("40->80,0.4", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->80%,+0.4");
 
             scenario.gp_pass = 0.5;
-            multiple_wr_success_sheets("40->80,0.5", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->80%,+0.5");
 
             scenario.glidepath = true;
             scenario.gp_goal = 100.0f;
 
             scenario.gp_pass = 0.2;
-            multiple_wr_success_sheets("40->100,0.2", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->100%,0.2");
 
             scenario.gp_pass = 0.3;
-            multiple_wr_success_sheets("40->100,0.3", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->100%,+0.3");
 
             scenario.gp_pass = 0.4;
-            multiple_wr_success_sheets("40->100,0.4", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->100%,+0.4");
 
             scenario.gp_pass = 0.5;
-            multiple_wr_success_sheets("40->100,0.5", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("40%->100%,+0.5");
 
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 60;
             scenario.portfolio[1].allocation = 40;
-            multiple_wr_success_sheets("Static 60%", scenario, start_wr, end_wr, add_wr);
-            failsafe_swr("Static 60%", scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
+            failsafe_and_success("Static 60%");
 
             scenario.glidepath = true;
             scenario.gp_goal = 80.0f;
 
             scenario.gp_pass = 0.2;
-            multiple_wr_success_sheets("60->80,0.2", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->80%,+0.2");
 
             scenario.gp_pass = 0.3;
-            multiple_wr_success_sheets("60->80,0.3", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->80%,+0.3");
 
             scenario.gp_pass = 0.4;
-            multiple_wr_success_sheets("60->80,0.4", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->80%,+0.4");
 
             scenario.gp_pass = 0.5;
-            multiple_wr_success_sheets("60->80,0.5", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->80%,+0.5");
 
             scenario.glidepath = true;
             scenario.gp_goal = 100.0f;
 
             scenario.gp_pass = 0.2;
-            multiple_wr_success_sheets("60->100,0.2", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->100%,+0.2");
 
             scenario.gp_pass = 0.3;
-            multiple_wr_success_sheets("60->100,0.3", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->100%,+0.3");
 
             scenario.gp_pass = 0.4;
-            multiple_wr_success_sheets("60->100,0.4", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->100%,+0.4");
 
             scenario.gp_pass = 0.5;
-            multiple_wr_success_sheets("60->100,0.5", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("60%->100%,+0.5");
 
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 80;
             scenario.portfolio[1].allocation = 20;
-            multiple_wr_success_sheets("80", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("Static 80%");
 
             scenario.glidepath = true;
             scenario.gp_goal = 100.0f;
 
             scenario.gp_pass = 0.2;
-            multiple_wr_success_sheets("80->100,0.2", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("80%->100%,+0.2");
 
             scenario.gp_pass = 0.3;
-            multiple_wr_success_sheets("80->100,0.3", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("80%->100%,+0.3");
 
             scenario.gp_pass = 0.4;
-            multiple_wr_success_sheets("80->100,0.4", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("80%->100%,+0.4");
 
             scenario.gp_pass = 0.5;
-            multiple_wr_success_sheets("80->100,0.5", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("80%->100%,+0.5");
 
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 100;
             scenario.portfolio[1].allocation = 0;
-            multiple_wr_success_sheets("100", scenario, start_wr, end_wr, add_wr);
+            failsafe_and_success("Static 100%");
 
             std::cout << std::endl;
             std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
