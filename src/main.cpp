@@ -57,11 +57,15 @@ void multiple_wr(swr::scenario scenario){
 }
 
 template <typename F>
-void multiple_wr_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr, F functor){
-    for (auto& position : scenario.portfolio) {
-        if (position.allocation > 0) {
-            std::cout << position.allocation << "% " << position.asset << " ";
+void multiple_wr_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr, F functor){
+    if (title.empty()) {
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                std::cout << position.allocation << "% " << position.asset << " ";
+            }
         }
+    } else {
+        std::cout << title << " ";
     }
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -79,20 +83,20 @@ void multiple_wr_sheets(swr::scenario scenario, float start_wr, float end_wr, fl
     std::cout << "\n";
 }
 
-void multiple_wr_success_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+void multiple_wr_success_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.success_rate;
     });
 }
 
-void multiple_wr_withdrawn_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+void multiple_wr_withdrawn_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.withdrawn_per_year;
     });
 }
 
-void multiple_wr_duration_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(scenario, start_wr, end_wr, add_wr, [](auto & results) {
+void multiple_wr_duration_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.worst_duration;
     });
 }
@@ -971,11 +975,100 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            scenario.glidepath = false;
+            scenario.portfolio[0].allocation = 40;
+            scenario.portfolio[1].allocation = 60;
+            multiple_wr_success_sheets("40", scenario, start_wr, end_wr, add_wr);
+            scenario.glidepath = true;
+            scenario.gp_goal = 80.0f;
+
+            scenario.gp_pass = 0.2;
+            multiple_wr_success_sheets("40->80,0.2", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.3;
+            multiple_wr_success_sheets("40->80,0.3", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.4;
+            multiple_wr_success_sheets("40->80,0.4", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.5;
+            multiple_wr_success_sheets("40->80,0.5", scenario, start_wr, end_wr, add_wr);
+
             scenario.glidepath = true;
             scenario.gp_goal = 100.0f;
-            scenario.gp_pass = 0.2;
 
-            multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+            scenario.gp_pass = 0.2;
+            multiple_wr_success_sheets("40->100,0.2", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.3;
+            multiple_wr_success_sheets("40->100,0.3", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.4;
+            multiple_wr_success_sheets("40->100,0.4", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.5;
+            multiple_wr_success_sheets("40->100,0.5", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = false;
+            scenario.portfolio[0].allocation = 60;
+            scenario.portfolio[1].allocation = 40;
+            multiple_wr_success_sheets("60", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = true;
+            scenario.gp_goal = 80.0f;
+
+            scenario.gp_pass = 0.2;
+            multiple_wr_success_sheets("60->80,0.2", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.3;
+            multiple_wr_success_sheets("60->80,0.3", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.4;
+            multiple_wr_success_sheets("60->80,0.4", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.5;
+            multiple_wr_success_sheets("60->80,0.5", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = true;
+            scenario.gp_goal = 100.0f;
+
+            scenario.gp_pass = 0.2;
+            multiple_wr_success_sheets("60->100,0.2", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.3;
+            multiple_wr_success_sheets("60->100,0.3", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.4;
+            multiple_wr_success_sheets("60->100,0.4", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.5;
+            multiple_wr_success_sheets("60->100,0.5", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = false;
+            scenario.portfolio[0].allocation = 80;
+            scenario.portfolio[1].allocation = 20;
+            multiple_wr_success_sheets("80", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = true;
+            scenario.gp_goal = 100.0f;
+
+            scenario.gp_pass = 0.2;
+            multiple_wr_success_sheets("80->100,0.2", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.3;
+            multiple_wr_success_sheets("80->100,0.3", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.4;
+            multiple_wr_success_sheets("80->100,0.4", scenario, start_wr, end_wr, add_wr);
+
+            scenario.gp_pass = 0.5;
+            multiple_wr_success_sheets("80->100,0.5", scenario, start_wr, end_wr, add_wr);
+
+            scenario.glidepath = false;
+            scenario.portfolio[0].allocation = 100;
+            scenario.portfolio[1].allocation = 0;
+            multiple_wr_success_sheets("100", scenario, start_wr, end_wr, add_wr);
+
         } else if (command == "failsafe") {
             swr::scenario scenario;
 
@@ -1105,11 +1198,11 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
         } else if (command == "trinity_duration_sheets") {
             swr::scenario scenario;
@@ -1291,7 +1384,7 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
 
                 std::cout << '\n';
@@ -1300,7 +1393,7 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_withdrawn_sheets(scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_withdrawn_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
 
                 std::cout << '\n';
@@ -1309,11 +1402,11 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_duration_sheets(scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
 
             std::cout << "\n";
@@ -1471,11 +1564,11 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets(scenario, start_wr, end_wr, add_wr);
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
 
             auto end = std::chrono::high_resolution_clock::now();
