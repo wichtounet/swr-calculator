@@ -17,7 +17,7 @@ constexpr const float monthly_rebalancing_cost   = 0.005;
 constexpr const float yearly_rebalancing_cost    = 0.01;
 constexpr const float threshold_rebalancing_cost = 0.01;
 
-bool valid_year(const std::vector<swr::data> & data, size_t year) {
+bool valid_year(const swr::data_vector & data, size_t year) {
     return year >= data.front().year && year <= data.back().year;
 }
 
@@ -378,10 +378,19 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     const size_t total_months           = scenario.years * 12;
 
+    // Prepare the start
+    std::array<swr::data_vector::const_iterator, N> start_returns;
+
+    for (size_t i = 0; i < N; ++i) {
+        start_returns[i] = swr::get_start(values[i], scenario.start_year, 1);
+    }
+
+    auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
+
     // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
-    std::array<std::vector<swr::data>::const_iterator, N> returns;
+    std::array<swr::data_vector::const_iterator, N> returns;
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
@@ -410,10 +419,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
             // Compute the initial values of the assets
             for (size_t i = 0; i < N; ++i) {
                 current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
-                returns[i]        = swr::get_start(values[i], current_year, (current_month % 12) + 1);
+                returns[i]        = start_returns[i]++;
             }
 
-            auto inflation = swr::get_start(inflation_data, current_year, (current_month % 12) + 1);
+            auto inflation = start_inflation++;
 
             size_t months = 1;
             float total_withdrawn = 0.0f;
