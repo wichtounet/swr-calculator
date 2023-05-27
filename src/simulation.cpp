@@ -178,10 +178,7 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
     const bool end = months == total_months;
 
     if ((months - 1) % scenario.withdraw_frequency == 0) {
-
         const auto total_value = current_value(current_values);
-
-        assert(total_value > 0.0f); // This must be enforced before
 
         auto periods = scenario.withdraw_frequency;
         if ((months - 1) + scenario.withdraw_frequency > total_months) {
