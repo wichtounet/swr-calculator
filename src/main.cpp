@@ -131,33 +131,37 @@ void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr,
     csv_print("MAX", max_tv);
 }
 
-void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal) {
+void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal, std::ostream & out) {
     for (float wr = start_wr; wr >= end_wr; wr -= step) {
         scenario.wr = wr;
         auto monthly_results = swr::simulation(scenario);
 
         if (monthly_results.success_rate >= 100.0f - goal) {
-            std::cout << ";" << wr;
+            out<< ";" << wr;
             return;
         }
     }
 
-    std::cout << ";0";
+    out << ";0";
 }
 
-void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step) {
-    for (auto& position : scenario.portfolio) {
-        if (position.allocation > 0) {
-            std::cout << position.allocation << "% " << position.asset << " ";
+void failsafe_swr(const std::string & title, swr::scenario & scenario, float start_wr, float end_wr, float step, std::ostream & out) {
+    if (title.empty()) {
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                out << position.allocation << "% " << position.asset << " ";
+            }
         }
+    } else {
+        out << title << " ";
     }
 
-    failsafe_swr(scenario, start_wr, end_wr, step, 0.0f);
-    failsafe_swr(scenario, start_wr, end_wr, step, 1.0f);
-    failsafe_swr(scenario, start_wr, end_wr, step, 5.0f);
-    failsafe_swr(scenario, start_wr, end_wr, step, 10.0f);
-    failsafe_swr(scenario, start_wr, end_wr, step, 25.0f);
-    std::cout << '\n';
+    failsafe_swr(scenario, start_wr, end_wr, step, 0.0f, out);
+    failsafe_swr(scenario, start_wr, end_wr, step, 1.0f, out);
+    failsafe_swr(scenario, start_wr, end_wr, step, 5.0f, out);
+    failsafe_swr(scenario, start_wr, end_wr, step, 10.0f, out);
+    failsafe_swr(scenario, start_wr, end_wr, step, 25.0f, out);
+    out << '\n';
 }
 
 void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
@@ -975,10 +979,14 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            std::stringstream failsafe_ss;
+
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 40;
             scenario.portfolio[1].allocation = 60;
-            multiple_wr_success_sheets("40", scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_sheets("Static 40%", scenario, start_wr, end_wr, add_wr);
+            failsafe_swr("Static 40%", scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
+
             scenario.glidepath = true;
             scenario.gp_goal = 80.0f;
 
@@ -1012,7 +1020,8 @@ int main(int argc, const char* argv[]) {
             scenario.glidepath = false;
             scenario.portfolio[0].allocation = 60;
             scenario.portfolio[1].allocation = 40;
-            multiple_wr_success_sheets("60", scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_sheets("Static 60%", scenario, start_wr, end_wr, add_wr);
+            failsafe_swr("Static 60%", scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
 
             scenario.glidepath = true;
             scenario.gp_goal = 80.0f;
@@ -1069,6 +1078,9 @@ int main(int argc, const char* argv[]) {
             scenario.portfolio[1].allocation = 0;
             multiple_wr_success_sheets("100", scenario, start_wr, end_wr, add_wr);
 
+            std::cout << std::endl;
+            std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
+            std::cout << failsafe_ss.str();
         } else if (command == "failsafe") {
             swr::scenario scenario;
 
@@ -1099,12 +1111,12 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    failsafe_swr(scenario, 6.0f, 0.0f, 0.01f);
+                    failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
                 }
             } else {
                 std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
                 swr::normalize_portfolio(scenario.portfolio);
-                failsafe_swr(scenario, 6.0f, 0.0f, 0.01f);
+                failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
             }
         } else if (command == "trinity_success_sheets") {
             if (args.size() < 7) {
