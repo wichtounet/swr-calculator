@@ -948,7 +948,7 @@ int main(int argc, const char* argv[]) {
             analyzer(values[0], "Stocks");
             analyzer(values[1], "Bonds");
             analyzer(inflation_data, "Inflation");
-        } else if (command == "glidepath") {
+        } else if (command == "glidepath" || command == "reverse_glidepath") {
             swr::scenario scenario;
 
             scenario.years      = atoi(args[1].c_str());
@@ -986,100 +986,122 @@ int main(int argc, const char* argv[]) {
                 failsafe_swr(title, scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
             };
 
-            scenario.glidepath = false;
-            scenario.portfolio[0].allocation = 40;
-            scenario.portfolio[1].allocation = 60;
-            failsafe_and_success("Static 40%");
+            if (command == "glidepath") {
+                scenario.glidepath = false;
+                scenario.portfolio[0].allocation = 40;
+                scenario.portfolio[1].allocation = 60;
+                failsafe_and_success("Static 40%");
 
-            scenario.glidepath = true;
-            scenario.gp_goal = 80.0f;
+                scenario.glidepath = true;
+                scenario.gp_goal = 80.0f;
 
-            scenario.gp_pass = 0.2;
-            failsafe_and_success("40%->80%,+0.2");
+                scenario.gp_pass = 0.2;
+                failsafe_and_success("40%->80%,+0.2");
 
-            scenario.gp_pass = 0.3;
-            failsafe_and_success("40%->80%,+0.3");
+                scenario.gp_pass = 0.3;
+                failsafe_and_success("40%->80%,+0.3");
 
-            scenario.gp_pass = 0.4;
-            failsafe_and_success("40%->80%,+0.4");
+                scenario.gp_pass = 0.4;
+                failsafe_and_success("40%->80%,+0.4");
 
-            scenario.gp_pass = 0.5;
-            failsafe_and_success("40%->80%,+0.5");
+                scenario.gp_pass = 0.5;
+                failsafe_and_success("40%->80%,+0.5");
 
-            scenario.glidepath = true;
-            scenario.gp_goal = 100.0f;
+                scenario.glidepath = true;
+                scenario.gp_goal = 100.0f;
 
-            scenario.gp_pass = 0.2;
-            failsafe_and_success("40%->100%,0.2");
+                scenario.gp_pass = 0.2;
+                failsafe_and_success("40%->100%,0.2");
 
-            scenario.gp_pass = 0.3;
-            failsafe_and_success("40%->100%,+0.3");
+                scenario.gp_pass = 0.3;
+                failsafe_and_success("40%->100%,+0.3");
 
-            scenario.gp_pass = 0.4;
-            failsafe_and_success("40%->100%,+0.4");
+                scenario.gp_pass = 0.4;
+                failsafe_and_success("40%->100%,+0.4");
 
-            scenario.gp_pass = 0.5;
-            failsafe_and_success("40%->100%,+0.5");
+                scenario.gp_pass = 0.5;
+                failsafe_and_success("40%->100%,+0.5");
 
-            scenario.glidepath = false;
-            scenario.portfolio[0].allocation = 60;
-            scenario.portfolio[1].allocation = 40;
-            failsafe_and_success("Static 60%");
+                scenario.glidepath = false;
+                scenario.portfolio[0].allocation = 60;
+                scenario.portfolio[1].allocation = 40;
+                failsafe_and_success("Static 60%");
 
-            scenario.glidepath = true;
-            scenario.gp_goal = 80.0f;
+                scenario.glidepath = true;
+                scenario.gp_goal = 80.0f;
 
-            scenario.gp_pass = 0.2;
-            failsafe_and_success("60%->80%,+0.2");
+                scenario.gp_pass = 0.2;
+                failsafe_and_success("60%->80%,+0.2");
 
-            scenario.gp_pass = 0.3;
-            failsafe_and_success("60%->80%,+0.3");
+                scenario.gp_pass = 0.3;
+                failsafe_and_success("60%->80%,+0.3");
 
-            scenario.gp_pass = 0.4;
-            failsafe_and_success("60%->80%,+0.4");
+                scenario.gp_pass = 0.4;
+                failsafe_and_success("60%->80%,+0.4");
 
-            scenario.gp_pass = 0.5;
-            failsafe_and_success("60%->80%,+0.5");
+                scenario.gp_pass = 0.5;
+                failsafe_and_success("60%->80%,+0.5");
 
-            scenario.glidepath = true;
-            scenario.gp_goal = 100.0f;
+                scenario.glidepath = true;
+                scenario.gp_goal = 100.0f;
 
-            scenario.gp_pass = 0.2;
-            failsafe_and_success("60%->100%,+0.2");
+                scenario.gp_pass = 0.2;
+                failsafe_and_success("60%->100%,+0.2");
 
-            scenario.gp_pass = 0.3;
-            failsafe_and_success("60%->100%,+0.3");
+                scenario.gp_pass = 0.3;
+                failsafe_and_success("60%->100%,+0.3");
 
-            scenario.gp_pass = 0.4;
-            failsafe_and_success("60%->100%,+0.4");
+                scenario.gp_pass = 0.4;
+                failsafe_and_success("60%->100%,+0.4");
 
-            scenario.gp_pass = 0.5;
-            failsafe_and_success("60%->100%,+0.5");
+                scenario.gp_pass = 0.5;
+                failsafe_and_success("60%->100%,+0.5");
 
-            scenario.glidepath = false;
-            scenario.portfolio[0].allocation = 80;
-            scenario.portfolio[1].allocation = 20;
-            failsafe_and_success("Static 80%");
+                scenario.glidepath = false;
+                scenario.portfolio[0].allocation = 80;
+                scenario.portfolio[1].allocation = 20;
+                failsafe_and_success("Static 80%");
 
-            scenario.glidepath = true;
-            scenario.gp_goal = 100.0f;
+                scenario.glidepath = true;
+                scenario.gp_goal = 100.0f;
 
-            scenario.gp_pass = 0.2;
-            failsafe_and_success("80%->100%,+0.2");
+                scenario.gp_pass = 0.2;
+                failsafe_and_success("80%->100%,+0.2");
 
-            scenario.gp_pass = 0.3;
-            failsafe_and_success("80%->100%,+0.3");
+                scenario.gp_pass = 0.3;
+                failsafe_and_success("80%->100%,+0.3");
 
-            scenario.gp_pass = 0.4;
-            failsafe_and_success("80%->100%,+0.4");
+                scenario.gp_pass = 0.4;
+                failsafe_and_success("80%->100%,+0.4");
 
-            scenario.gp_pass = 0.5;
-            failsafe_and_success("80%->100%,+0.5");
+                scenario.gp_pass = 0.5;
+                failsafe_and_success("80%->100%,+0.5");
 
-            scenario.glidepath = false;
-            scenario.portfolio[0].allocation = 100;
-            scenario.portfolio[1].allocation = 0;
-            failsafe_and_success("Static 100%");
+                scenario.glidepath = false;
+                scenario.portfolio[0].allocation = 100;
+                scenario.portfolio[1].allocation = 0;
+                failsafe_and_success("Static 100%");
+            } else {
+                scenario.glidepath = false;
+                scenario.portfolio[0].allocation = 100;
+                scenario.portfolio[1].allocation = 0;
+                failsafe_and_success("Static 100%");
+
+                scenario.glidepath = true;
+                scenario.gp_goal = 80.0f;
+
+                scenario.gp_pass = -0.2;
+                failsafe_and_success("100%->80%,-0.2");
+
+                scenario.gp_pass = -0.3;
+                failsafe_and_success("100%->80%,-0.3");
+
+                scenario.gp_pass = -0.4;
+                failsafe_and_success("100%->80%,-0.4");
+
+                scenario.gp_pass = -0.5;
+                failsafe_and_success("100%->80%,-0.5");
+            }
 
             std::cout << std::endl;
             std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
