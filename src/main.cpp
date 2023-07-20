@@ -221,6 +221,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     swr::scenario scenario;
 
+    // Don't run for too long
+    scenario.timeout_msecs = 200;
+
     // Parse the parameters
     auto portfolio_base = req.get_param_value("portfolio");
     scenario.portfolio  = swr::parse_portfolio(portfolio_base);
@@ -317,6 +320,9 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     auto start = std::chrono::high_resolution_clock::now();
 
     swr::scenario scenario;
+
+    // Don't run for too long
+    scenario.timeout_msecs = 200;
 
     // Parse the parameters
     scenario.wr       = atof(req.get_param_value("wr").c_str());

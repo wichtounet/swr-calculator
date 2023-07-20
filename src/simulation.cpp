@@ -7,6 +7,9 @@
 #include <cassert>
 #include <cmath>
 #include <array>
+#include <chrono>
+
+namespace chr = std::chrono;
 
 namespace {
 
@@ -240,6 +243,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     // The final results
     swr::results res;
+
+    auto start_tp = chr::high_resolution_clock::now();
 
     // 0. Make sure the years make some sense
 
@@ -533,6 +538,20 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 res.best_tv_year  = current_year;
                 res.best_tv_month = current_month;
                 res.best_tv       = final_value;
+            }
+
+            // After each starting point, we check if we should timeout
+
+            if (scenario.timeout_msecs) {
+                auto stop_tp = chr::high_resolution_clock::now();
+                auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
+
+                if (size_t(duration) > scenario.timeout_msecs) {
+                    res.message = "The computation took too long";
+                    res.error = true;
+                    std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
+                    return res;
+                }
             }
         }
     }

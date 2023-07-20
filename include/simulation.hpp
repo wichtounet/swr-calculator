@@ -41,6 +41,9 @@ struct scenario {
     Method      method             = Method::STANDARD;
     float       minimum            = 3; // Minimum of 3% * initial
 
+    // By default, simulations can run for ever but the server will set that lower
+    size_t timeout_msecs = 0;
+
     // Configuration for adding cash to the strategy
     float initial_cash = 0.0f;
     bool  cash_simple  = true;
