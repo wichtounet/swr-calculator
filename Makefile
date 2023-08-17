@@ -2,8 +2,8 @@ default: release_debug
 
 .PHONY: default release debug all clean
 
-include flags.mk
-include cpp-utils.mk
+include make-utils/flags.mk
+include make-utils/cpp-utils.mk
 
 CXX_FLAGS += -pthread
 
@@ -21,4 +21,4 @@ clean:
 	rm -rf release_debug/
 	rm -rf debug/
 
-include finalize.mk
+include make-utils/cpp-utils-finalize.mk
