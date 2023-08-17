@@ -5,7 +5,7 @@ default: release_debug
 include make-utils/flags.mk
 include make-utils/cpp-utils.mk
 
-CXX_FLAGS += -pthread
+CXX_FLAGS += -pthread -Icpp-httplib
 
 $(eval $(call auto_folder_compile,src))
 $(eval $(call auto_add_executable,swr_calculator))
