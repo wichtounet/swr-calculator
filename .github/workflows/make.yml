@@ -1,0 +1,36 @@
+name: Linux Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+        matrix:
+            os: [ubuntu-latest]
+            compiler: [g++-13,clang++-16]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+
+    - name: Install GCC compiler
+      run: sudo apt install g++-13
+
+    - name: install LLVM compiler
+      run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
+          sudo apt update
+          sudo apt install clang-16
+
+    - name: Build binaries
+      env:
+          CXX: ${{ matrix.compiler }}
+      run: make -j5 release_debug
