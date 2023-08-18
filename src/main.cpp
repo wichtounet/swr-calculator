@@ -34,11 +34,43 @@ void multiple_wr(swr::scenario scenario){
 
     std::cout << "\n";
 
-    for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
-        scenario.wr         = wr;
-        scenario.withdraw_frequency = 12;
+    cpp::default_thread_pool pool(std::thread::hardware_concurrency());
 
-        auto yearly_results = swr::simulation(scenario);
+    std::vector<swr::results> all_yearly_results;
+    std::vector<swr::results> all_monthly_results;
+
+    for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
+        all_yearly_results.emplace_back();
+        all_monthly_results.emplace_back();
+    }
+
+    size_t i = 0;
+
+    for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
+        pool.do_task(
+                [&scenario, &all_yearly_results, &all_monthly_results](float wr, size_t i) {
+                    auto my_scenario = scenario;
+
+                    my_scenario.wr                 = wr;
+                    my_scenario.withdraw_frequency = 12;
+
+                    all_yearly_results[i] = swr::simulation(my_scenario);
+
+                    my_scenario.withdraw_frequency = 1;
+                    all_monthly_results[i]         = swr::simulation(my_scenario);
+                },
+                wr,
+                i++);
+    }
+
+    pool.wait();
+
+    i = 0;
+
+    for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
+        auto & yearly_results = all_yearly_results[i];
+        auto & monthly_results = all_monthly_results[i];
+
         std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate << "%"
                   << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
 
@@ -47,8 +79,6 @@ void multiple_wr(swr::scenario scenario){
             return;
         }
 
-        scenario.withdraw_frequency = 1;
-        auto monthly_results = swr::simulation(scenario);
         std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate << "%"
                   << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
 
@@ -56,6 +86,8 @@ void multiple_wr(swr::scenario scenario){
             std::cout << "Error in simulation: " << monthly_results.message << std::endl;
             return;
         }
+
+        ++i;
     }
 }
 
