@@ -854,7 +854,6 @@ int main(int argc, const char* argv[]) {
                     returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
 
                     float net_worth = 0;
-                    size_t invested = 0;
 
                     for (size_t y = current_year; y <= end_year; ++y) {
                         for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
@@ -864,7 +863,6 @@ int main(int argc, const char* argv[]) {
 
                             if (months % frequency == frequency - 1) {
                                 net_worth += frequency * monthly_buy;
-                                invested += frequency * monthly_buy;
                             }
                         }
                     }
@@ -894,7 +892,6 @@ int main(int argc, const char* argv[]) {
                         returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
 
                         float net_worth = 0;
-                        size_t invested = 0;
 
                         for (size_t y = current_year; y <= end_year; ++y) {
                             for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
@@ -904,7 +901,6 @@ int main(int argc, const char* argv[]) {
 
                                 if (months % freq == freq - 1) {
                                     net_worth += freq * monthly_buy;
-                                    invested += freq * monthly_buy;
                                 }
                             }
                         }
