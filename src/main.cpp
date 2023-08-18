@@ -9,6 +9,9 @@
 #include "portfolio.hpp"
 #include "simulation.hpp"
 
+#include "cpp_utils/parallel.hpp"
+#include "cpp_utils/thread_pool.hpp"
+
 #include <httplib.h>
 
 namespace {
@@ -1699,29 +1702,52 @@ int main(int argc, const char* argv[]) {
 
                 const float withdrawal = (wr / 100.0f) * swr::initial_value;
 
-                for (size_t m = 0; m <= 60; ++m) {
-                    scenario.wr = wr;
-                    scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
+                std::array<std::vector<swr::results>, 61> all_results;
+                std::array<std::vector<swr::results>, 61> all_compare_results;
 
-                    std::cout << m;
+                cpp::default_thread_pool pool(std::thread::hardware_concurrency());
+
+                for (size_t M = 0; M <= 60; ++M) {
+                    pool.do_task([&](size_t m) {
+
+                    auto my_scenario = scenario;
+
+                    my_scenario.wr = wr;
+                    my_scenario.initial_cash = m * ((swr::initial_value * (my_scenario.wr / 100.0f)) / 12);
+
                     for (size_t i = 0; i <= 100; i += portfolio_add) {
-                        scenario.portfolio[0].allocation = float(i);
-                        scenario.portfolio[1].allocation = float(100 - i);
+                        my_scenario.portfolio[0].allocation = float(i);
+                        my_scenario.portfolio[1].allocation = float(100 - i);
 
-                        auto results = swr::simulation(scenario);
-                        std::cout << ';' << results.success_rate;
+                        all_results[m].push_back(swr::simulation(my_scenario));
                     }
 
                     if (compare) {
                         float total = swr::initial_value + m * (withdrawal / 12.0f);
-                        scenario.wr = 100.0f * (withdrawal / total);
-                        scenario.initial_cash = 0;
+                        my_scenario.wr = 100.0f * (withdrawal / total);
+                        my_scenario.initial_cash = 0;
 
                         for (size_t i = 0; i <= 100; i += portfolio_add) {
-                            scenario.portfolio[0].allocation = float(i);
-                            scenario.portfolio[1].allocation = float(100 - i);
+                            my_scenario.portfolio[0].allocation = float(i);
+                            my_scenario.portfolio[1].allocation = float(100 - i);
 
-                            auto results = swr::simulation(scenario);
+                            all_compare_results[m].push_back(swr::simulation(my_scenario));
+                        }
+                    }
+                    }, M);
+                }
+
+                pool.wait();
+
+                for (size_t m = 0; m <= 60; ++m) {
+                    std::cout << m;
+
+                    for (auto& results : all_results[m]) {
+                        std::cout << ';' << results.success_rate;
+                    }
+
+                    if (compare) {
+                        for (auto& results : all_compare_results[m]) {
                             std::cout << ';' << results.success_rate;
                         }
                     }
