@@ -103,16 +103,37 @@ void multiple_wr_sheets(const std::string & title, swr::scenario scenario, float
         std::cout << title << " ";
     }
 
+    cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
+    std::vector<float> results;
+
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        scenario.wr = wr;
-        auto results = swr::simulation(scenario);
+        results.push_back(0.0f);
+    }
 
-        if (results.error) {
-            std::cout << std::endl << "ERROR: " << results.message << std::endl;
-            return;
+    std::size_t i =0;
+    std::atomic<bool> error = false;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        pool.do_task([&results, &scenario, &error, &functor](float wr, size_t i) {
+            auto my_scenario = scenario;
+            my_scenario.wr  = wr;
+            auto res = swr::simulation(my_scenario);
+
+            if (res.error) {
+                error = false;
+                std::cout << std::endl << "ERROR: " << res.message << std::endl;
+            } else {
+                results[i] = functor(res);
+            }
+        }, wr, i++);
+    }
+
+    pool.wait();
+
+    if (!error) {
+        for (auto & res : results) {
+            std::cout << ';' << res;
         }
-
-        std::cout << ';' << functor(results);
     }
 
     std::cout << "\n";
