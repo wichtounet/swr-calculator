@@ -91,6 +91,95 @@ void multiple_wr(swr::scenario scenario){
     }
 }
 
+struct Graph {
+    Graph(bool enabled) : enabled_(enabled) {
+        if (enabled_) {
+            std::cout << "[line-graph title=\"TODO\" ytitle=\"Success Rate <%>\" xtitle=\"Withdrawal Rate <%>\"";
+        }
+    }
+
+    ~Graph() {
+        if (enabled_) {
+            std::stringstream legends;
+            std::string       sep;
+            for (auto& legend : legends_) {
+                legends << sep << legend;
+                sep = ",";
+            }
+            std::cout << " legends=\"" << legends.str() << "\"]";
+
+            // TODO COmpute data
+
+            std::cout << "[/line-graph]";
+        }
+    }
+
+    void add_legend(std::string_view title) {
+        legends_.emplace_back(title);
+    }
+
+    void set_data(const std::map<float, float> & data) {
+        data_ = data;
+    }
+
+    std::vector<std::string> legends_;
+    std::map<float, float> data_;
+    const bool enabled_;
+};
+
+template <typename F>
+void multiple_wr_graph(Graph & graph, const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr, F functor){
+    if (title.empty()) {
+        std::stringstream ss;
+        std::string sep;
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                if (position.asset == "ch_stocks") {
+                    ss << sep << position.allocation << "% CH Stocks";
+                } else if (position.asset == "ch_bonds") {
+                    ss << sep << position.allocation << "% CH Bonds";
+                } else {
+                    ss << sep << position.allocation << "% " << position.asset;
+                }
+                sep = " ";
+            }
+        }
+        graph.add_legend(ss.str());
+    } else {
+        graph.add_legend(title);
+    }
+
+    cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
+    std::map<float, float> results;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        results[wr] = 0.0f;
+    }
+
+    std::atomic<bool> error = false;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        pool.do_task([&results, &scenario, &error, &functor](float wr) {
+            auto my_scenario = scenario;
+            my_scenario.wr  = wr;
+            auto res = swr::simulation(my_scenario);
+
+            if (res.error) {
+                error = false;
+                std::cout << std::endl << "ERROR: " << res.message << std::endl;
+            } else {
+                results[wr] = functor(res);
+            }
+        }, wr);
+    }
+
+    pool.wait();
+
+    if (!error) {
+        graph.set_data(results);
+    }
+}
+
 template <typename F>
 void multiple_wr_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr, F functor){
     if (title.empty()) {
@@ -141,6 +230,12 @@ void multiple_wr_sheets(const std::string & title, swr::scenario scenario, float
 
 void multiple_wr_success_sheets(const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+        return results.success_rate;
+    });
+}
+
+void multiple_wr_success_graph(Graph & graph, const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.success_rate;
     });
 }
@@ -1201,11 +1296,13 @@ int main(int argc, const char* argv[]) {
                 swr::normalize_portfolio(scenario.portfolio);
                 failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
             }
-        } else if (command == "trinity_success_sheets") {
+        } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "trinity_success_graph";
 
             swr::scenario scenario;
 
@@ -1277,11 +1374,15 @@ int main(int argc, const char* argv[]) {
                 }
             }
 
-            std::cout << "Portfolio";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            Graph g(graph);
+
+            if (!graph) {
+                std::cout << "Portfolio";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
                 if (scenario.portfolio.size() != 2) {
@@ -1293,11 +1394,19 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                if (graph) {
+                    multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                } else {
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
             }
         } else if (command == "trinity_duration_sheets") {
             swr::scenario scenario;
