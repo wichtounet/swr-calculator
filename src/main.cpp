@@ -106,11 +106,29 @@ struct Graph {
                 legends << sep << legend;
                 sep = ",";
             }
-            std::cout << " legends=\"" << legends.str() << "\"]";
+            std::cout << " legends=\"" << legends.str() << "\"]{\"labels\":[";
 
-            // TODO COmpute data
+            sep = "";
+            for (auto & [key, value] : data_.front()) {
+                std::cout << sep << key;
+                sep = ",";
+            }
+            std::cout << "],\"series\":[";
 
-            std::cout << "[/line-graph]";
+            std::string serie_sep;
+
+            for (auto & serie : data_) {
+                std::cout << serie_sep << "[";
+                sep = "";
+                for (auto & [key, value] : serie) {
+                    std::cout << sep << value;
+                    sep = ",";
+                }
+                std::cout << "]";
+                serie_sep = ",";
+            }
+
+            std::cout << "]}[/line-graph]";
         }
     }
 
@@ -118,12 +136,12 @@ struct Graph {
         legends_.emplace_back(title);
     }
 
-    void set_data(const std::map<float, float> & data) {
-        data_ = data;
+    void add_data(const std::map<float, float> & data) {
+        data_.emplace_back(data);
     }
 
     std::vector<std::string> legends_;
-    std::map<float, float> data_;
+    std::vector<std::map<float, float>> data_;
     const bool enabled_;
 };
 
@@ -176,7 +194,7 @@ void multiple_wr_graph(Graph & graph, const std::string & title, swr::scenario s
     pool.wait();
 
     if (!error) {
-        graph.set_data(results);
+        graph.add_data(results);
     }
 }
 
