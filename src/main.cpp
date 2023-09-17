@@ -94,7 +94,7 @@ void multiple_wr(swr::scenario scenario){
 struct Graph {
     Graph(bool enabled) : enabled_(enabled) {
         if (enabled_) {
-            std::cout << "[line-graph title=\"TODO\" ytitle=\"Success Rate <%>\" xtitle=\"Withdrawal Rate <%>\"";
+            std::cout << "[line-graph title=\"TODO\" ytitle=\"Success Rate (%)\" xtitle=\"Withdrawal Rate (%)\"";
         }
     }
 
