@@ -92,9 +92,9 @@ void multiple_wr(swr::scenario scenario){
 }
 
 struct Graph {
-    Graph(bool enabled) : enabled_(enabled) {
+    explicit Graph(bool enabled, const std::string_view ytitle = "Success Rate (%)") : enabled_(enabled) {
         if (enabled_) {
-            std::cout << "[line-graph title=\"TODO\" ytitle=\"Success Rate (%)\" xtitle=\"Withdrawal Rate (%)\"";
+            std::cout << "[line-graph title=\"TODO\" ytitle=\"" << ytitle << "\" xtitle=\"Withdrawal Rate (%)\"";
         }
     }
 
@@ -1432,7 +1432,9 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             }
-        } else if (command == "trinity_duration_sheets") {
+        } else if (command == "trinity_duration_sheets" || command == "trinity_duration_graph") {
+            bool graph = command == "trinity_duration_graph";
+
             swr::scenario scenario;
 
             scenario.years      = atoi(args[1].c_str());
@@ -1456,27 +1458,43 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            std::cout << "Portfolio";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            if (!graph) {
+                std::cout << "Portfolio";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
-            for (size_t i = 0; i <= 100; i += portfolio_add) {
-                scenario.portfolio[0].allocation = float(i);
-                scenario.portfolio[1].allocation = float(100 - i);
+            {
+                Graph g(graph, "Worst Duration (months)");
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_duration_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
+                }
             }
 
             std::cout << std::endl;
             std::cout << std::endl;
 
-            for (size_t i = 0; i <= 100; i += portfolio_add) {
-                scenario.portfolio[0].allocation = float(i);
-                scenario.portfolio[1].allocation = float(100 - i);
+            {
+                Graph g(graph);
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
+                }
             }
         } else if (command == "trinity_tv_sheets") {
             if (args.size() < 7) {
