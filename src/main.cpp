@@ -92,9 +92,9 @@ void multiple_wr(swr::scenario scenario){
 }
 
 struct Graph {
-    explicit Graph(bool enabled, const std::string_view ytitle = "Success Rate (%)") : enabled_(enabled) {
+    explicit Graph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") : enabled_(enabled), graph_(graph) {
         if (enabled_) {
-            std::cout << "[line-graph title=\"TODO\" ytitle=\"" << ytitle << "\" xtitle=\"Withdrawal Rate (%)\"";
+            std::cout << "[" << graph << " title=\"TODO\" ytitle=\"" << ytitle << "\" xtitle=\"Withdrawal Rate (%)\"";
         }
     }
 
@@ -128,7 +128,7 @@ struct Graph {
                 serie_sep = ",";
             }
 
-            std::cout << "]}[/line-graph]";
+            std::cout << "]}[/" << graph_ << "]";
         }
     }
 
@@ -140,9 +140,10 @@ struct Graph {
         data_.emplace_back(data);
     }
 
+    const bool enabled_;
+    const std::string graph_;
     std::vector<std::string> legends_;
     std::vector<std::map<float, float>> data_;
-    const bool enabled_;
 };
 
 template <typename F>
@@ -283,6 +284,37 @@ void csv_print(const std::string& header, const std::vector<T> & values) {
         std::cout << ";" << v;
     }
     std::cout << "\n";
+}
+
+void multiple_wr_tv_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, float> max_tv;
+    std::map<float, float> avg_tv;
+    std::map<float, float> med_tv;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        max_tv[wr] = 0.0f;
+        avg_tv[wr] = 0.0f;
+        med_tv[wr] = 0.0f;
+    }
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        scenario.wr = wr;
+
+        auto results = swr::simulation(scenario);
+
+        max_tv[wr] = results.tv_maximum;
+        avg_tv[wr] = results.tv_average;
+        med_tv[wr] = results.tv_median;
+    }
+
+    graph.add_legend("MAX");
+    graph.add_data(max_tv);
+
+    graph.add_legend("AVG");
+    graph.add_data(avg_tv);
+
+    graph.add_legend("MED");
+    graph.add_data(med_tv);
 }
 
 void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
@@ -1496,11 +1528,15 @@ int main(int argc, const char* argv[]) {
                     }
                 }
             }
-        } else if (command == "trinity_tv_sheets") {
+        } else if (command == "trinity_tv_sheets" || command == "trinity_tv_graph") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "trinity_tv_graph";
+
+            Graph g(graph, "Value (USD)", "bar-graph");
 
             swr::scenario scenario;
 
@@ -1523,14 +1559,21 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            std::cout << "Withdrawal Rate";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            if (!graph) {
+                std::cout << "Withdrawal Rate";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
             swr::normalize_portfolio(scenario.portfolio);
-            multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+
+            if (graph) {
+                multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+            }
         } else if (command == "current_wr") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for current_wr" << std::endl;
