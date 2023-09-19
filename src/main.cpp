@@ -270,6 +270,12 @@ void multiple_wr_duration_sheets(const std::string & title, swr::scenario scenar
     });
 }
 
+void multiple_wr_duration_graph(Graph & graph, const std::string & title, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+        return results.worst_duration;
+    });
+}
+
 template <typename T>
 void csv_print(const std::string& header, const std::vector<T> & values) {
     std::cout << header;
@@ -1450,60 +1456,27 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            std::cout << "Duration";
+            std::cout << "Portfolio";
+            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                std::cout << ";" << wr << "%";
+            }
+            std::cout << "\n";
 
             for (size_t i = 0; i <= 100; i += portfolio_add) {
                 scenario.portfolio[0].allocation = float(i);
                 scenario.portfolio[1].allocation = float(100 - i);
 
-                std::cout << ";";
-                for (auto& position : scenario.portfolio) {
-                    if (position.allocation > 0) {
-                        std::cout << position.allocation << "% " << position.asset << " ";
-                    }
-                }
-            }
-
-            std::cout << std::endl;
-
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << wr;
-
-                scenario.wr = wr;
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    auto monthly_results = swr::simulation(scenario);
-
-                    if (monthly_results.worst_duration == 0) {
-                        std::cout << ";" << scenario.years * 12;
-                    } else {
-                        std::cout << ";" << monthly_results.worst_duration;
-                    }
-                }
-
-                std::cout << std::endl;
+                multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
             }
 
             std::cout << std::endl;
             std::cout << std::endl;
 
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << wr;
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = float(i);
+                scenario.portfolio[1].allocation = float(100 - i);
 
-                scenario.wr = wr;
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    auto monthly_results = swr::simulation(scenario);
-                    std::cout << ";" << monthly_results.success_rate;
-                }
-
-                std::cout << std::endl;
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
         } else if (command == "trinity_tv_sheets") {
             if (args.size() < 7) {
