@@ -5,7 +5,7 @@
 std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {
     std::vector<allocation> portfolio;
 
-    size_t positions = std::count(portfolio_str.begin(), portfolio_str.end(), ';');
+    size_t positions = std::ranges::count(portfolio_str, ';');
 
     for (size_t i = 0; i < positions; ++i) {
         std::string position(portfolio_str.begin(), portfolio_str.begin() + portfolio_str.find(';'));

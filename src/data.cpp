@@ -94,7 +94,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
     for (auto& asset : portfolio) {
         const auto & asset_name = asset.asset;
 
-        bool x2 = std::string(asset_name.end() - 3, asset_name.end()) == "_x2";
+        bool x2 = asset_name.ends_with("_x2");
 
         std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
 
@@ -110,7 +110,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
 
         if (x2) {
             auto copy = data;
-            std::copy(copy.begin(), copy.end(), std::back_inserter(data));
+            std::ranges::copy(copy, std::back_inserter(data));
 
             for (size_t i = 0; i < copy.size(); ++i) {
                 size_t j         = copy.size() - 1 - i;
