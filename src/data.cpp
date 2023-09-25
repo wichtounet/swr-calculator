@@ -30,7 +30,7 @@ swr::data_vector load_data(const std::string& path) {
           value = value.substr(1, value.size() - 3);
       }
 
-      value.erase(std::remove(value.begin(), value.end(), ','), value.end());
+      std::erase(value, ',');
 
       swr::data data;
       data.month = atoi(month.c_str());
