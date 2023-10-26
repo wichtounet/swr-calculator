@@ -147,7 +147,7 @@ struct Graph {
 };
 
 template <typename F>
-void multiple_wr_graph(Graph & graph, const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
+void multiple_wr_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
     if (title.empty()) {
         std::stringstream ss;
         std::string sep;
@@ -200,7 +200,7 @@ void multiple_wr_graph(Graph & graph, const std::string & title, const swr::scen
 }
 
 template <typename F>
-void multiple_wr_sheets(const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
+void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
     if (title.empty()) {
         for (auto& position : scenario.portfolio) {
             if (position.allocation > 0) {
@@ -247,31 +247,31 @@ void multiple_wr_sheets(const std::string & title, const swr::scenario & scenari
     std::cout << "\n";
 }
 
-void multiple_wr_success_sheets(const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.success_rate;
     });
 }
 
-void multiple_wr_success_graph(Graph & graph, const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_success_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.success_rate;
     });
 }
 
-void multiple_wr_withdrawn_sheets(const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_withdrawn_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.withdrawn_per_year;
     });
 }
 
-void multiple_wr_duration_sheets(const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.worst_duration;
     });
 }
 
-void multiple_wr_duration_graph(Graph & graph, const std::string & title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_duration_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.worst_duration;
     });
@@ -352,7 +352,7 @@ void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float 
     out << ";0";
 }
 
-void failsafe_swr(const std::string & title, swr::scenario & scenario, float start_wr, float end_wr, float step, std::ostream & out) {
+void failsafe_swr(std::string_view title, swr::scenario & scenario, float start_wr, float end_wr, float step, std::ostream & out) {
     if (title.empty()) {
         for (auto& position : scenario.portfolio) {
             if (position.allocation > 0) {
