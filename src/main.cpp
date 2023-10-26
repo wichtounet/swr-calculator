@@ -1575,7 +1575,7 @@ int main(int argc, const char* argv[]) {
                 multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
             }
         } else if (command == "social_sheets" || command == "social_graph") {
-            if (args.size() < 7) {
+            if (args.size() < 11) {
                 std::cout << "Not enough arguments for social_sheets" << std::endl;
                 return 1;
             }
@@ -1591,34 +1591,18 @@ int main(int argc, const char* argv[]) {
             scenario.portfolio  = swr::parse_portfolio(args[4]);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
-            float portfolio_add = 20;
 
-            float start_wr = 3.0f;
-            if (args.size() > 7) {
-                start_wr = atof(args[7].c_str());
+            if (total_allocation(scenario.portfolio) == 0.0f) {
+                std::cout << "The Portfolio must be fixed" << std::endl;
+                return 1;
             }
 
-            float end_wr   = 6.0f;
-            if (args.size() > 8) {
-                end_wr = atof(args[8].c_str());
-            }
-
-            float add_wr   = 0.1f;
-            if (args.size() > 9) {
-                add_wr = atof(args[9].c_str());
-            }
+            float start_wr = atof(args[7].c_str());
+            float end_wr   = atof(args[8].c_str());
+            float add_wr   = atof(args[9].c_str());
 
             scenario.social_security = true;
-            scenario.social_delay = 10;
-            scenario.social_coverage = 20;
-
-            if (args.size() > 10) {
-                scenario.social_delay = atoi(args[10].c_str());
-            }
-
-            if (args.size() > 11) {
-                scenario.social_coverage = atoi(args[11].c_str()) / 100.0f;
-            }
+            scenario.social_delay = atoi(args[10].c_str());
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -1626,37 +1610,31 @@ int main(int argc, const char* argv[]) {
             Graph g(graph);
 
             if (!graph) {
-                std::cout << "Portfolio";
+                std::cout << "Coverage";
                 for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
                     std::cout << ";" << wr << "%";
                 }
                 std::cout << "\n";
             }
 
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
+            swr::normalize_portfolio(scenario.portfolio);
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
+            auto run = [&](const std::string_view title, float coverage) {
+                scenario.social_coverage = coverage;
                 if (graph) {
-                    multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_graph(g, title, scenario, start_wr, end_wr, add_wr);
                 } else {
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
                 }
-            }
+            };
+
+            run("0%", 0.00f);
+            run("5%", 0.05f);
+            run("10%", 0.10f);
+            run("20%", 0.20f);
+            run("30%", 0.30f);
+            run("40%", 0.40f);
+            run("50%", 0.50f);
         } else if (command == "current_wr") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for current_wr" << std::endl;
