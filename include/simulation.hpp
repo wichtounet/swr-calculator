@@ -60,7 +60,7 @@ struct scenario {
     float gp_pass   = 0.0f; // Monthly increase (or decrease)
     float gp_goal   = 0.0f;
 
-    // Tempory values
+    // Temporary values
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
 
