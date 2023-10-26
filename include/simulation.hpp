@@ -60,6 +60,11 @@ struct scenario {
     float gp_pass   = 0.0f; // Monthly increase (or decrease)
     float gp_goal   = 0.0f;
 
+    // Configuration for social security
+    bool   social_security = false;
+    size_t social_delay    = 0;
+    float  social_coverage = 0.0f;
+
     // Temporary values
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
