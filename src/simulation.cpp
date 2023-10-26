@@ -202,6 +202,16 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
             }
         }
 
+        if (scenario.social_security) {
+            if ((months / 12.0f) >= scenario.social_delay) {
+                withdrawal_amount -= (scenario.social_coverage * withdrawal_amount);
+            }
+        }
+
+        if (withdrawal_amount <= 0.0f) {
+            return true;
+        }
+
         auto eff_wr = withdrawal_amount / starting_value;
 
         // Strategies with cash
@@ -327,6 +337,20 @@ swr::results swr_simulation(swr::scenario & scenario) {
         res.message = "Cannot work with an empty portfolio";
         res.error = true;
         return res;
+    }
+
+    if (scenario.social_security) {
+        if (scenario.initial_cash > 0.0f) {
+            res.message = "Social security and cash is not implemented";
+            res.error = true;
+            return res;
+        }
+
+        if (scenario.method != swr::Method::STANDARD) {
+            res.message = "Social security is only implemented for standard withdrawal method";
+            res.error = true;
+            return res;
+        }
     }
 
     if (scenario.end_year - scenario.start_year < scenario.years) {

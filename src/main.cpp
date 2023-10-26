@@ -1617,7 +1617,7 @@ int main(int argc, const char* argv[]) {
             }
 
             if (args.size() > 11) {
-                scenario.social_coverage = atoi(args[11].c_str());
+                scenario.social_coverage = atoi(args[11].c_str()) / 100.0f;
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);
