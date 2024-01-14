@@ -6,7 +6,7 @@ def main():
     search_column = sys.argv[2]
 
     with open(file_path, "r") as csvfile:
-        reader = csv.reader(csvfile, delimiter=';')
+        reader = csv.reader(csvfile, delimiter=',')
         next(reader) # Drop this line
         next(reader) # Drop this line
         next(reader) # Drop this line
