@@ -146,24 +146,32 @@ struct Graph {
     std::vector<std::map<float, float>> data_;
 };
 
+std::string portfolio_to_string(const swr::scenario & scenario) {
+    std::stringstream ss;
+    std::string sep;
+    for (auto& position : scenario.portfolio) {
+        if (position.allocation > 0) {
+            if (position.asset == "ch_stocks") {
+                ss << sep << position.allocation << "% CH Stocks";
+            } else if (position.asset == "us_stocks") {
+                ss << sep << position.allocation << "% US Stocks";
+            } else if (position.asset == "ch_bonds") {
+                ss << sep << position.allocation << "% CH Bonds";
+            } else if (position.asset == "us_bonds") {
+                ss << sep << position.allocation << "% US Bonds";
+            } else {
+                ss << sep << position.allocation << "% " << position.asset;
+            }
+            sep = " ";
+        }
+    }
+    return ss.str();
+}
+
 template <typename F>
 void multiple_wr_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
     if (title.empty()) {
-        std::stringstream ss;
-        std::string sep;
-        for (auto& position : scenario.portfolio) {
-            if (position.allocation > 0) {
-                if (position.asset == "ch_stocks") {
-                    ss << sep << position.allocation << "% CH Stocks";
-                } else if (position.asset == "ch_bonds") {
-                    ss << sep << position.allocation << "% CH Bonds";
-                } else {
-                    ss << sep << position.allocation << "% " << position.asset;
-                }
-                sep = " ";
-            }
-        }
-        graph.add_legend(ss.str());
+        graph.add_legend(portfolio_to_string(scenario));
     } else {
         graph.add_legend(title);
     }
@@ -1635,6 +1643,67 @@ int main(int argc, const char* argv[]) {
             run("30%", 0.30f);
             run("40%", 0.40f);
             run("50%", 0.50f);
+        } else if (command == "social_pf_sheets" || command == "social_pf_graph") {
+            if (args.size() < 12) {
+                std::cout << "Not enough arguments for social_pf_sheets" << std::endl;
+                return 1;
+            }
+
+            const bool graph = command == "social_pf_graph";
+
+            swr::scenario scenario;
+
+            scenario.fees = 0.001;
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            if (total_allocation(scenario.portfolio) != 0.0f) {
+                std::cout << "The Portfolio must be open" << std::endl;
+                return 1;
+            }
+
+            float start_wr = atof(args[7].c_str());
+            float end_wr   = atof(args[8].c_str());
+            float add_wr   = atof(args[9].c_str());
+
+            scenario.social_security = true;
+            scenario.social_delay = atoi(args[10].c_str());
+            auto base_coverage = atof(args[11].c_str()) / 100.0f;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            Graph g(graph);
+
+            if (!graph) {
+                std::cout << "Portfolio";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
+            }
+
+            for (size_t i = 0; i <= 100; i += 20) {
+                scenario.portfolio[0].allocation = float(i);
+                scenario.portfolio[1].allocation = float(100 - i);
+
+                scenario.social_coverage = 0.0f;
+                if (graph) {
+                    multiple_wr_success_graph(g, portfolio_to_string(scenario) + " - 0%", scenario, start_wr, end_wr, add_wr);
+                } else {
+                    multiple_wr_success_sheets(portfolio_to_string(scenario) + " - 0%", scenario, start_wr, end_wr, add_wr);
+                }
+                scenario.social_coverage = base_coverage;
+                if (graph) {
+                    multiple_wr_success_graph(g, portfolio_to_string(scenario) + " -" + args[11] + "%", scenario, start_wr, end_wr, add_wr);
+                } else {
+                    multiple_wr_success_sheets(portfolio_to_string(scenario) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
+                }
+            }
         } else if (command == "current_wr") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for current_wr" << std::endl;
