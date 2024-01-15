@@ -146,32 +146,49 @@ struct Graph {
     std::vector<std::map<float, float>> data_;
 };
 
-std::string portfolio_to_string(const swr::scenario & scenario) {
+std::string asset_to_string(std::string_view asset) {
+    if (asset == "ch_stocks") {
+        return "% CH Stocks";
+    } else if (asset == "us_stocks") {
+        return "% US Stocks";
+    } else if (asset == "ch_bonds") {
+        return "% CH Bonds";
+    } else if (asset == "us_bonds") {
+        return "% US Bonds";
+    } else {
+        return "% " + std::string(asset);
+    }
+}
+
+std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
     std::stringstream ss;
-    std::string sep;
-    for (auto& position : scenario.portfolio) {
-        if (position.allocation > 0) {
-            if (position.asset == "ch_stocks") {
-                ss << sep << position.allocation << "% CH Stocks";
-            } else if (position.asset == "us_stocks") {
-                ss << sep << position.allocation << "% US Stocks";
-            } else if (position.asset == "ch_bonds") {
-                ss << sep << position.allocation << "% CH Bonds";
-            } else if (position.asset == "us_bonds") {
-                ss << sep << position.allocation << "% US Bonds";
-            } else {
-                ss << sep << position.allocation << "% " << position.asset;
+    if (shortForm && scenario.portfolio.size() == 2) {
+        auto & first = scenario.portfolio.front();
+        auto & second = scenario.portfolio.back();
+
+        if (first.allocation == 0) {
+            ss << second.allocation << asset_to_string(second.asset);
+        } else if (second.allocation == 0) {
+            ss << first.allocation << asset_to_string(first.asset);
+        } else {
+            ss << first.allocation << asset_to_string(first.asset);
+        }
+    } else {
+        std::string sep;
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                ss << sep << position.allocation << asset_to_string(position.asset);
+                sep = " ";
             }
-            sep = " ";
         }
     }
     return ss.str();
 }
 
 template <typename F>
-void multiple_wr_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
+void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
     if (title.empty()) {
-        graph.add_legend(portfolio_to_string(scenario));
+        graph.add_legend(portfolio_to_string(scenario, shortForm));
     } else {
         graph.add_legend(title);
     }
@@ -261,8 +278,8 @@ void multiple_wr_success_sheets(std::string_view title, const swr::scenario & sc
     });
 }
 
-void multiple_wr_success_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.success_rate;
     });
 }
@@ -279,8 +296,8 @@ void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & s
     });
 }
 
-void multiple_wr_duration_graph(Graph & graph, std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](auto & results) {
         return results.worst_duration;
     });
 }
@@ -1459,7 +1476,7 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[1].allocation = float(100 - i);
 
                     if (graph) {
-                        multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
                     } else {
                         multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                     }
@@ -1467,7 +1484,7 @@ int main(int argc, const char* argv[]) {
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
                 if (graph) {
-                    multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
                 } else {
                     multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
@@ -1513,7 +1530,7 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[1].allocation = float(100 - i);
 
                     if (graph) {
-                        multiple_wr_duration_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                        multiple_wr_duration_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
                     } else {
                         multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
                     }
@@ -1530,7 +1547,7 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[1].allocation = float(100 - i);
 
                     if (graph) {
-                        multiple_wr_success_graph(g, "", scenario, start_wr, end_wr, add_wr);
+                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
                     } else {
                         multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                     }
@@ -1630,7 +1647,7 @@ int main(int argc, const char* argv[]) {
             auto run = [&](const std::string_view title, float coverage) {
                 scenario.social_coverage = coverage;
                 if (graph) {
-                    multiple_wr_success_graph(g, title, scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
                 } else {
                     multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
                 }
@@ -1693,15 +1710,15 @@ int main(int argc, const char* argv[]) {
 
                 scenario.social_coverage = 0.0f;
                 if (graph) {
-                    multiple_wr_success_graph(g, portfolio_to_string(scenario) + " - 0%", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " - 0%", false, scenario, start_wr, end_wr, add_wr);
                 } else {
-                    multiple_wr_success_sheets(portfolio_to_string(scenario) + " - 0%", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets(portfolio_to_string(scenario, false) + " - 0%", scenario, start_wr, end_wr, add_wr);
                 }
                 scenario.social_coverage = base_coverage;
                 if (graph) {
-                    multiple_wr_success_graph(g, portfolio_to_string(scenario) + " -" + args[11] + "%", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " -" + args[11] + "%", false, scenario, start_wr, end_wr, add_wr);
                 } else {
-                    multiple_wr_success_sheets(portfolio_to_string(scenario) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
+                    multiple_wr_success_sheets(portfolio_to_string(scenario, false) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
                 }
             }
         } else if (command == "current_wr") {
