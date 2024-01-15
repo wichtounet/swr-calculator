@@ -1518,7 +1518,7 @@ int main(int argc, const char* argv[]) {
             const float end_wr   = 5.0f;
             const float add_wr   = 0.1f;
 
-            const float portfolio_add = 20;
+            const float portfolio_add = 25;
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
