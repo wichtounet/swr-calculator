@@ -273,32 +273,40 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, 
 }
 
 void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.success_rate;
     });
 }
 
 void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.success_rate;
     });
 }
 
 void multiple_wr_withdrawn_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.withdrawn_per_year;
     });
 }
 
 void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](auto & results) {
-        return results.worst_duration;
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results) {
+        if (results.failures) {
+            return results.worst_duration;
+        } else {
+            return scenario.years * 12;
+        }
     });
 }
 
 void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](auto & results) {
-        return results.worst_duration;
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results) {
+        if (results.failures) {
+            return results.worst_duration;
+        } else {
+            return scenario.years * 12;
+        }
     });
 }
 
