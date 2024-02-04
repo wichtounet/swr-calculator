@@ -151,6 +151,8 @@ std::string asset_to_string(std::string_view asset) {
         return "% CH Stocks";
     } else if (asset == "us_stocks") {
         return "% US Stocks";
+    } else if (asset == "ex_us_stocks") {
+        return "% ex-US Stocks";
     } else if (asset == "ch_bonds") {
         return "% CH Bonds";
     } else if (asset == "us_bonds") {
