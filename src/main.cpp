@@ -1509,7 +1509,7 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.fees = 0.0f;
+            scenario.fees = 0.001f;
             if (args.size() > 7) {
                 scenario.fees = atof(args[7].c_str()) / 100.0f;
             }
@@ -1580,7 +1580,7 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.fees = 0.0f;
+            scenario.fees = 0.001f;
             if (args.size() > 7) {
                 scenario.fees = atof(args[7].c_str()) / 100.0f;
             }
