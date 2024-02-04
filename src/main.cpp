@@ -100,6 +100,8 @@ struct Graph {
 
     ~Graph() {
         if (enabled_) {
+            cpp_assert(data_.size(), "data cannot be empty");
+
             std::stringstream legends;
             std::string       sep;
             for (auto& legend : legends_) {
@@ -1144,7 +1146,7 @@ int main(int argc, const char* argv[]) {
             size_t start_year = atoi(args[1].c_str());
             size_t end_year   = atoi(args[2].c_str());
 
-            auto portfolio = swr::parse_portfolio("us_stocks:50;us_bonds:50;");
+            auto portfolio = swr::parse_portfolio("ex_us_stocks:50;us_stocks:50;");
 
             auto values         = swr::load_values(portfolio);
             auto inflation_data = swr::load_inflation(values, "us_inflation");
@@ -1386,6 +1388,32 @@ int main(int argc, const char* argv[]) {
                 std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
                 swr::normalize_portfolio(scenario.portfolio);
                 failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+            }
+        } else if (command == "data_graph") {
+            if (args.size() < 2) {
+                std::cout << "Not enough arguments for data_graph" << std::endl;
+                return 1;
+            }
+
+            auto portfolio  = swr::parse_portfolio(args[1]);
+            auto values     = swr::load_values(portfolio);
+
+            Graph graph(true);
+
+            for (size_t i = 0; i < portfolio.size(); ++i) {
+                graph.add_legend(asset_to_string(portfolio[i].asset));
+
+                std::map<float, float> results;
+                float value = 1;
+
+                for (size_t j = 0; j < values[i].size(); ++j) {
+                    if (values[i][j].month == 12) {
+                        results[values[i][j].year] = value;
+                    }
+                    value *= values[i][j].value;
+                }
+
+                graph.add_data(results);
             }
         } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
             if (args.size() < 7) {
