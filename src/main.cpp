@@ -1390,12 +1390,14 @@ int main(int argc, const char* argv[]) {
                 failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
             }
         } else if (command == "data_graph") {
-            if (args.size() < 2) {
+            if (args.size() < 4) {
                 std::cout << "Not enough arguments for data_graph" << std::endl;
                 return 1;
             }
 
-            auto portfolio  = swr::parse_portfolio(args[1]);
+            size_t start_year = atoi(args[1].c_str());
+            size_t end_year   = atoi(args[2].c_str());
+            auto portfolio  = swr::parse_portfolio(args[3]);
             auto values     = swr::load_values(portfolio);
 
             Graph graph(true);
@@ -1404,13 +1406,18 @@ int main(int argc, const char* argv[]) {
                 graph.add_legend(asset_to_string(portfolio[i].asset));
 
                 std::map<float, float> results;
-                float value = 1;
+                float acc_value = 1;
 
-                for (size_t j = 0; j < values[i].size(); ++j) {
-                    if (values[i][j].month == 12) {
-                        results[values[i][j].year] = value;
+                for (auto& value : values[i]) {
+                    if (value.year >= start_year) {
+                        if (value.month == 12) {
+                            results[value.year] = acc_value;
+                        }
+                        acc_value *= value.value;
                     }
-                    value *= values[i][j].value;
+                    if (value.year > end_year) {
+                        break;
+                    }
                 }
 
                 graph.add_data(results);
