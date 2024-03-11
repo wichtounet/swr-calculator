@@ -79,6 +79,11 @@ bool glidepath(bool end, swr::scenario & scenario, std::array<float, N> & curren
 
 template <size_t N>
 bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> & current_values) {
+    // Nothing to rebalance if we have a single asset
+    if constexpr (N == 1) {
+        return true;
+    }
+
     // Monthly Rebalance if necessary
     if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
         // Pay the fees
