@@ -503,6 +503,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.threshold = 0.01;
     }
 
+    if (req.has_param("fees")) {
+        scenario.fees = atof(req.get_param_value("fees").c_str()) / 100.0f;
+    } else {
+        scenario.fees = 0.001; // 0.1% fees
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation

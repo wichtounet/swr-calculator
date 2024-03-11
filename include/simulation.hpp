@@ -38,7 +38,7 @@ struct scenario {
     size_t      withdraw_frequency = 1;
     Rebalancing rebalance          = Rebalancing::NONE;
     float       threshold          = 0.0f;
-    float       fees               = 0.001f; // TER 1% = 0.001
+    float       fees               = 0.001f; // TER 0.1% = 0.001
     Method      method             = Method::STANDARD;
     float       minimum            = 3; // Minimum of 3% * initial
 
