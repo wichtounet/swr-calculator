@@ -142,6 +142,11 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> 
 
 template <size_t N>
 bool yearly_rebalance(bool end, swr::scenario & scenario, std::array<float, N> & current_values) {
+    // Nothing to rebalance if we have a single asset
+    if constexpr (N == 1) {
+        return true;
+    }
+
     // Yearly Rebalance if necessary
     if (scenario.rebalance == swr::Rebalancing::YEARLY) {
         // Pay the fees
