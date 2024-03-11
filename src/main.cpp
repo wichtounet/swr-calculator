@@ -516,7 +516,6 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     // For now cannot be configured
     scenario.withdraw_frequency = 12;
-    scenario.threshold = 0.0f;
 
     swr::normalize_portfolio(scenario.portfolio);
 
