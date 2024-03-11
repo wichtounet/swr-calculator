@@ -1,0 +1,10 @@
+FROM swr:build
+
+ADD release_debug/bin/swr_calculator /bin/swr_calculator
+ADD stock-data /bin/stock-data
+
+WORKDIR /bin/
+
+EXPOSE 80
+
+CMD ["/bin/swr_calculator", "server", "0.0.0.0", "80"]
