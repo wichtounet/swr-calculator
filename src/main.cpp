@@ -509,6 +509,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " wr=" << scenario.wr
         << " years=" << scenario.years
         << " rebalance=" << scenario.rebalance
+        << " rebalance_threshold=" << scenario.threshold
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
