@@ -498,7 +498,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     if (req.has_param("rebalance_threshold")) {
-        scenario.threshold = atof(req.get_param_value("rebalance_threshold").c_str());
+        scenario.threshold = atof(req.get_param_value("rebalance_threshold").c_str()) / 100.0f;
     } else {
         scenario.threshold = 0.01;
     }
