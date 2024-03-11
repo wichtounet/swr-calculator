@@ -488,11 +488,19 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
             scenario.rebalance = swr::Rebalancing::MONTHLY;
         } else if (param == "yearly") {
             scenario.rebalance = swr::Rebalancing::YEARLY;
+        } else if (param == "threshold") {
+            scenario.rebalance = swr::Rebalancing::THRESHOLD;
         } else {
             scenario.rebalance = swr::Rebalancing::NONE;
         }
     } else {
         scenario.rebalance = swr::Rebalancing::NONE;
+    }
+
+    if (req.has_param("rebalance_threshold")) {
+        scenario.threshold = atof(req.get_param_value("rebalance_threshold").c_str());
+    } else {
+        scenario.threshold = 0.01;
     }
 
     std::cout
