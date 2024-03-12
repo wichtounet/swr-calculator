@@ -483,7 +483,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     // Parse the portfolio
     std::string portfolio_base;
-    if (req.has_param("portolio")) {
+    if (req.has_param("portfolio")) {
         portfolio_base = req.get_param_value("portfolio");
         scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     } else {
