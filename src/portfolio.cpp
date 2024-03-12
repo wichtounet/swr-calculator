@@ -17,7 +17,9 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {
         alloc.asset = std::string(position.begin(), position.begin() + position.find(':'));
         alloc.allocation = atof(pos_alloc.c_str());
 
-        portfolio.emplace_back(alloc);
+        if (alloc.allocation > 0.0f) {
+            portfolio.emplace_back(alloc);
+        }
     }
 
     return portfolio;
