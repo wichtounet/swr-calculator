@@ -528,13 +528,27 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.fees = 0.001; // 0.1% fees
     }
 
+    if (req.has_param("final_threshold")) {
+        scenario.final_threshold = atof(req.get_param_value("final_threshold").c_str()) / 100.0f;
+    } else {
+        scenario.final_threshold = 0.0f; // 0.1% fees
+    }
+
+    if (req.has_param("final_inflation")) {
+        scenario.final_inflation = req.get_param_value("final_inflation") == "true";
+    } else {
+        scenario.final_inflation = true; // 0.1% fees
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
         << " wr=" << scenario.wr
         << " years=" << scenario.years
-        << " rebalance=" << scenario.rebalance
-        << " rebalance_threshold=" << scenario.threshold
+        << " reb=" << scenario.rebalance
+        << " reb_threshold=" << scenario.threshold
+        << " fin_threshold=" << scenario.final_threshold
+        << " fin_inflation=" << scenario.final_inflation
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
