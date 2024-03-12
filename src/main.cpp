@@ -558,6 +558,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.social_coverage = 0;
     }
 
+    if (req.has_param("withdraw_frequency")) {
+        scenario.withdraw_frequency = atoi(req.get_param_value("withdraw_frequency").c_str());
+    } else {
+        scenario.withdraw_frequency = 12;
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
@@ -570,12 +576,10 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " soc_sec=" << scenario.social_security
         << " soc_delay=" << scenario.social_delay
         << " soc_cov=" << scenario.social_coverage
+        << " wit_freq=" << scenario.withdraw_frequency
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
-
-    // For now cannot be configured
-    scenario.withdraw_frequency = 12;
 
     swr::normalize_portfolio(scenario.portfolio);
 
