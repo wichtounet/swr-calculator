@@ -457,8 +457,14 @@ bool check_parameters(const httplib::Request& req, httplib::Response& res, std::
 }
 
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(req, res, {"portfolio", "inflation", "years", "wr", "start", "end"})) {
+    if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
+    }
+
+    if (!req.has_param("portfolio")) {
+        if (!check_parameters(req, res, {"p_us_stocks", "p_us_bonds", "p_gold", "p_cash", "p_ex_us_stocks"})) {
+            return;
+        }
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -469,13 +475,26 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.timeout_msecs = 200;
 
     // Parse the parameters
-    auto portfolio_base = req.get_param_value("portfolio");
-    scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     auto inflation      = req.get_param_value("inflation");
     scenario.wr         = atof(req.get_param_value("wr").c_str());
     scenario.years      = atoi(req.get_param_value("years").c_str());
     scenario.start_year = atoi(req.get_param_value("start").c_str());
     scenario.end_year   = atoi(req.get_param_value("end").c_str());
+
+    // Parse the portfolio
+    std::string portfolio_base;
+    if (req.has_param("portolio")) {
+        portfolio_base = req.get_param_value("portfolio");
+        scenario.portfolio  = swr::parse_portfolio(portfolio_base);
+    } else {
+        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{}:ex_us_stocks:{};",
+                                     req.get_param_value("p_us_stocks"),
+                                     req.get_param_value("p_us_bonds"),
+                                     req.get_param_value("p_gold"),
+                                     req.get_param_value("p_cash"),
+                                     req.get_param_value("p_ex_us_stocks"));
+        scenario.portfolio = swr::parse_portfolio(portfolio_base);
+    }
 
     // Parse the optional parameters
 
