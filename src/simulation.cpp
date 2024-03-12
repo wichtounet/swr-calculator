@@ -437,7 +437,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             float withdrawal = swr::initial_value * (scenario.wr / 100.0f);
 
             // The minimum amount of money withdraw (CURRENT method)
-            float minimum = swr::initial_value * (scenario.minimum / 100.0f);
+            float minimum = swr::initial_value * scenario.minimum;
 
             // The amount of cash available
             float cash = scenario.initial_cash;
@@ -630,6 +630,17 @@ std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance)
     }
 
     return out << "Unknown rebalancing";
+}
+
+std::ostream & swr::operator<<(std::ostream& out, const Method & method){
+    switch (method) {
+        case Method::STANDARD:
+            return out << "standard";
+        case Method::CURRENT:
+            return out << "standard";
+    }
+
+    return out << "Unknown method";
 }
 
 swr::results swr::simulation(scenario & scenario) {

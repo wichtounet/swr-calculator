@@ -1878,7 +1878,7 @@ int main(int argc, const char* argv[]) {
             }
 
             if (args.size() > 11) {
-                scenario.minimum = atoi(args[11].c_str());
+                scenario.minimum = atoi(args[11].c_str()) / 100.0f;
             }
 
             if (args.size() > 12 && args[12] == "standard") {

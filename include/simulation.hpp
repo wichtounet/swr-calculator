@@ -24,6 +24,7 @@ enum class Method : uint64_t {
 
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
+std::ostream & operator<<(std::ostream& out, const Method & method);
 
 struct scenario {
     std::vector<swr::allocation>        portfolio;
@@ -40,7 +41,7 @@ struct scenario {
     float       threshold          = 0.0f;
     float       fees               = 0.001f; // TER 0.1% = 0.001
     Method      method             = Method::STANDARD;
-    float       minimum            = 3; // Minimum of 3% * initial
+    float       minimum            = 0.03f; // Minimum of 3% * initial
 
     // By default, simulations can run for ever but the server will set that lower
     size_t timeout_msecs = 0;
