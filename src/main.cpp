@@ -537,7 +537,25 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (req.has_param("final_inflation")) {
         scenario.final_inflation = req.get_param_value("final_inflation") == "true";
     } else {
-        scenario.final_inflation = true; // 0.1% fees
+        scenario.final_inflation = true;
+    }
+
+    if (req.has_param("social_security")) {
+        scenario.social_security = req.get_param_value("social_security") == "true";
+    } else {
+        scenario.social_security = false;
+    }
+
+    if (req.has_param("social_delay")) {
+        scenario.social_delay = atof(req.get_param_value("social_delay").c_str());
+    } else {
+        scenario.social_delay = 0;
+    }
+
+    if (req.has_param("social_coverage")) {
+        scenario.social_coverage = atof(req.get_param_value("social_coverage").c_str()) / 100.0f;
+    } else {
+        scenario.social_coverage = 0;
     }
 
     std::cout
@@ -549,6 +567,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " reb_threshold=" << scenario.threshold
         << " fin_threshold=" << scenario.final_threshold
         << " fin_inflation=" << scenario.final_inflation
+        << " soc_sec=" << scenario.social_security
+        << " soc_delay=" << scenario.social_delay
+        << " soc_cov=" << scenario.social_coverage
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
