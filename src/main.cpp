@@ -564,6 +564,18 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.withdraw_frequency = 12;
     }
 
+    if (req.has_param("withdraw_minimum")) {
+        scenario.minimum = atof(req.get_param_value("withdraw_minimum").c_str()) / 100.0f;
+    } else {
+        scenario.minimum = 0.03;
+    }
+
+    if (req.has_param("withdraw_method")) {
+        scenario.method = req.get_param_value("withdraw_method") == "current" ? swr::Method::CURRENT : swr::Method::STANDARD;
+    } else {
+        scenario.method = swr::Method::STANDARD;
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
@@ -577,6 +589,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " soc_delay=" << scenario.social_delay
         << " soc_cov=" << scenario.social_coverage
         << " wit_freq=" << scenario.withdraw_frequency
+        << " minimum=" << scenario.minimum
+        << " method=" << scenario.method
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;

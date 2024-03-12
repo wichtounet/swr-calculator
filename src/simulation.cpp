@@ -637,7 +637,7 @@ std::ostream & swr::operator<<(std::ostream& out, const Method & method){
         case Method::STANDARD:
             return out << "standard";
         case Method::CURRENT:
-            return out << "standard";
+            return out << "current";
     }
 
     return out << "Unknown method";
