@@ -635,19 +635,23 @@ std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance)
 swr::results swr::simulation(scenario & scenario) {
     const size_t number_of_assets = scenario.portfolio.size();
 
-    if (number_of_assets == 1) {
-        return swr_simulation<1>(scenario);
-    } else if (number_of_assets == 2) {
-        return swr_simulation<2>(scenario);
-    } else if (number_of_assets == 3) {
-        return swr_simulation<3>(scenario);
-    } else {
-        swr::results res;
-        res.message = "The number of assets is too high";
-        res.error = true;
-        return res;
+    switch (number_of_assets) {
+    case 1:
+            return swr_simulation<1>(scenario);
+    case 2:
+            return swr_simulation<2>(scenario);
+    case 3:
+            return swr_simulation<3>(scenario);
+    case 4:
+            return swr_simulation<4>(scenario);
+    case 5:
+            return swr_simulation<5>(scenario);
+    default:
+            swr::results res;
+            res.message = "The number of assets is too high";
+            res.error   = true;
+            return res;
     }
-
 }
 
 void swr::results::compute_terminal_values(std::vector<float> & terminal_values) {
