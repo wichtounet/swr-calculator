@@ -576,6 +576,18 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.method = swr::Method::STANDARD;
     }
 
+    if (req.has_param("initial_cash")) {
+        scenario.initial_cash = atof(req.get_param_value("initial_cash").c_str());
+    } else {
+        scenario.initial_cash = 1.0f;
+    }
+
+    if (req.has_param("cash_method")) {
+        scenario.cash_simple = req.get_param_value("cash_method") == "smart" ? false : true;
+    } else {
+        scenario.cash_simple = true;
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
@@ -591,6 +603,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " wit_freq=" << scenario.withdraw_frequency
         << " minimum=" << scenario.minimum
         << " method=" << scenario.method
+        << " cash_simple=" << scenario.cash_simple
+        << " cash=" << scenario.initial_cash
         << " start_year=" << scenario.start_year
         << " end_year=" << scenario.end_year
         << std::endl;
