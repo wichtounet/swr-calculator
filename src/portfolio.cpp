@@ -1,6 +1,15 @@
 #include <algorithm>
+#include <iostream>
 
 #include "portfolio.hpp"
+
+std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> & portfolio) {
+    for (const auto & alloc : portfolio) {
+        out << alloc.asset << ':' << alloc.allocation << ';';
+    }
+
+    return out;
+}
 
 std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {
     std::vector<allocation> portfolio;

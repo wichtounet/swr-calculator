@@ -487,7 +487,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         portfolio_base = req.get_param_value("portfolio");
         scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     } else {
-        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{}:ex_us_stocks:{};",
+        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};",
                                      req.get_param_value("p_us_stocks"),
                                      req.get_param_value("p_us_bonds"),
                                      req.get_param_value("p_gold"),
@@ -607,7 +607,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     std::cout
-        << "DEBUG: Request port=" << portfolio_base
+        << "DEBUG: Request port="
+        << " (" << scenario.portfolio << ")"
         << " inf=" << inflation
         << " wr=" << scenario.wr
         << " years=" << scenario.years
@@ -641,17 +642,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
     if (scenario.values.empty()) {
-        res.set_content(std::string("Error: Invalid portfolio: ") + portfolio_base, "text/plain");
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid portfolio\", \"error\": true}}", "text/json");
         return;
     }
 
     if (scenario.inflation_data.empty()) {
-        res.set_content("Error: Invalid inflation", "text/plain");
-        return;
-    }
-
-    if (scenario.glidepath && scenario.portfolio.size() != 2) {
-        res.set_content("Error: Invalid number of assets for glidepath (must be 2)", "text/plain");
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid inflation\", \"error\": true}}", "text/json");
         return;
     }
 
