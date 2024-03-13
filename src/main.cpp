@@ -579,7 +579,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (req.has_param("initial_cash")) {
         scenario.initial_cash = atof(req.get_param_value("initial_cash").c_str());
     } else {
-        scenario.initial_cash = 1.0f;
+        scenario.initial_cash = 0.0f;
     }
 
     if (req.has_param("cash_method")) {
@@ -588,25 +588,51 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.cash_simple = true;
     }
 
+    if (req.has_param("gp")) {
+        scenario.glidepath = req.get_param_value("gp") == "true";
+    } else {
+        scenario.glidepath = false;
+    }
+
+    if (req.has_param("gp_pass")) {
+        scenario.gp_pass = atof(req.get_param_value("gp_pass").c_str());
+    } else {
+        scenario.gp_pass = 0.0f;
+    }
+
+    if (req.has_param("gp_goal")) {
+        scenario.gp_goal = atof(req.get_param_value("gp_goal").c_str());
+    } else {
+        scenario.gp_goal = 0.0f;
+    }
+
     std::cout
         << "DEBUG: Request port=" << portfolio_base
         << " inf=" << inflation
         << " wr=" << scenario.wr
         << " years=" << scenario.years
-        << " reb=" << scenario.rebalance
-        << " reb_threshold=" << scenario.threshold
+        << " reb={" << scenario.rebalance
+        << " " << scenario.threshold
+        << "}"
         << " fin_threshold=" << scenario.final_threshold
         << " fin_inflation=" << scenario.final_inflation
-        << " soc_sec=" << scenario.social_security
-        << " soc_delay=" << scenario.social_delay
-        << " soc_cov=" << scenario.social_coverage
+        << " soc_sec={" << scenario.social_security
+        << " " << scenario.social_delay
+        << " " << scenario.social_coverage
+        << "}"
+        << " gp={" << scenario.glidepath
+        << " " << scenario.gp_pass
+        << " " << scenario.gp_goal
+        << "}"
         << " wit_freq=" << scenario.withdraw_frequency
         << " minimum=" << scenario.minimum
         << " method=" << scenario.method
-        << " cash_simple=" << scenario.cash_simple
-        << " cash=" << scenario.initial_cash
-        << " start_year=" << scenario.start_year
-        << " end_year=" << scenario.end_year
+        << " cash={" << scenario.cash_simple
+        << " " << scenario.initial_cash
+        << "}"
+        << " period=[" << scenario.start_year
+        << "-" << scenario.end_year
+        << "]"
         << std::endl;
 
     swr::normalize_portfolio(scenario.portfolio);
@@ -621,6 +647,11 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     if (scenario.inflation_data.empty()) {
         res.set_content("Error: Invalid inflation", "text/plain");
+        return;
+    }
+
+    if (scenario.glidepath && scenario.portfolio.size() != 2) {
+        res.set_content("Error: Invalid number of assets for glidepath (must be 2)", "text/plain");
         return;
     }
 

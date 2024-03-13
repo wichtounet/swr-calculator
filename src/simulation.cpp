@@ -387,8 +387,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
             return res;
         }
 
-        if (!scenario.gp_pass) {
-            res.message = "Invalid pass for glidepath";
+        if (scenario.gp_pass == 0.0f) {
+            res.message = std::format("Invalid pass ({}) for glidepath", scenario.gp_pass);
             res.error = true;
             return res;
         }
