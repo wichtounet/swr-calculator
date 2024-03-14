@@ -487,12 +487,13 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         portfolio_base = req.get_param_value("portfolio");
         scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     } else {
-        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};",
+        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};",
                                      req.get_param_value("p_us_stocks"),
                                      req.get_param_value("p_us_bonds"),
                                      req.get_param_value("p_gold"),
                                      req.get_param_value("p_cash"),
-                                     req.get_param_value("p_ex_us_stocks"));
+                                     req.get_param_value("p_ex_us_stocks"),
+                                     req.get_param_value("p_ch_stocks"));
         scenario.portfolio = swr::parse_portfolio(portfolio_base);
     }
 
