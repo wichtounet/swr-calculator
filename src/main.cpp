@@ -471,6 +471,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     swr::scenario scenario;
 
+    // Let the simulation find the period if necessary
+    scenario.strict_validation = false;
+
     // Don't run for too long
     scenario.timeout_msecs = 200;
 

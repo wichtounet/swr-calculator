@@ -288,17 +288,19 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     // A. If the interval is totally out, there is nothing we can do
 
-    if (!valid_year(inflation_data, scenario.start_year) && !valid_year(inflation_data, scenario.end_year)) {
-        res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
-        res.error = true;
-        return res;
-    }
-
-    for (auto& v : values) {
-        if (!valid_year(v, scenario.start_year) && !valid_year(v, scenario.end_year)) {
+    if (scenario.strict_validation) {
+        if (!valid_year(inflation_data, scenario.start_year) && !valid_year(inflation_data, scenario.end_year)) {
             res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
-            res.error = true;
+            res.error   = true;
             return res;
+        }
+
+        for (auto& v : values) {
+            if (!valid_year(v, scenario.start_year) && !valid_year(v, scenario.end_year)) {
+                res.message = "The given period is out of the historical data, it's either too far in the future or too far in the past";
+                res.error   = true;
+                return res;
+            }
         }
     }
 

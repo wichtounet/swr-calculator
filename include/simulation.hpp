@@ -66,6 +66,8 @@ struct scenario {
     size_t social_delay    = 0;
     float  social_coverage = 0.0f;
 
+    bool strict_validation = true;
+
     // Temporary values
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
