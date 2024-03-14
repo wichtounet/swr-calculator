@@ -474,8 +474,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     // Don't run for too long
     scenario.timeout_msecs = 200;
 
-    // Parse the parameters
     auto inflation      = req.get_param_value("inflation");
+    if (req.has_param("inflation2")) {
+        inflation = req.get_param_value("inflation2");
+    }
+
+    // Parse the parameters
     scenario.wr         = atof(req.get_param_value("wr").c_str());
     scenario.years      = atoi(req.get_param_value("years").c_str());
     scenario.start_year = atoi(req.get_param_value("start").c_str());
