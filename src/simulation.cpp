@@ -260,6 +260,7 @@ template <size_t N>
 swr::results swr_simulation(swr::scenario & scenario) {
     auto & inflation_data = scenario.inflation_data;
     auto & values = scenario.values;
+    auto & exchange_rates = scenario.exchange_rates;
 
     // The final results
     swr::results res;
@@ -325,6 +326,22 @@ swr::results swr_simulation(swr::scenario & scenario) {
         if (v.back().year < scenario.end_year) {
             scenario.end_year = v.back().year;
             changed  = true;
+        }
+    }
+
+    for (size_t i = 0; i < N; ++i) {
+        if (scenario.exchange_set[i]) {
+            auto& v = exchange_rates[i];
+
+            if (v.front().year > scenario.start_year) {
+                scenario.start_year = v.front().year;
+                changed             = true;
+            }
+
+            if (v.back().year < scenario.end_year) {
+                scenario.end_year = v.back().year;
+                changed           = true;
+            }
         }
     }
 

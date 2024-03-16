@@ -614,6 +614,11 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.gp_goal = 0.0f;
     }
 
+    std::string currency = "usd";
+    if (req.has_param("currency")) {
+        currency = req.get_param_value("currency") == "chf" ? "chf" : "usd";
+    }
+
     std::cout
         << "DEBUG: Request port="
         << " (" << scenario.portfolio << ")"
@@ -636,6 +641,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " wit_freq=" << scenario.withdraw_frequency
         << " minimum=" << scenario.minimum
         << " method=" << scenario.method
+        << " currency=" << currency
         << " cash={" << scenario.cash_simple
         << " " << scenario.initial_cash
         << "}"
@@ -657,6 +663,47 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (scenario.inflation_data.empty()) {
         res.set_content("{\"results\": {\"message\":\"Error: Invalid inflation\", \"error\": true}}", "text/json");
         return;
+    }
+
+    auto exchange_data = swr::load_exchange("usd_chf");
+
+    if (exchange_data.empty()) {
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid exchange data\", \"error\": true}}", "text/json");
+        return;
+    }
+
+    scenario.exchange_rates.resize(scenario.values.size());
+    scenario.exchange_set.resize(scenario.values.size());
+
+    for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+        auto & asset = scenario.portfolio[i].asset;
+
+        scenario.exchange_rates[i] = exchange_data;
+        scenario.exchange_set[i] = false;
+
+        if (currency == "usd") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i] = true;
+                // We revert the exchange rate
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1.0f / v.value;
+                }
+            } else {
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1;
+                }
+            }
+        } else if (currency == "chf") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1;
+                }
+            } else {
+                scenario.exchange_set[i] = true;
+            }
+        }
     }
 
     auto results = simulation(scenario);
@@ -1615,16 +1662,16 @@ int main(int argc, const char* argv[]) {
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");
 
-                    scenario.exchanges.resize(scenario.values.size());
+                    scenario.exchange_rates.resize(scenario.values.size());
 
                     for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-                        scenario.exchanges[i] = exchange_data;
+                        scenario.exchange_rates[i] = exchange_data;
                         if (scenario.portfolio[i].asset == "us_stocks") {
-                            scenario.exchanges[i] = exchange_data;
+                            scenario.exchange_rates[i] = exchange_data;
                         } else {
-                            scenario.exchanges[i] = exchange_data;
+                            scenario.exchange_rates[i] = exchange_data;
 
-                            for (auto& v : scenario.exchanges[i]) {
+                            for (auto& v : scenario.exchange_rates[i]) {
                                 v.value = 1;
                             }
                         }
