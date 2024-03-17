@@ -8,8 +8,6 @@
 
 namespace swr {
 
-constexpr float initial_value = 1000.0f;
-
 enum class Rebalancing : uint64_t {
     NONE,
     MONTHLY,
@@ -37,6 +35,7 @@ struct scenario {
     float       wr;
     size_t      start_year;
     size_t      end_year;
+    float       initial_value      = 1000.0f;
     size_t      withdraw_frequency = 1;
     Rebalancing rebalance          = Rebalancing::NONE;
     float       threshold          = 0.0f;

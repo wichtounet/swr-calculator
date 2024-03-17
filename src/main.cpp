@@ -576,6 +576,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.threshold = 0.01;
     }
 
+    if (req.has_param("initial")) {
+        scenario.initial_value = atof(req.get_param_value("initial").c_str());
+    } else {
+        scenario.initial_value = 1000.0f;
+    }
+
     if (req.has_param("fees")) {
         scenario.fees = atof(req.get_param_value("fees").c_str()) / 100.0f;
     } else {
@@ -2281,7 +2287,7 @@ int main(int argc, const char* argv[]) {
 
                 std::cout << "\n";
 
-                const float withdrawal = (wr / 100.0f) * swr::initial_value;
+                const float withdrawal = (wr / 100.0f) * scenario.initial_value;
 
                 std::array<std::vector<swr::results>, 61> all_results;
                 std::array<std::vector<swr::results>, 61> all_compare_results;
@@ -2294,7 +2300,7 @@ int main(int argc, const char* argv[]) {
                                 auto my_scenario = scenario;
 
                                 my_scenario.wr           = wr;
-                                my_scenario.initial_cash = m * ((swr::initial_value * (my_scenario.wr / 100.0f)) / 12);
+                                my_scenario.initial_cash = m * ((scenario.initial_value * (my_scenario.wr / 100.0f)) / 12);
 
                                 for (size_t i = 0; i <= 100; i += portfolio_add) {
                                     my_scenario.portfolio[0].allocation = float(i);
@@ -2304,7 +2310,7 @@ int main(int argc, const char* argv[]) {
                                 }
 
                                 if (compare) {
-                                    float total              = swr::initial_value + m * (withdrawal / 12.0f);
+                                    float total              = scenario.initial_value + m * (withdrawal / 12.0f);
                                     my_scenario.wr           = 100.0f * (withdrawal / total);
                                     my_scenario.initial_cash = 0;
 
@@ -2351,7 +2357,7 @@ int main(int argc, const char* argv[]) {
                 std::cout << "\n";
 
                 for (size_t m = 0; m <= 60; ++m) {
-                    scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
+                    scenario.initial_cash = m * ((scenario.initial_value * (scenario.wr / 100.0f)) / 12);
                     auto results = swr::simulation(scenario);
                     std::cout << m << ';' << results.success_rate;
                     std::cout << "\n";

@@ -481,16 +481,16 @@ swr::results swr_simulation(swr::scenario & scenario) {
             const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
 
             // The amount of money withdrawn per year (STANDARD method)
-            float withdrawal = swr::initial_value * (scenario.wr / 100.0f);
+            float withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
 
             // The minimum amount of money withdraw (CURRENT method)
-            float minimum = swr::initial_value * scenario.minimum;
+            float minimum = scenario.initial_value * scenario.minimum;
 
             // The amount of cash available
             float cash = scenario.initial_cash;
 
             // Used for the target threshold
-            scenario.target_value_ = swr::initial_value;
+            scenario.target_value_ = scenario.initial_value;
 
             // Reset the allocation for the context
             for (auto & asset : scenario.portfolio) {
@@ -501,7 +501,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             // Compute the initial values of the assets
             for (size_t i = 0; i < N; ++i) {
-                current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
+                current_values[i] = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 returns[i]        = start_returns[i]++;
                 exchanges[i]      = start_exchanges[i]++;
             }
@@ -735,6 +735,7 @@ std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
         << " inflation=" << scenario.inflation_data.name
         << " exchange_set=" << std::ranges::count(scenario.exchange_set, true)
         << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
+        << " init=" << scenario.initial_value
         << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.method << "," << scenario.minimum << "}"
         << " fees=" << scenario.fees
