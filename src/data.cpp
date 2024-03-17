@@ -236,3 +236,18 @@ swr::data_vector::const_iterator swr::get_start(const swr::data_vector& values, 
 
     return values.begin();
 }
+
+bool swr::is_start_valid(const swr::data_vector& values, size_t year, size_t month) {
+    auto it  = values.begin();
+    auto end = values.end();
+
+    while (it != end) {
+        if (it->year == year && it->month == month) {
+            return true;
+        }
+
+        ++it;
+    }
+
+    return false;
+}

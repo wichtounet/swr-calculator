@@ -23,4 +23,6 @@ data_vector load_exchange_inv(const std::string& inflation);
 float get_value(const data_vector& values, size_t year, size_t month);
 data_vector::const_iterator get_start(const data_vector& values, size_t year, size_t month);
 
+bool is_start_valid(const data_vector& values, size_t year, size_t month);
+
 } // namespace swr

@@ -8,6 +8,7 @@
 #include <cmath>
 #include <array>
 #include <chrono>
+#include "data.hpp"
 
 namespace chr = std::chrono;
 
@@ -437,6 +438,22 @@ swr::results swr_simulation(swr::scenario & scenario) {
             res.error = true;
             return res;
         }
+    }
+
+    // More validation of data (should not happen but would fail silently otherwise)
+    
+    bool valid = true;
+    for (size_t i = 0; i < N; ++i) {
+        valid &= swr::is_start_valid(values[i], scenario.start_year, 1);
+        valid &= swr::is_start_valid(exchange_rates[i], scenario.start_year, 1);
+    }
+
+    valid &= swr::is_start_valid(inflation_data, scenario.start_year, 1);
+
+    if (!valid) {
+        res.message = "Invalid data points (internal bug, contact the developer)";
+        res.error   = true;
+        return res;
     }
 
     const size_t total_months           = scenario.years * 12;
