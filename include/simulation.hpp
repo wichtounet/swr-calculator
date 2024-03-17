@@ -88,6 +88,8 @@ struct scenario {
     }
 };
 
+std::ostream & operator<<(std::ostream& out, const scenario & scenario);
+
 struct results {
     size_t successes = 0;
     size_t failures  = 0;

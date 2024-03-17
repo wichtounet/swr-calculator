@@ -624,31 +624,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         << " (" << scenario.portfolio << ")"
         << "(" << scenario.portfolio.size() << ")"
         << " inf=" << inflation
-        << " wr=" << scenario.wr
-        << " years=" << scenario.years
-        << " reb={" << scenario.rebalance
-        << " " << scenario.threshold
-        << "}"
-        << " fin_threshold=" << scenario.final_threshold
-        << " fin_inflation=" << scenario.final_inflation
-        << " soc_sec={" << scenario.social_security
-        << " " << scenario.social_delay
-        << " " << scenario.social_coverage
-        << "}"
-        << " gp={" << scenario.glidepath
-        << " " << scenario.gp_pass
-        << " " << scenario.gp_goal
-        << "}"
-        << " wit_freq=" << scenario.withdraw_frequency
-        << " minimum=" << scenario.minimum
-        << " method=" << scenario.method
-        << " currency=" << currency
-        << " cash={" << scenario.cash_simple
-        << " " << scenario.initial_cash
-        << "}"
-        << " period=[" << scenario.start_year
-        << "-" << scenario.end_year
-        << "]"
+        << " " << scenario
         << std::endl;
 
     swr::normalize_portfolio(scenario.portfolio);
@@ -921,11 +897,14 @@ int main(int argc, const char* argv[]) {
                       << "               Start: " << scenario.start_year << "\n"
                       << "                 End: " << scenario.end_year << "\n"
                       << "                 TER: " << 100.0f * scenario.fees << "%\n"
+                      << "           Inflation: " << inflation << "\n"
                       << "           Portfolio: \n";
 
             for (auto & position : scenario.portfolio) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
+
+            std::cout << scenario << std::endl;
 
             auto printer = [scenario](const std::string& message, const auto & results) {
                 std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
