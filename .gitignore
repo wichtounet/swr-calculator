@@ -1,3 +1,5 @@
 release
 debug
 release_debug
+.cache
+*.plist

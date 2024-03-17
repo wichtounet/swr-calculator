@@ -1,0 +1,102 @@
+[
+    {
+        "arguments": [
+            "clang-16",
+            "-c",
+            "-g",
+            "-Iinclude",
+            "-Wextra",
+            "-Wall",
+            "-Qunused-arguments",
+            "-Wuninitialized",
+            "-Wsometimes-uninitialized",
+            "-Wno-long-long",
+            "-Winit-self",
+            "-Wdocumentation",
+            "-std=c++2a",
+            "-pthread",
+            "-isystem",
+            "cpp-httplib",
+            "-o",
+            "debug/src/simulation.cpp.o",
+            "src/simulation.cpp"
+        ],
+        "directory": "/home/wichtounet/dev/swr-calculator",
+        "file": "src/simulation.cpp"
+    },
+    {
+        "arguments": [
+            "clang-16",
+            "-c",
+            "-g",
+            "-Iinclude",
+            "-Wextra",
+            "-Wall",
+            "-Qunused-arguments",
+            "-Wuninitialized",
+            "-Wsometimes-uninitialized",
+            "-Wno-long-long",
+            "-Winit-self",
+            "-Wdocumentation",
+            "-std=c++2a",
+            "-pthread",
+            "-isystem",
+            "cpp-httplib",
+            "-o",
+            "debug/src/data.cpp.o",
+            "src/data.cpp"
+        ],
+        "directory": "/home/wichtounet/dev/swr-calculator",
+        "file": "src/data.cpp"
+    },
+    {
+        "arguments": [
+            "clang-16",
+            "-c",
+            "-g",
+            "-Iinclude",
+            "-Wextra",
+            "-Wall",
+            "-Qunused-arguments",
+            "-Wuninitialized",
+            "-Wsometimes-uninitialized",
+            "-Wno-long-long",
+            "-Winit-self",
+            "-Wdocumentation",
+            "-std=c++2a",
+            "-pthread",
+            "-isystem",
+            "cpp-httplib",
+            "-o",
+            "debug/src/portfolio.cpp.o",
+            "src/portfolio.cpp"
+        ],
+        "directory": "/home/wichtounet/dev/swr-calculator",
+        "file": "src/portfolio.cpp"
+    },
+    {
+        "arguments": [
+            "clang-16",
+            "-c",
+            "-g",
+            "-Iinclude",
+            "-Wextra",
+            "-Wall",
+            "-Qunused-arguments",
+            "-Wuninitialized",
+            "-Wsometimes-uninitialized",
+            "-Wno-long-long",
+            "-Winit-self",
+            "-Wdocumentation",
+            "-std=c++2a",
+            "-pthread",
+            "-isystem",
+            "cpp-httplib",
+            "-o",
+            "debug/src/main.cpp.o",
+            "src/main.cpp"
+        ],
+        "directory": "/home/wichtounet/dev/swr-calculator",
+        "file": "src/main.cpp"
+    }
+]
