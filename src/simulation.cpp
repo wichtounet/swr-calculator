@@ -433,11 +433,13 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     const size_t total_months           = scenario.years * 12;
 
-    // Prepare the start
+    // Prepare the starting points (for efficiency)
     std::array<swr::data_vector::const_iterator, N> start_returns;
+    std::array<swr::data_vector::const_iterator, N> start_exchanges;
 
     for (size_t i = 0; i < N; ++i) {
         start_returns[i] = swr::get_start(values[i], scenario.start_year, 1);
+        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
     }
 
     auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
@@ -446,6 +448,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     std::vector<float> terminal_values;
     std::array<swr::data_vector::const_iterator, N> returns;
+    std::array<swr::data_vector::const_iterator, N> exchanges;
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
@@ -475,6 +478,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             for (size_t i = 0; i < N; ++i) {
                 current_values[i] = swr::initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 returns[i]        = start_returns[i]++;
+                exchanges[i]      = start_exchanges[i]++;
             }
 
             auto inflation = start_inflation++;
@@ -498,10 +502,13 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++months) {
                     const bool end = months == total_months;
 
-                    // Adjust the portfolio with the returns
+                    // Adjust the portfolio with the returns and exchanges
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
+                        current_values[i] *= exchanges[i]->value;
+
                         ++returns[i];
+                        ++exchanges[i];
                     }
 
                     // Stock market losses can cause failure

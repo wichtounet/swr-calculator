@@ -175,7 +175,7 @@ float swr::get_value(const swr::data_vector& values, size_t year, size_t month) 
         }
     }
 
-    std::cout << "This should not happen" << std::endl;
+    std::cout << "This should not happen (value out of range)" << std::endl;
 
     return 0.0f;
 }
@@ -192,7 +192,7 @@ swr::data_vector::const_iterator swr::get_start(const swr::data_vector& values, 
         ++it;
     }
 
-    std::cout << "This should not happen" << std::endl;
+    std::cout << "This should not happen (start out of range)" << std::endl;
 
     return values.begin();
 }
