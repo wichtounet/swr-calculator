@@ -667,8 +667,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     auto exchange_data = swr::load_exchange("usd_chf");
+    auto inv_exchange_data = swr::load_exchange_inv("usd_chf");
 
-    if (exchange_data.empty()) {
+    if (exchange_data.empty() || inv_exchange_data.empty()) {
         res.set_content("{\"results\": {\"message\":\"Error: Invalid exchange data\", \"error\": true}}", "text/json");
         return;
     }
@@ -677,32 +678,31 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.exchange_set.resize(scenario.values.size());
 
     for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-        auto & asset = scenario.portfolio[i].asset;
-
-        scenario.exchange_rates[i] = exchange_data;
-        scenario.exchange_set[i] = false;
+        auto& asset = scenario.portfolio[i].asset;
 
         if (currency == "usd") {
             if (asset == "ch_stocks" || asset == "ch_bonds") {
-                scenario.exchange_set[i] = true;
-                // We revert the exchange rate
-                for (auto& v : scenario.exchange_rates[i]) {
-                    v.value = 1.0f / v.value;
-                }
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = inv_exchange_data;
             } else {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = exchange_data;
                 // We set everything to one
                 for (auto& v : scenario.exchange_rates[i]) {
-                    v.value = 1;
+                    v.value = 1.0f;
                 }
             }
         } else if (currency == "chf") {
             if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = exchange_data;
                 // We set everything to one
                 for (auto& v : scenario.exchange_rates[i]) {
-                    v.value = 1;
+                    v.value = 1.0f;
                 }
             } else {
-                scenario.exchange_set[i] = true;
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = exchange_data;
             }
         }
     }

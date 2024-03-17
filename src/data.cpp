@@ -165,6 +165,28 @@ swr::data_vector swr::load_exchange(const std::string& exchange) {
         return {};
     }
 
+    normalize_data(exchange_data);
+    transform_to_returns(exchange_data);
+
+    return exchange_data;
+}
+
+swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
+    auto exchange_data = load_data("stock-data/" + exchange + ".csv");
+
+    if (exchange_data.empty()) {
+        std::cout << "Impossible to load exchange data for " << exchange << std::endl;
+        return {};
+    }
+
+    // Invert the exchange rate
+    for (auto & v : exchange_data) {
+        v.value = 1.0f / v.value;
+    }
+
+    normalize_data(exchange_data);
+    transform_to_returns(exchange_data);
+
     return exchange_data;
 }
 
