@@ -30,6 +30,8 @@ swr::data_vector load_data(const std::string & name, const std::string& path) {
         return {};
     }
 
+    points.name = name;
+
     std::string line;
     while (std::getline(file, line)) {
         auto index1 = line.find(',');
@@ -50,7 +52,7 @@ swr::data_vector load_data(const std::string & name, const std::string& path) {
         data.year  = atoi(year.c_str());
         data.value = atof(value.c_str());
 
-        points.push_back(data);
+        points.data.push_back(data);
     }
 
     {
@@ -63,15 +65,15 @@ swr::data_vector load_data(const std::string & name, const std::string& path) {
 
 // Make sure that the data ends with a full year
 void fix_end(swr::data_vector & values) {
-    while (values.back().month != 12) {
-        values.pop_back();
+    while (values.data.back().month != 12) {
+        values.data.pop_back();
     }
 }
 
 // Make sure that the data starts with a full year
 void fix_start(swr::data_vector & values) {
-    while (values.front().month != 1) {
-        values.erase(values.begin());
+    while (values.data.front().month != 1) {
+        values.data.erase(values.data.begin());
     }
 }
 
@@ -79,7 +81,7 @@ void normalize_data(swr::data_vector & values) {
     fix_end(values);
     fix_start(values);
 
-    if (values.front().value == 1.0f) {
+    if (values.data.front().value == 1.0f) {
         return;
     }
 
@@ -128,7 +130,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
 
         if (x2) {
             auto copy = data;
-            std::ranges::copy(copy, std::back_inserter(data));
+            std::ranges::copy(copy, std::back_inserter(data.data));
 
             for (size_t i = 0; i < copy.size(); ++i) {
                 size_t j         = copy.size() - 1 - i;

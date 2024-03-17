@@ -9,7 +9,7 @@ std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> 
         out << alloc.asset << ':' << alloc.allocation << ';';
     }
     out << "(" << portfolio.size() << ")";
-    return out << "{";
+    return out << "}";
 }
 
 std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {

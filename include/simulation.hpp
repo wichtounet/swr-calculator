@@ -27,11 +27,11 @@ std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 std::ostream & operator<<(std::ostream& out, const Method & method);
 
 struct scenario {
-    std::vector<swr::allocation>        portfolio;
-    std::vector<swr::data>              inflation_data;
-    std::vector<std::vector<swr::data>> values;
-    std::vector<bool> exchange_set;
-    std::vector<std::vector<swr::data>> exchange_rates;
+    std::vector<swr::allocation> portfolio;
+    data_vector                  inflation_data;
+    std::vector<data_vector>     values;
+    std::vector<bool>            exchange_set;
+    std::vector<data_vector>     exchange_rates;
 
     size_t      years;
     float       wr;
