@@ -4,11 +4,12 @@
 #include "portfolio.hpp"
 
 std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> & portfolio) {
+    out << "{";
     for (const auto & alloc : portfolio) {
         out << alloc.asset << ':' << alloc.allocation << ';';
     }
-
-    return out;
+    out << "(" << portfolio.size() << ")";
+    return out << "{";
 }
 
 std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {

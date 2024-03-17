@@ -719,11 +719,12 @@ size_t swr::simulations_ran() {
 
 std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
     out << "{"
+        << "portfolio=" << scenario.portfolio
         << "exchange_set=" << std::ranges::count(scenario.exchange_set, true)
         << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
         << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.method << "," << scenario.minimum << "}"
-        << " fees=" << scenario.fees << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
+        << " fees=" << scenario.fees
         << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
         << " fin={" << scenario.final_inflation << "," << scenario.final_threshold << "}"

@@ -619,13 +619,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         currency = req.get_param_value("currency") == "chf" ? "chf" : "usd";
     }
 
-    std::cout
-        << "DEBUG: Request "
-        << " (" << scenario.portfolio << ")"
-        << "(" << scenario.portfolio.size() << ")"
-        << " inf=" << inflation
-        << " " << scenario
-        << std::endl;
+    std::cout << "DEBUG: Request " << scenario << std::endl;
 
     swr::normalize_portfolio(scenario.portfolio);
 
@@ -904,6 +898,7 @@ int main(int argc, const char* argv[]) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
+            scenario.strict_validation = false;
             std::cout << scenario << std::endl;
 
             auto printer = [scenario](const std::string& message, const auto & results) {
