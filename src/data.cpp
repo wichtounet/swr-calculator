@@ -2,45 +2,63 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <unordered_map>
+#include <mutex>
 
 #include "data.hpp"
 
 namespace {
 
-swr::data_vector load_data(const std::string& path) {
-  swr::data_vector points;
+std::mutex server_lock;
 
-  std::ifstream file(path);
+std::unordered_map<std::string, swr::data_vector> data_cache;
 
-  if (!file) {
-      std::cout << "Impossible to load data " << path << std::endl;
-      return {};
-  }
+swr::data_vector load_data(const std::string & name, const std::string& path) {
+    {
+        const std::unique_lock l(server_lock);
+        if (data_cache.contains(name)) {
+            return data_cache[name];
+        }
+    }
 
-  std::string line;
-  while (std::getline(file, line)) {
-      auto index1 = line.find(',');
-      auto index2 = line.find(',', index1 + 1);
+    swr::data_vector points;
 
-      std::string month(line.begin(), line.begin() + index1);
-      std::string year(line.begin() + index1 + 1, line.begin() + index2);
-      std::string value(line.begin() + index2 + 1, line.end());
+    std::ifstream file(path);
 
-      if (value[0] == '\"') {
-          value = value.substr(1, value.size() - 3);
-      }
+    if (!file) {
+        std::cout << "Impossible to load data " << path << std::endl;
+        return {};
+    }
 
-      std::erase(value, ',');
+    std::string line;
+    while (std::getline(file, line)) {
+        auto index1 = line.find(',');
+        auto index2 = line.find(',', index1 + 1);
 
-      swr::data data;
-      data.month = atoi(month.c_str());
-      data.year  = atoi(year.c_str());
-      data.value = atof(value.c_str());
+        std::string month(line.begin(), line.begin() + index1);
+        std::string year(line.begin() + index1 + 1, line.begin() + index2);
+        std::string value(line.begin() + index2 + 1, line.end());
 
-      points.push_back(data);
-  }
+        if (value[0] == '\"') {
+            value = value.substr(1, value.size() - 3);
+        }
 
-  return points;
+        std::erase(value, ',');
+
+        swr::data data;
+        data.month = atoi(month.c_str());
+        data.year  = atoi(year.c_str());
+        data.value = atof(value.c_str());
+
+        points.push_back(data);
+    }
+
+    {
+        const std::unique_lock l(server_lock);
+        data_cache[name] = points;
+    }
+
+    return points;
 }
 
 // Make sure that the data ends with a full year
@@ -98,7 +116,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
 
         std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
 
-        auto data = load_data("stock-data/" + filename + ".csv");
+        auto data = load_data(filename, "stock-data/" + filename + ".csv");
 
         if (data.empty()) {
             std::cout << "Impossible to load data for asset " << asset_name << std::endl;
@@ -143,7 +161,7 @@ swr::data_vector swr::load_inflation(const std::vector<swr::data_vector> & value
             value.value = 1;
         }
     } else {
-        inflation_data = load_data("stock-data/" + inflation + ".csv");
+        inflation_data = load_data(inflation, "stock-data/" + inflation + ".csv");
 
         if (inflation_data.empty()) {
             std::cout << "Impossible to load inflation data for asset " << inflation << std::endl;
@@ -158,7 +176,7 @@ swr::data_vector swr::load_inflation(const std::vector<swr::data_vector> & value
 }
 
 swr::data_vector swr::load_exchange(const std::string& exchange) {
-    auto exchange_data = load_data("stock-data/" + exchange + ".csv");
+    auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
 
     if (exchange_data.empty()) {
         std::cout << "Impossible to load exchange data for " << exchange << std::endl;
@@ -172,7 +190,7 @@ swr::data_vector swr::load_exchange(const std::string& exchange) {
 }
 
 swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
-    auto exchange_data = load_data("stock-data/" + exchange + ".csv");
+    auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
 
     if (exchange_data.empty()) {
         std::cout << "Impossible to load exchange data for " << exchange << std::endl;
