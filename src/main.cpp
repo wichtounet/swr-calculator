@@ -620,8 +620,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     std::cout
-        << "DEBUG: Request port="
+        << "DEBUG: Request "
         << " (" << scenario.portfolio << ")"
+        << "(" << scenario.portfolio.size() << ")"
         << " inf=" << inflation
         << " wr=" << scenario.wr
         << " years=" << scenario.years
@@ -707,6 +708,13 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     auto results = simulation(scenario);
+
+    std::cout
+        << "DEBUG: Response"
+        << " error=" << results.error
+        << " message=" << results.message
+        << " success_rate=" << results.success_rate
+        << std::endl;
 
     std::stringstream ss;
 
