@@ -456,6 +456,52 @@ bool check_parameters(const httplib::Request& req, httplib::Response& res, std::
     return true;
 }
 
+bool prepare_exchange_rates(swr::scenario & scenario, const std::string& currency) {
+    auto exchange_data = swr::load_exchange("usd_chf");
+    auto inv_exchange_data = swr::load_exchange_inv("usd_chf");
+
+    if (exchange_data.empty() || inv_exchange_data.empty()) {
+        return false;
+    }
+
+    const size_t N = scenario.portfolio.size();
+
+    scenario.exchange_rates.resize(N);
+    scenario.exchange_set.resize(N);
+
+    for (size_t i = 0; i < N; ++i) {
+        auto& asset = scenario.portfolio[i].asset;
+
+        if (currency == "usd") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = inv_exchange_data;
+            } else {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = scenario.values[i]; // Must copy from values to keep full range
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1.0f;
+                }
+            }
+        } else if (currency == "chf") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = scenario.values[i]; // Must copy from values to keep full range
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1.0f;
+                }
+            } else {
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = exchange_data;
+            }
+        }
+    }
+
+    return true;
+}
+
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
@@ -636,45 +682,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         return;
     }
 
-    auto exchange_data = swr::load_exchange("usd_chf");
-    auto inv_exchange_data = swr::load_exchange_inv("usd_chf");
-
-    if (exchange_data.empty() || inv_exchange_data.empty()) {
+    if (!prepare_exchange_rates(scenario, currency)) {
         res.set_content("{\"results\": {\"message\":\"Error: Invalid exchange data\", \"error\": true}}", "text/json");
         return;
-    }
-
-    scenario.exchange_rates.resize(scenario.values.size());
-    scenario.exchange_set.resize(scenario.values.size());
-
-    for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-        auto& asset = scenario.portfolio[i].asset;
-
-        if (currency == "usd") {
-            if (asset == "ch_stocks" || asset == "ch_bonds") {
-                scenario.exchange_set[i]   = true;
-                scenario.exchange_rates[i] = inv_exchange_data;
-            } else {
-                scenario.exchange_set[i]   = false;
-                scenario.exchange_rates[i] = exchange_data;
-                // We set everything to one
-                for (auto& v : scenario.exchange_rates[i]) {
-                    v.value = 1.0f;
-                }
-            }
-        } else if (currency == "chf") {
-            if (asset == "ch_stocks" || asset == "ch_bonds") {
-                scenario.exchange_set[i]   = false;
-                scenario.exchange_rates[i] = exchange_data;
-                // We set everything to one
-                for (auto& v : scenario.exchange_rates[i]) {
-                    v.value = 1.0f;
-                }
-            } else {
-                scenario.exchange_set[i]   = true;
-                scenario.exchange_rates[i] = exchange_data;
-            }
-        }
     }
 
     auto results = simulation(scenario);
@@ -898,8 +908,12 @@ int main(int argc, const char* argv[]) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
 
+            if (!prepare_exchange_rates(scenario, "usd")) {
+                std::cout << "Error with exchange rates" << std::endl;
+                return 1;
+            }
+
             scenario.strict_validation = false;
-            std::cout << scenario << std::endl;
 
             auto printer = [scenario](const std::string& message, const auto & results) {
                 std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
@@ -926,6 +940,7 @@ int main(int argc, const char* argv[]) {
             auto start = std::chrono::high_resolution_clock::now();
 
             scenario.withdraw_frequency = 12;
+            std::cout << scenario << std::endl;
             auto yearly_results = swr::simulation(scenario);
 
             if (yearly_results.message.size()) {

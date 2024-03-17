@@ -270,14 +270,9 @@ swr::results swr_simulation(swr::scenario & scenario) {
     // For compatibility, we set up exchange_rates and exchange_sets
 
     if (scenario.exchange_set.empty() || exchange_rates.empty()) {
-        scenario.exchange_set.resize(N);
-        std::ranges::fill(scenario.exchange_set, false);
-        exchange_rates = values;
-        for (auto& rates : exchange_rates) {
-            for (auto& v : rates) {
-                v.value = 1.0f;
-            }
-        }
+        res.message = "Invalid scenario (no exchange rates)";
+        res.error = true;
+        return res;
     }
 
     // 0. Make sure the years make some sense
