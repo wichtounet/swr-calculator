@@ -1380,6 +1380,63 @@ int main(int argc, const char* argv[]) {
             analyzer(values[0], "Stocks");
             analyzer(values[1], "Bonds");
             analyzer(inflation_data, "Inflation");
+        } else if (command == "term") {
+            auto compute = [](size_t term, std::string_view asset) {
+                auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;");
+                auto values    = swr::load_values(portfolio);
+
+                auto start = values[0].begin();
+                auto end   = values[0].end();
+
+                float  best  = -1000000.0f;
+                float  worst = 1000000.0f;
+                float  total = 0.0f;
+                size_t count = 0;
+
+                while (true) {
+                    auto it = start;
+
+                    float total_returns = 1.0f;
+
+                    for (size_t i = 0; i < term * 12; ++i) {
+                        total_returns *= it->value;
+                        ++it;
+
+                        if (it == end) {
+                            break;
+                        }
+                    }
+
+                    if (it == end) {
+                        break;
+                    }
+
+                    best  = std::max(best, total_returns);
+                    worst = std::min(worst, total_returns);
+                    total += total_returns;
+                    ++count;
+
+                    ++start;
+                }
+
+                std::cout << asset << " Best Returns(" << term << "): " << best << std::endl;
+                std::cout << asset << " Worst Returns(" << term << "): " << worst << std::endl;
+                std::cout << asset << " Average Returns(" << term << "): " << total / count << std::endl;
+            };
+
+            auto compute_multiple = [&](std::string_view asset) {
+                for (size_t i = 1; i <= 20; ++i) {
+                    compute(i, asset);
+                }
+            };
+
+            compute_multiple("us_stocks");
+            compute_multiple("us_bonds");
+            compute_multiple("ex_us_stocks");
+            compute_multiple("ch_stocks");
+            compute_multiple("ch_bonds");
+            compute_multiple("gold");
+            compute_multiple("cash");
         } else if (command == "glidepath" || command == "reverse_glidepath") {
             swr::scenario scenario;
 
