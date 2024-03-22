@@ -92,14 +92,17 @@ void multiple_wr(const swr::scenario & scenario){
 }
 
 struct Graph {
-    explicit Graph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") : enabled_(enabled), graph_(graph) {
-        if (enabled_) {
-            std::cout << "[" << graph << " title=\"TODO\" ytitle=\"" << ytitle << "\" xtitle=\"Withdrawal Rate (%)\"";
-        }
-    }
+    explicit Graph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") :
+            enabled_(enabled), graph_(graph), yitle_(ytitle) {}
 
     ~Graph() {
-        if (enabled_) {
+        flush();
+    }
+
+    void flush() {
+        if (enabled_ && !flushed_) {
+            std::cout << "[" << graph_ << " title=\"TODO\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
+
             cpp_assert(data_.size(), "data cannot be empty");
 
             std::stringstream legends;
@@ -111,7 +114,7 @@ struct Graph {
             std::cout << " legends=\"" << legends.str() << "\"]{\"labels\":[";
 
             sep = "";
-            for (auto & [key, value] : data_.front()) {
+            for (auto& [key, value] : data_.front()) {
                 std::cout << sep << key;
                 sep = ",";
             }
@@ -119,10 +122,10 @@ struct Graph {
 
             std::string serie_sep;
 
-            for (auto & serie : data_) {
+            for (auto& serie : data_) {
                 std::cout << serie_sep << "[";
                 sep = "";
-                for (auto & [key, value] : serie) {
+                for (auto& [key, value] : serie) {
                     std::cout << sep << value;
                     sep = ",";
                 }
@@ -131,6 +134,8 @@ struct Graph {
             }
 
             std::cout << "]}[/" << graph_ << "]";
+
+            flushed_ = true;
         }
     }
 
@@ -142,26 +147,35 @@ struct Graph {
         data_.emplace_back(data);
     }
 
-    const bool enabled_;
-    const std::string graph_;
-    std::vector<std::string> legends_;
+    const bool                          enabled_;
+    const std::string                   graph_;
+    const std::string                   yitle_;
+    std::string                         xtitle_ = "Withdrawal Rate (%)";
+    std::vector<std::string>            legends_;
     std::vector<std::map<float, float>> data_;
+    bool                                flushed_ = false;
 };
 
 std::string asset_to_string(std::string_view asset) {
     if (asset == "ch_stocks") {
-        return "% CH Stocks";
+        return "CH Stocks";
     } else if (asset == "us_stocks") {
-        return "% US Stocks";
+        return "US Stocks";
     } else if (asset == "ex_us_stocks") {
-        return "% ex-US Stocks";
+        return "ex-US Stocks";
     } else if (asset == "ch_bonds") {
-        return "% CH Bonds";
+        return "CH Bonds";
     } else if (asset == "us_bonds") {
-        return "% US Bonds";
+        return "US Bonds";
+    } else if (asset == "gold") {
+        return "Gold";
     } else {
-        return "% " + std::string(asset);
+        return std::string(asset);
     }
+}
+
+std::string asset_to_string_percent(std::string_view asset) {
+    return "% " + asset_to_string(asset);
 }
 
 std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
@@ -171,17 +185,17 @@ std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
         auto & second = scenario.portfolio.back();
 
         if (first.allocation == 0) {
-            ss << second.allocation << asset_to_string(second.asset);
+            ss << second.allocation << asset_to_string_percent(second.asset);
         } else if (second.allocation == 0) {
-            ss << first.allocation << asset_to_string(first.asset);
+            ss << first.allocation << asset_to_string_percent(first.asset);
         } else {
-            ss << first.allocation << asset_to_string(first.asset);
+            ss << first.allocation << asset_to_string_percent(first.asset);
         }
     } else {
         std::string sep;
         for (auto& position : scenario.portfolio) {
             if (position.allocation > 0) {
-                ss << sep << position.allocation << asset_to_string(position.asset);
+                ss << sep << position.allocation << asset_to_string_percent(position.asset);
                 sep = " ";
             }
         }
@@ -1381,53 +1395,101 @@ int main(int argc, const char* argv[]) {
             analyzer(values[1], "Bonds");
             analyzer(inflation_data, "Inflation");
         } else if (command == "term") {
-            auto compute = [](size_t term, std::string_view asset) {
-                auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;");
-                auto values    = swr::load_values(portfolio);
+            if (args.size() < 2) {
+                std::cout << "Not enough arguments for term" << std::endl;
+                return 1;
+            }
 
-                auto start = values[0].begin();
-                auto end   = values[0].end();
+            const size_t min = atoi(args[1].c_str());
+            const size_t max   = atoi(args[2].c_str());
 
-                float  best  = -1000000.0f;
-                float  worst = 1000000.0f;
-                float  total = 0.0f;
-                size_t count = 0;
+            Graph average_graph(true, "Average Returns (%)");
+            Graph worst_graph(true, "Worst Returns (%)");
+            Graph worst5_graph(true, "98th Percentile Worst Returns (%)");
+            Graph best_graph(true, "Best Returns (%)");
+            Graph chance_graph(true, "Likelihood of positive returns (%)");
 
-                while (true) {
-                    auto it = start;
+            average_graph.xtitle_ = "Months";
+            worst_graph.xtitle_ = "Months";
+            worst5_graph.xtitle_ = "Months";
+            best_graph.xtitle_ = "Months";
+            chance_graph.xtitle_ = "Months";
 
-                    float total_returns = 1.0f;
+            auto compute_multiple = [&](std::string_view asset) {
+                average_graph.add_legend(asset_to_string(asset));
+                best_graph.add_legend(asset_to_string(asset));
+                worst_graph.add_legend(asset_to_string(asset));
+                worst5_graph.add_legend(asset_to_string(asset));
+                chance_graph.add_legend(asset_to_string(asset));
 
-                    for (size_t i = 0; i < term * 12; ++i) {
-                        total_returns *= it->value;
-                        ++it;
+                std::map<float, float> average_results;
+                std::map<float, float> best_results;
+                std::map<float, float> worst_results;
+                std::map<float, float> worst5_results;
+                std::map<float, float> chance_results;
+
+                auto compute = [&](size_t term, std::string_view asset) {
+                    auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;");
+                    auto values    = swr::load_values(portfolio);
+
+                    auto start = values[0].begin();
+                    auto end   = values[0].end();
+
+                    float  total = 0.0f;
+
+                    std::vector<float> results;
+                    results.reserve(1024);
+
+                    while (true) {
+                        auto it = start;
+
+                        float total_returns = 1.0f;
+
+                        for (size_t i = 0; i < term; ++i) {
+                            total_returns *= it->value;
+                            ++it;
+
+                            if (it == end) {
+                                break;
+                            }
+                        }
 
                         if (it == end) {
                             break;
                         }
+
+                        results.push_back(total_returns);
+                        total += total_returns;
+
+                        ++start;
                     }
 
-                    if (it == end) {
-                        break;
+                    std::sort(results.begin(), results.end());
+
+                    size_t negative_returns = 0;
+                    for (size_t i = 0; i < results.size() ; ++i) {
+                        if (results[i] >= 1.0f) {
+                            negative_returns = i;
+                            break;
+                        }
                     }
 
-                    best  = std::max(best, total_returns);
-                    worst = std::min(worst, total_returns);
-                    total += total_returns;
-                    ++count;
+                    best_results[term] = 100.0f * (results.back() - 1.0f);
+                    worst_results[term] = 100.0f * (results.front() - 1.0f);
+                    worst5_results[term] = 100.0f * (results[0.02f * results.size()] - 1.0f);
+                    average_results[term] = 100.0f * (total / results.size() - 1.0f);
+                    chance_results[term] = 100.0f * (1.0f - float(negative_returns) / results.size());
+                };
 
-                    ++start;
-                }
-
-                std::cout << asset << " Best Returns(" << term << "): " << best << std::endl;
-                std::cout << asset << " Worst Returns(" << term << "): " << worst << std::endl;
-                std::cout << asset << " Average Returns(" << term << "): " << total / count << std::endl;
-            };
-
-            auto compute_multiple = [&](std::string_view asset) {
-                for (size_t i = 1; i <= 20; ++i) {
+                for (size_t i = min; i <= max; ++i) {
                     compute(i, asset);
                 }
+
+                average_graph.add_data(average_results);
+                best_graph.add_data(best_results);
+                worst_graph.add_data(worst_results);
+                worst5_graph.add_data(worst5_results);
+                chance_graph.add_data(chance_results);
             };
 
             compute_multiple("us_stocks");
@@ -1436,8 +1498,19 @@ int main(int argc, const char* argv[]) {
             compute_multiple("ch_stocks");
             compute_multiple("ch_bonds");
             compute_multiple("gold");
-            compute_multiple("cash");
+
+            average_graph.flush();
+            std::cout << "\n";
+            worst_graph.flush();
+            std::cout << "\n";
+            worst5_graph.flush();
+            std::cout << "\n";
+            chance_graph.flush();
+            std::cout << "\n";
+            best_graph.flush();
+            std::cout << "\n";
         } else if (command == "glidepath" || command == "reverse_glidepath") {
+            std::cout << "\n";
             swr::scenario scenario;
 
             scenario.years      = atoi(args[1].c_str());
@@ -1646,7 +1719,7 @@ int main(int argc, const char* argv[]) {
             Graph graph(true);
 
             for (size_t i = 0; i < portfolio.size(); ++i) {
-                graph.add_legend(asset_to_string(portfolio[i].asset));
+                graph.add_legend(asset_to_string_percent(portfolio[i].asset));
 
                 std::map<float, float> results;
                 float acc_value = 1;
