@@ -456,26 +456,100 @@ bool check_parameters(const httplib::Request& req, httplib::Response& res, std::
     return true;
 }
 
+bool prepare_exchange_rates(swr::scenario & scenario, const std::string& currency) {
+    auto exchange_data = swr::load_exchange("usd_chf");
+    auto inv_exchange_data = swr::load_exchange_inv("usd_chf");
+
+    if (exchange_data.empty() || inv_exchange_data.empty()) {
+        return false;
+    }
+
+    const size_t N = scenario.portfolio.size();
+
+    scenario.exchange_rates.resize(N);
+    scenario.exchange_set.resize(N);
+
+    for (size_t i = 0; i < N; ++i) {
+        auto& asset = scenario.portfolio[i].asset;
+
+        if (currency == "usd") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = inv_exchange_data;
+            } else {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = scenario.values[i]; // Must copy from values to keep full range
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1.0f;
+                }
+            }
+        } else if (currency == "chf") {
+            if (asset == "ch_stocks" || asset == "ch_bonds") {
+                scenario.exchange_set[i]   = false;
+                scenario.exchange_rates[i] = scenario.values[i]; // Must copy from values to keep full range
+                // We set everything to one
+                for (auto& v : scenario.exchange_rates[i]) {
+                    v.value = 1.0f;
+                }
+            } else {
+                scenario.exchange_set[i]   = true;
+                scenario.exchange_rates[i] = exchange_data;
+            }
+        }
+    }
+
+    return true;
+}
+
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(req, res, {"portfolio", "inflation", "years", "wr", "start", "end"})) {
+    if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
+    }
+
+    if (!req.has_param("portfolio")) {
+        if (!check_parameters(req, res, {"p_us_stocks", "p_us_bonds", "p_gold", "p_cash", "p_ex_us_stocks"})) {
+            return;
+        }
     }
 
     auto start = std::chrono::high_resolution_clock::now();
 
     swr::scenario scenario;
 
+    // Let the simulation find the period if necessary
+    scenario.strict_validation = false;
+
     // Don't run for too long
     scenario.timeout_msecs = 200;
 
-    // Parse the parameters
-    auto portfolio_base = req.get_param_value("portfolio");
-    scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     auto inflation      = req.get_param_value("inflation");
+    if (req.has_param("inflation2")) {
+        inflation = req.get_param_value("inflation2");
+    }
+
+    // Parse the parameters
     scenario.wr         = atof(req.get_param_value("wr").c_str());
     scenario.years      = atoi(req.get_param_value("years").c_str());
     scenario.start_year = atoi(req.get_param_value("start").c_str());
     scenario.end_year   = atoi(req.get_param_value("end").c_str());
+
+    // Parse the portfolio
+    std::string portfolio_base;
+    if (req.has_param("portfolio")) {
+        portfolio_base = req.get_param_value("portfolio");
+        scenario.portfolio  = swr::parse_portfolio(portfolio_base);
+    } else {
+        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
+                                     req.get_param_value("p_us_stocks"),
+                                     req.get_param_value("p_us_bonds"),
+                                     req.get_param_value("p_gold"),
+                                     req.get_param_value("p_cash"),
+                                     req.get_param_value("p_ex_us_stocks"),
+                                     req.get_param_value("p_ch_stocks"),
+                                     req.get_param_value("p_ch_bonds"));
+        scenario.portfolio = swr::parse_portfolio(portfolio_base);
+    }
 
     // Parse the optional parameters
 
@@ -488,6 +562,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
             scenario.rebalance = swr::Rebalancing::MONTHLY;
         } else if (param == "yearly") {
             scenario.rebalance = swr::Rebalancing::YEARLY;
+        } else if (param == "threshold") {
+            scenario.rebalance = swr::Rebalancing::THRESHOLD;
         } else {
             scenario.rebalance = swr::Rebalancing::NONE;
         }
@@ -495,19 +571,108 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.rebalance = swr::Rebalancing::NONE;
     }
 
-    std::cout
-        << "DEBUG: Request port=" << portfolio_base
-        << " inf=" << inflation
-        << " wr=" << scenario.wr
-        << " years=" << scenario.years
-        << " rebalance=" << scenario.rebalance
-        << " start_year=" << scenario.start_year
-        << " end_year=" << scenario.end_year
-        << std::endl;
+    if (req.has_param("rebalance_threshold")) {
+        scenario.threshold = atof(req.get_param_value("rebalance_threshold").c_str()) / 100.0f;
+    } else {
+        scenario.threshold = 0.01;
+    }
 
-    // For now cannot be configured
-    scenario.withdraw_frequency = 12;
-    scenario.threshold = 0.0f;
+    if (req.has_param("initial")) {
+        scenario.initial_value = atof(req.get_param_value("initial").c_str());
+    } else {
+        scenario.initial_value = 1000.0f;
+    }
+
+    if (req.has_param("fees")) {
+        scenario.fees = atof(req.get_param_value("fees").c_str()) / 100.0f;
+    } else {
+        scenario.fees = 0.001; // 0.1% fees
+    }
+
+    if (req.has_param("final_threshold")) {
+        scenario.final_threshold = atof(req.get_param_value("final_threshold").c_str()) / 100.0f;
+    } else {
+        scenario.final_threshold = 0.0f; // 0.1% fees
+    }
+
+    if (req.has_param("final_inflation")) {
+        scenario.final_inflation = req.get_param_value("final_inflation") == "true";
+    } else {
+        scenario.final_inflation = true;
+    }
+
+    if (req.has_param("social_security")) {
+        scenario.social_security = req.get_param_value("social_security") == "true";
+    } else {
+        scenario.social_security = false;
+    }
+
+    if (req.has_param("social_delay")) {
+        scenario.social_delay = atof(req.get_param_value("social_delay").c_str());
+    } else {
+        scenario.social_delay = 0;
+    }
+
+    if (req.has_param("social_coverage")) {
+        scenario.social_coverage = atof(req.get_param_value("social_coverage").c_str()) / 100.0f;
+    } else {
+        scenario.social_coverage = 0;
+    }
+
+    if (req.has_param("withdraw_frequency")) {
+        scenario.withdraw_frequency = atoi(req.get_param_value("withdraw_frequency").c_str());
+    } else {
+        scenario.withdraw_frequency = 12;
+    }
+
+    if (req.has_param("withdraw_minimum")) {
+        scenario.minimum = atof(req.get_param_value("withdraw_minimum").c_str()) / 100.0f;
+    } else {
+        scenario.minimum = 0.03;
+    }
+
+    if (req.has_param("withdraw_method")) {
+        scenario.method = req.get_param_value("withdraw_method") == "current" ? swr::Method::CURRENT : swr::Method::STANDARD;
+    } else {
+        scenario.method = swr::Method::STANDARD;
+    }
+
+    if (req.has_param("initial_cash")) {
+        scenario.initial_cash = atof(req.get_param_value("initial_cash").c_str());
+    } else {
+        scenario.initial_cash = 0.0f;
+    }
+
+    if (req.has_param("cash_method")) {
+        scenario.cash_simple = req.get_param_value("cash_method") == "smart" ? false : true;
+    } else {
+        scenario.cash_simple = true;
+    }
+
+    if (req.has_param("gp")) {
+        scenario.glidepath = req.get_param_value("gp") == "true";
+    } else {
+        scenario.glidepath = false;
+    }
+
+    if (req.has_param("gp_pass")) {
+        scenario.gp_pass = atof(req.get_param_value("gp_pass").c_str());
+    } else {
+        scenario.gp_pass = 0.0f;
+    }
+
+    if (req.has_param("gp_goal")) {
+        scenario.gp_goal = atof(req.get_param_value("gp_goal").c_str());
+    } else {
+        scenario.gp_goal = 0.0f;
+    }
+
+    std::string currency = "usd";
+    if (req.has_param("currency")) {
+        currency = req.get_param_value("currency") == "chf" ? "chf" : "usd";
+    }
+
+    std::cout << "DEBUG: Request " << scenario << std::endl;
 
     swr::normalize_portfolio(scenario.portfolio);
 
@@ -515,16 +680,28 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
     if (scenario.values.empty()) {
-        res.set_content(std::string("Error: Invalid portfolio: ") + portfolio_base, "text/plain");
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid portfolio\", \"error\": true}}", "text/json");
         return;
     }
 
     if (scenario.inflation_data.empty()) {
-        res.set_content("Error: Invalid inflation", "text/plain");
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid inflation\", \"error\": true}}", "text/json");
+        return;
+    }
+
+    if (!prepare_exchange_rates(scenario, currency)) {
+        res.set_content("{\"results\": {\"message\":\"Error: Invalid exchange data\", \"error\": true}}", "text/json");
         return;
     }
 
     auto results = simulation(scenario);
+
+    std::cout
+        << "DEBUG: Response"
+        << " error=" << results.error
+        << " message=" << results.message
+        << " success_rate=" << results.success_rate
+        << std::endl;
 
     std::stringstream ss;
 
@@ -731,11 +908,19 @@ int main(int argc, const char* argv[]) {
                       << "               Start: " << scenario.start_year << "\n"
                       << "                 End: " << scenario.end_year << "\n"
                       << "                 TER: " << 100.0f * scenario.fees << "%\n"
+                      << "           Inflation: " << inflation << "\n"
                       << "           Portfolio: \n";
 
             for (auto & position : scenario.portfolio) {
                 std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
             }
+
+            if (!prepare_exchange_rates(scenario, "usd")) {
+                std::cout << "Error with exchange rates" << std::endl;
+                return 1;
+            }
+
+            scenario.strict_validation = false;
 
             auto printer = [scenario](const std::string& message, const auto & results) {
                 std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
@@ -762,6 +947,7 @@ int main(int argc, const char* argv[]) {
             auto start = std::chrono::high_resolution_clock::now();
 
             scenario.withdraw_frequency = 12;
+            std::cout << scenario << std::endl;
             auto yearly_results = swr::simulation(scenario);
 
             if (yearly_results.message.size()) {
@@ -1390,12 +1576,14 @@ int main(int argc, const char* argv[]) {
                 failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
             }
         } else if (command == "data_graph") {
-            if (args.size() < 2) {
+            if (args.size() < 4) {
                 std::cout << "Not enough arguments for data_graph" << std::endl;
                 return 1;
             }
 
-            auto portfolio  = swr::parse_portfolio(args[1]);
+            size_t start_year = atoi(args[1].c_str());
+            size_t end_year   = atoi(args[2].c_str());
+            auto portfolio  = swr::parse_portfolio(args[3]);
             auto values     = swr::load_values(portfolio);
 
             Graph graph(true);
@@ -1404,13 +1592,18 @@ int main(int argc, const char* argv[]) {
                 graph.add_legend(asset_to_string(portfolio[i].asset));
 
                 std::map<float, float> results;
-                float value = 1;
+                float acc_value = 1;
 
-                for (size_t j = 0; j < values[i].size(); ++j) {
-                    if (values[i][j].month == 12) {
-                        results[values[i][j].year] = value;
+                for (auto& value : values[i]) {
+                    if (value.year >= start_year) {
+                        if (value.month == 12) {
+                            results[value.year] = acc_value;
+                        }
+                        acc_value *= value.value;
                     }
-                    value *= values[i][j].value;
+                    if (value.year > end_year) {
+                        break;
+                    }
                 }
 
                 graph.add_data(results);
@@ -1473,16 +1666,16 @@ int main(int argc, const char* argv[]) {
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");
 
-                    scenario.exchanges.resize(scenario.values.size());
+                    scenario.exchange_rates.resize(scenario.values.size());
 
                     for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-                        scenario.exchanges[i] = exchange_data;
+                        scenario.exchange_rates[i] = exchange_data;
                         if (scenario.portfolio[i].asset == "us_stocks") {
-                            scenario.exchanges[i] = exchange_data;
+                            scenario.exchange_rates[i] = exchange_data;
                         } else {
-                            scenario.exchanges[i] = exchange_data;
+                            scenario.exchange_rates[i] = exchange_data;
 
-                            for (auto& v : scenario.exchanges[i]) {
+                            for (auto& v : scenario.exchange_rates[i]) {
                                 v.value = 1;
                             }
                         }
@@ -1799,7 +1992,7 @@ int main(int argc, const char* argv[]) {
             }
 
             if (args.size() > 11) {
-                scenario.minimum = atoi(args[11].c_str());
+                scenario.minimum = atoi(args[11].c_str()) / 100.0f;
             }
 
             if (args.size() > 12 && args[12] == "standard") {
@@ -2095,7 +2288,7 @@ int main(int argc, const char* argv[]) {
 
                 std::cout << "\n";
 
-                const float withdrawal = (wr / 100.0f) * swr::initial_value;
+                const float withdrawal = (wr / 100.0f) * scenario.initial_value;
 
                 std::array<std::vector<swr::results>, 61> all_results;
                 std::array<std::vector<swr::results>, 61> all_compare_results;
@@ -2108,7 +2301,7 @@ int main(int argc, const char* argv[]) {
                                 auto my_scenario = scenario;
 
                                 my_scenario.wr           = wr;
-                                my_scenario.initial_cash = m * ((swr::initial_value * (my_scenario.wr / 100.0f)) / 12);
+                                my_scenario.initial_cash = m * ((scenario.initial_value * (my_scenario.wr / 100.0f)) / 12);
 
                                 for (size_t i = 0; i <= 100; i += portfolio_add) {
                                     my_scenario.portfolio[0].allocation = float(i);
@@ -2118,7 +2311,7 @@ int main(int argc, const char* argv[]) {
                                 }
 
                                 if (compare) {
-                                    float total              = swr::initial_value + m * (withdrawal / 12.0f);
+                                    float total              = scenario.initial_value + m * (withdrawal / 12.0f);
                                     my_scenario.wr           = 100.0f * (withdrawal / total);
                                     my_scenario.initial_cash = 0;
 
@@ -2165,7 +2358,7 @@ int main(int argc, const char* argv[]) {
                 std::cout << "\n";
 
                 for (size_t m = 0; m <= 60; ++m) {
-                    scenario.initial_cash = m * ((swr::initial_value * (scenario.wr / 100.0f)) / 12);
+                    scenario.initial_cash = m * ((scenario.initial_value * (scenario.wr / 100.0f)) / 12);
                     auto results = swr::simulation(scenario);
                     std::cout << m << ';' << results.success_rate;
                     std::cout << "\n";

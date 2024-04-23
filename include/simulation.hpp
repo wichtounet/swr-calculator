@@ -8,8 +8,6 @@
 
 namespace swr {
 
-constexpr float initial_value = 1000.0f;
-
 enum class Rebalancing : uint64_t {
     NONE,
     MONTHLY,
@@ -24,23 +22,26 @@ enum class Method : uint64_t {
 
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
+std::ostream & operator<<(std::ostream& out, const Method & method);
 
 struct scenario {
-    std::vector<swr::allocation>        portfolio;
-    std::vector<swr::data>              inflation_data;
-    std::vector<std::vector<swr::data>> values;
-    std::vector<std::vector<swr::data>> exchanges;
+    std::vector<swr::allocation> portfolio;
+    data_vector                  inflation_data;
+    std::vector<data_vector>     values;
+    std::vector<bool>            exchange_set;
+    std::vector<data_vector>     exchange_rates;
 
     size_t      years;
     float       wr;
     size_t      start_year;
     size_t      end_year;
+    float       initial_value      = 1000.0f;
     size_t      withdraw_frequency = 1;
     Rebalancing rebalance          = Rebalancing::NONE;
     float       threshold          = 0.0f;
-    float       fees               = 0.001f; // TER 1% = 0.001
+    float       fees               = 0.001f; // TER 0.1% = 0.001
     Method      method             = Method::STANDARD;
-    float       minimum            = 3; // Minimum of 3% * initial
+    float       minimum            = 0.03f; // Minimum of 3% * initial
 
     // By default, simulations can run for ever but the server will set that lower
     size_t timeout_msecs = 0;
@@ -65,6 +66,8 @@ struct scenario {
     size_t social_delay    = 0;
     float  social_coverage = 0.0f;
 
+    bool strict_validation = true;
+
     // Temporary values
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
@@ -83,6 +86,8 @@ struct scenario {
         }
     }
 };
+
+std::ostream & operator<<(std::ostream& out, const scenario & scenario);
 
 struct results {
     size_t successes = 0;
