@@ -521,7 +521,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.strict_validation = false;
 
     // Don't run for too long
-    scenario.timeout_msecs = 200;
+    scenario.timeout_msecs = 900000000000000;
 
     auto inflation      = req.get_param_value("inflation");
     if (req.has_param("inflation2")) {
@@ -540,15 +540,16 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         portfolio_base = req.get_param_value("portfolio");
         scenario.portfolio  = swr::parse_portfolio(portfolio_base);
     } else {
-        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
-                                     req.get_param_value("p_us_stocks"),
-                                     req.get_param_value("p_us_bonds"),
-                                     req.get_param_value("p_gold"),
-                                     req.get_param_value("p_cash"),
-                                     req.get_param_value("p_ex_us_stocks"),
-                                     req.get_param_value("p_ch_stocks"),
-                                     req.get_param_value("p_ch_bonds"));
-        scenario.portfolio = swr::parse_portfolio(portfolio_base);
+        // ******* Comment out for now owing to Mac 2b vs c++23
+        //portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
+        //                             req.get_param_value("p_us_stocks"),
+        //                             req.get_param_value("p_us_bonds"),
+        //                             req.get_param_value("p_gold"),
+        //                             req.get_param_value("p_cash"),
+        //                             req.get_param_value("p_ex_us_stocks"),
+        //                             req.get_param_value("p_ch_stocks"),
+        //                             req.get_param_value("p_ch_bonds"));
+        //scenario.portfolio = swr::parse_portfolio(portfolio_base);
     }
 
     // Parse the optional parameters
@@ -743,7 +744,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     swr::scenario scenario;
 
     // Don't run for too long
-    scenario.timeout_msecs = 200;
+    scenario.timeout_msecs = 900000000000000;
 
     // Parse the parameters
     scenario.wr       = atof(req.get_param_value("wr").c_str());

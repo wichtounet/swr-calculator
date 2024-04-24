@@ -416,7 +416,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
         }
 
         if (scenario.gp_pass == 0.0f) {
-            res.message = std::format("Invalid pass ({}) for glidepath", scenario.gp_pass);
+            // ******* Comment out for now owing to Mac 2b vs c++23
+            res.message = "Invalid pass ({}) for glidepath"; //std::format("Invalid pass ({}) for glidepath", scenario.gp_pass);
             res.error = true;
             return res;
         }
@@ -479,7 +480,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
             const size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
             const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
-
+            
             // The amount of money withdrawn per year (STANDARD method)
             float withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
 
@@ -564,7 +565,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 step([&]() { return yearly_rebalance(months == total_months, scenario, current_values); });
 
                 // Record effective withdrawal rates
-
                 if (failure) {
                     auto eff_wr = withdrawn / starting_value;
 

@@ -3,3 +3,9 @@ debug
 release_debug
 .cache
 *.plist
+cpp-httplib/
+make-utils/
+.DS_Store
+.vscode/
+src/cpp_utils/
+
