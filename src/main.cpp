@@ -521,7 +521,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     scenario.strict_validation = false;
 
     // Don't run for too long
-    scenario.timeout_msecs = 900000000000000;
+    scenario.timeout_msecs = 200;
 
     auto inflation      = req.get_param_value("inflation");
     if (req.has_param("inflation2")) {
@@ -744,7 +744,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     swr::scenario scenario;
 
     // Don't run for too long
-    scenario.timeout_msecs = 900000000000000;
+    scenario.timeout_msecs = 200;
 
     // Parse the parameters
     scenario.wr       = atof(req.get_param_value("wr").c_str());

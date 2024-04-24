@@ -6,9 +6,9 @@ include make-utils/flags.mk
 include make-utils/cpp-utils.mk
 
 # Use C++23 ... use 2b on my mac
-$(eval $(call use_cpp2b))
+#$(eval $(call use_cpp2b))
 
-CXX_FLAGS += -pthread -isystem cpp-httplib
+CXX_FLAGS += -std=c++2b -pthread -isystem cpp-httplib
 
 $(eval $(call auto_folder_compile,src))
 $(eval $(call auto_add_executable,swr_calculator))
