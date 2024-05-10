@@ -1346,10 +1346,41 @@ int main(int argc, const char* argv[]) {
             size_t start_year = atoi(args[1].c_str());
             size_t end_year   = atoi(args[2].c_str());
 
-            auto portfolio = swr::parse_portfolio("ex_us_stocks:50;us_stocks:50;");
+            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;");
 
             auto values         = swr::load_values(portfolio);
-            auto inflation_data = swr::load_inflation(values, "us_inflation");
+            auto ch_inflation_data = swr::load_inflation(values, "ch_inflation");
+            auto us_inflation_data = swr::load_inflation(values, "us_inflation");
+
+            Graph yearly_inflation_graph(true, "Yearly Inflation");
+            Graph yearly_stocks_graph(true, "Yearly Stock Returns");
+
+            yearly_inflation_graph.xtitle_ = "Years";
+            yearly_stocks_graph.xtitle_ = "Years";
+
+            auto to_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
+                std::map<float, float> yearly_results;
+                for (auto & value : data) {
+                    if (value.year < start_year || value.year > end_year) {
+                        continue;
+                    }
+                    if (value.month == 1) {
+                        yearly_results[value.year] = 1.0f;
+                    }
+                    yearly_results[value.year] *= value.value;
+                    if (value.month == 12) {
+                        yearly_results[value.year] = 100.0f * (yearly_results[value.year] - 1.0f);
+                    }
+                }
+                graph.add_legend(title);
+                graph.add_data(yearly_results);
+            };
+
+            to_graph(yearly_inflation_graph, ch_inflation_data, "Inflation CH");
+            to_graph(yearly_inflation_graph, us_inflation_data, "Inflation US");
+
+            to_graph(yearly_stocks_graph, values[0], "CH Stocks");
+            to_graph(yearly_stocks_graph, values[1], "US Stocks");
 
             auto analyzer = [&](auto & v, const std::string & name) {
                 float average = 0.0f;
@@ -1391,9 +1422,16 @@ int main(int argc, const char* argv[]) {
                 std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
             };
 
-            analyzer(values[0], "Stocks");
-            analyzer(values[1], "Bonds");
-            analyzer(inflation_data, "Inflation");
+            analyzer(values[0], "CH Stocks");
+            analyzer(values[1], "US Stocks");
+            analyzer(values[2], "US Bonds");
+            analyzer(us_inflation_data, "US Inflation");
+            analyzer(ch_inflation_data, "CH Inflation");
+
+            yearly_inflation_graph.flush();
+            std::cout << "\n";
+            yearly_stocks_graph.flush();
+            std::cout << "\n";
         } else if (command == "term") {
             if (args.size() < 2) {
                 std::cout << "Not enough arguments for term" << std::endl;
