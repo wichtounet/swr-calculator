@@ -12,8 +12,9 @@ std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> 
     return out << "}";
 }
 
-std::vector<swr::allocation> swr::parse_portfolio(std::string portfolio_str) {
+std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_view) {
     std::vector<allocation> portfolio;
+    std::string portfolio_str(portfolio_view);
 
     size_t positions = std::ranges::count(portfolio_str, ';');
 

@@ -101,7 +101,7 @@ struct Graph {
 
     void flush() {
         if (enabled_ && !flushed_) {
-            std::cout << "[" << graph_ << " title=\"TODO\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
+            std::cout << "[" << graph_ << " title=\"" << title_ << "\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
 
             cpp_assert(data_.size(), "data cannot be empty");
 
@@ -151,6 +151,7 @@ struct Graph {
     const std::string                   graph_;
     const std::string                   yitle_;
     std::string                         xtitle_ = "Withdrawal Rate (%)";
+    std::string                         title_  = "TODO";
     std::vector<std::string>            legends_;
     std::vector<std::map<float, float>> data_;
     bool                                flushed_ = false;
@@ -1431,6 +1432,154 @@ int main(int argc, const char* argv[]) {
             yearly_inflation_graph.flush();
             std::cout << "\n";
             yearly_stocks_graph.flush();
+            std::cout << "\n";
+        } else if (command == "allocation") {
+            Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
+            g_us.title_ = "US Portfolio Allocation Annualized Returns";
+            g_us.xtitle_ = "Portfolio";
+
+            Graph g_ch(true, "Annualized Yearly Returns (%)", "bar-graph");
+            g_ch.title_ = "CH Portfolio Allocation Annualized Returns";
+            g_ch.xtitle_ = "Portfolio";
+
+            Graph gv_us(true, "Volatility", "bar-graph");
+            gv_us.title_ = "US Portfolio Volatility";
+            gv_us.xtitle_ = "Portfolio";
+
+            Graph gv_ch(true, "Volatility", "bar-graph");
+            gv_ch.title_ = "CH Portfolio Volatility";
+            gv_ch.xtitle_ = "Portfolio";
+
+            constexpr bool geometric = true;
+
+            auto analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
+                auto portfolio = swr::parse_portfolio(portfolio_view);
+                auto values         = swr::load_values(portfolio);
+
+                float ar_average = 0.0f;
+                float geo_average = 1.0f;
+                float temp = 1.0f;
+                size_t c = 0;
+
+                for(size_t i = 0; i < values[0].size(); ++i) {
+                    if (values[0][i].month == 1) {
+                        temp = 1.0f;
+                    }
+
+                    float compound = 0.0f;
+                    for(size_t p = 0; p < portfolio.size(); ++p) {
+                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+                    }
+                    temp *= compound;
+
+                    if (values[0][i].month == 12) {
+                        ar_average += temp - 1.0f;
+                        geo_average *= temp;
+                        ++c;
+                    }
+                }
+
+                std::map<float, float> average_returns;
+                if (geometric) {
+                    average_returns[1.0f] = 100.0f * (std::pow(geo_average, 1.0f / c) - 1.0f);
+                } else {
+                    average_returns[1.0f] = 100.0f * (ar_average / c);
+                }
+
+                g.add_legend(name);
+                g.add_data(average_returns);
+            };
+
+            auto v_analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
+                auto portfolio = swr::parse_portfolio(portfolio_view);
+                auto values         = swr::load_values(portfolio);
+
+                float mean = 0.0f;
+                float diff = 0.0f;
+
+                for (size_t i = 0; i < values[0].size(); ++i) {
+                    float compound = 0.0f;
+                    for (size_t p = 0; p < portfolio.size(); ++p) {
+                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+                    }
+                    mean += compound - 1.0f;
+                }
+
+                mean = mean / values[0].size();
+
+                for(size_t i = 0; i < values[0].size(); ++i) {
+                    float compound = 0.0f;
+                    for(size_t p = 0; p < portfolio.size(); ++p) {
+                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+                    }
+                    diff += (compound - 1.0f - mean) * (compound - 1.0f - mean);
+                }
+
+                std::map<float, float> volatility;
+                volatility[1.0f] = std::sqrt(100.0f * diff / values[0].size());
+
+                g.add_legend(name);
+                g.add_data(volatility);
+            };
+
+            analyzer(g_us, "100/0", "us_stocks:100;us_bonds:0;");
+            analyzer(g_us, "90/10", "us_stocks:90;us_bonds:10;");
+            analyzer(g_us, "80/20", "us_stocks:80;us_bonds:20;");
+            analyzer(g_us, "70/30", "us_stocks:70;us_bonds:30;");
+            analyzer(g_us, "60/40", "us_stocks:60;us_bonds:40;");
+            analyzer(g_us, "50/50", "us_stocks:50;us_bonds:50;");
+            analyzer(g_us, "40/60", "us_stocks:40;us_bonds:60;");
+            analyzer(g_us, "30/70", "us_stocks:30;us_bonds:70;");
+            analyzer(g_us, "20/80", "us_stocks:20;us_bonds:80;");
+            analyzer(g_us, "10/90", "us_stocks:10;us_bonds:90;");
+            analyzer(g_us, "0/100", "us_stocks:0;us_bonds:100;");
+
+            analyzer(g_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
+            analyzer(g_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
+            analyzer(g_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
+            analyzer(g_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
+            analyzer(g_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
+            analyzer(g_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
+            analyzer(g_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
+            analyzer(g_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
+            analyzer(g_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
+            analyzer(g_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
+            analyzer(g_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
+
+            v_analyzer(gv_us, "100/0", "us_stocks:100;us_bonds:0;");
+            v_analyzer(gv_us, "90/10", "us_stocks:90;us_bonds:10;");
+            v_analyzer(gv_us, "80/20", "us_stocks:80;us_bonds:20;");
+            v_analyzer(gv_us, "70/30", "us_stocks:70;us_bonds:30;");
+            v_analyzer(gv_us, "60/40", "us_stocks:60;us_bonds:40;");
+            v_analyzer(gv_us, "50/50", "us_stocks:50;us_bonds:50;");
+            v_analyzer(gv_us, "40/60", "us_stocks:40;us_bonds:60;");
+            v_analyzer(gv_us, "30/70", "us_stocks:30;us_bonds:70;");
+            v_analyzer(gv_us, "20/80", "us_stocks:20;us_bonds:80;");
+            v_analyzer(gv_us, "10/90", "us_stocks:10;us_bonds:90;");
+            v_analyzer(gv_us, "0/100", "us_stocks:0;us_bonds:100;");
+
+            v_analyzer(gv_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
+            v_analyzer(gv_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
+            v_analyzer(gv_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
+            v_analyzer(gv_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
+            v_analyzer(gv_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
+            v_analyzer(gv_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
+            v_analyzer(gv_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
+            v_analyzer(gv_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
+            v_analyzer(gv_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
+            v_analyzer(gv_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
+            v_analyzer(gv_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
+
+            g_us.flush();
+            std::cout << "\n";
+
+            g_ch.flush();
+            std::cout << "\n";
+
+            gv_us.flush();
+            std::cout << "\n";
+
+            gv_ch.flush();
             std::cout << "\n";
         } else if (command == "term") {
             if (args.size() < 2) {

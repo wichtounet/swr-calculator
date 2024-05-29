@@ -13,7 +13,7 @@ struct allocation {
     float allocation_;
 };
 
-std::vector<allocation> parse_portfolio(std::string portfolio_str);
+std::vector<allocation> parse_portfolio(std::string_view portfolio_str);
 void normalize_portfolio(std::vector<allocation> & portfolio);
 float total_allocation(std::vector<allocation> & portfolio);
 
