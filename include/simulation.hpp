@@ -17,7 +17,8 @@ enum class Rebalancing : uint64_t {
 
 enum class WithdrawalMethod : uint64_t {
     STANDARD, // Withdraw based on the initial portfolio
-    CURRENT   // Withdraw based on the current portfolio
+    CURRENT,  // Withdraw based on the current portfolio
+    VANGUARD  // Vanguard Dynamic Spending strategy
 };
 
 Rebalancing parse_rebalance(const std::string& str);
@@ -42,6 +43,9 @@ struct scenario {
     float            fees               = 0.001f; // TER 0.1% = 0.001
     WithdrawalMethod wmethod            = WithdrawalMethod::STANDARD;
     float            minimum            = 0.03f; // Minimum of 3% * initial
+
+    float vanguard_max_increase = 0.05f;
+    float vanguard_max_decrease = 0.02f;
 
     // By default, simulations can run for ever but the server will set that lower
     size_t timeout_msecs = 0;
@@ -71,6 +75,9 @@ struct scenario {
     // Temporary values
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
+
+    float vanguard_withdrawal = 0.0f;
+    float last_year_withdrawal = 0.0f;
 
     bool is_failure(bool end, float current_value) const {
         // If it's not the end, we simply need to not run out of money

@@ -191,6 +191,10 @@ template <size_t N>
 bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
     const bool end = months == total_months;
 
+    if (months == 1) {
+        scenario.last_year_withdrawal = 0.0f;
+    }
+
     if ((months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
@@ -205,9 +209,37 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
         if (scenario.wmethod == swr::WithdrawalMethod::STANDARD) {
             withdrawal_amount = withdrawal / (12.0f / periods);
         } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
-            float minimum_withdrawal = minimum / (12.0f / periods);
-
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
+
+            // Make sure, we don't go over the minimum
+            const float minimum_withdrawal = minimum / (12.0f / periods);
+            if (withdrawal_amount < minimum_withdrawal) {
+                withdrawal_amount = minimum_withdrawal;
+            }
+        } else if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD) {
+            // Compute the withdrawal for the year
+            if (months % 13 == 1) {
+                scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
+
+                scenario.vanguard_withdrawal = (total_value * (scenario.wr / 100.0f));
+
+                if (scenario.last_year_withdrawal == 0.0f) {
+                    scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
+                }
+
+                // Don't go over a given maximum decrease or increase
+                if (scenario.vanguard_withdrawal > (1.0f + scenario.vanguard_max_increase) * scenario.last_year_withdrawal) {
+                    scenario.vanguard_withdrawal = (1.0f + scenario.vanguard_max_increase) * scenario.last_year_withdrawal;
+                } else if (scenario.vanguard_withdrawal < (1.0f - scenario.vanguard_max_decrease) * scenario.last_year_withdrawal) {
+                    scenario.vanguard_withdrawal = (1.0f - scenario.vanguard_max_decrease) * scenario.last_year_withdrawal;
+                }
+            }
+
+            // The base amount to withdraw
+            withdrawal_amount = scenario.vanguard_withdrawal / (12.0f / periods);
+
+            // Make sure, we don't go over the minimum
+            const float minimum_withdrawal = minimum / (12.0f / periods);
             if (withdrawal_amount < minimum_withdrawal) {
                 withdrawal_amount = minimum_withdrawal;
             }
@@ -389,6 +421,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
             res.error = true;
             return res;
         }
+    }
+
+    if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD && scenario.withdraw_frequency != 1) {
+        res.message = "Vanguard dynamic spending is only implemented with monthly withdrawals";
+        res.error = true;
+        return res;
     }
 
     if (scenario.end_year - scenario.start_year < scenario.years) {
@@ -689,6 +727,8 @@ std::ostream & swr::operator<<(std::ostream& out, const WithdrawalMethod & wmeth
             return out << "standard";
         case WithdrawalMethod::CURRENT:
             return out << "current";
+        case WithdrawalMethod::VANGUARD:
+            return out << "vanguard";
     }
 
     return out << "Unknown withdrawal method";

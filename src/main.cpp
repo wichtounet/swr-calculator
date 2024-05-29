@@ -553,7 +553,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     std::string portfolio_base;
     if (req.has_param("portfolio")) {
         portfolio_base = req.get_param_value("portfolio");
-        scenario.portfolio  = swr::parse_portfolio(portfolio_base);
+        scenario.portfolio  = swr::parse_portfolio(portfolio_base, false);
     } else {
         portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
                                      req.get_param_value("p_us_stocks"),
@@ -563,7 +563,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
                                      req.get_param_value("p_ex_us_stocks"),
                                      req.get_param_value("p_ch_stocks"),
                                      req.get_param_value("p_ch_bonds"));
-        scenario.portfolio = swr::parse_portfolio(portfolio_base);
+        scenario.portfolio = swr::parse_portfolio(portfolio_base, false);
     }
 
     // Parse the optional parameters
@@ -815,13 +815,13 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.start_year         = 1871;
     scenario.end_year           = 2022;
 
-    auto portfolio_100   = swr::parse_portfolio("us_stocks:100;");
+    auto portfolio_100   = swr::parse_portfolio("us_stocks:100;", false);
     auto values_100      = swr::load_values(portfolio_100);
 
-    auto portfolio_60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;");
+    auto portfolio_60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
     auto values_60      = swr::load_values(portfolio_60);
 
-    auto portfolio_40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;");
+    auto portfolio_40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;", false);
     auto values40      = swr::load_values(portfolio_40);
 
     scenario.inflation_data = swr::load_inflation(values_100, "us_inflation");
@@ -902,7 +902,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[2].c_str());
             scenario.start_year = atoi(args[3].c_str());
             scenario.end_year   = atoi(args[4].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[5]);
+            scenario.portfolio  = swr::parse_portfolio(args[5], false);
             auto inflation      = args[6];
 
             if (args.size() > 7) {
@@ -996,7 +996,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
             auto inflation      = args[5];
 
             if (args.size() > 6) {
@@ -1062,7 +1062,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -1110,7 +1110,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[2].c_str());
             scenario.start_year = atoi(args[3].c_str());
             scenario.end_year   = atoi(args[4].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[5]);
+            scenario.portfolio  = swr::parse_portfolio(args[5], true);
             auto inflation      = args[6];
 
             if (args.size() > 7) {
@@ -1243,7 +1243,7 @@ int main(int argc, const char* argv[]) {
             size_t frequency   = atoi(args[4].c_str());
             size_t monthly_buy = atoi(args[5].c_str());
 
-            auto portfolio = swr::parse_portfolio("ch_stocks:100;");
+            auto portfolio = swr::parse_portfolio("ch_stocks:100;", false);
             auto values    = swr::load_values(portfolio);
 
             const auto months = years * 12;
@@ -1347,7 +1347,7 @@ int main(int argc, const char* argv[]) {
             size_t start_year = atoi(args[1].c_str());
             size_t end_year   = atoi(args[2].c_str());
 
-            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;");
+            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;", false);
 
             auto values         = swr::load_values(portfolio);
             auto ch_inflation_data = swr::load_inflation(values, "ch_inflation");
@@ -1453,7 +1453,7 @@ int main(int argc, const char* argv[]) {
             constexpr bool geometric = true;
 
             auto analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
-                auto portfolio = swr::parse_portfolio(portfolio_view);
+                auto portfolio = swr::parse_portfolio(portfolio_view, false);
                 auto values         = swr::load_values(portfolio);
 
                 float ar_average = 0.0f;
@@ -1491,7 +1491,7 @@ int main(int argc, const char* argv[]) {
             };
 
             auto v_analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
-                auto portfolio = swr::parse_portfolio(portfolio_view);
+                auto portfolio = swr::parse_portfolio(portfolio_view, false);
                 auto values         = swr::load_values(portfolio);
 
                 float mean = 0.0f;
@@ -1616,7 +1616,7 @@ int main(int argc, const char* argv[]) {
                 std::map<float, float> chance_results;
 
                 auto compute = [&](size_t term, std::string_view asset) {
-                    auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;");
+                    auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;", false);
                     auto values    = swr::load_values(portfolio);
 
                     auto start = values[0].begin();
@@ -1703,7 +1703,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -1861,7 +1861,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -1900,7 +1900,7 @@ int main(int argc, const char* argv[]) {
 
             size_t start_year = atoi(args[1].c_str());
             size_t end_year   = atoi(args[2].c_str());
-            auto portfolio  = swr::parse_portfolio(args[3]);
+            auto portfolio  = swr::parse_portfolio(args[3], false);
             auto values     = swr::load_values(portfolio);
 
             Graph graph(true);
@@ -1938,7 +1938,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -1974,11 +1974,26 @@ int main(int argc, const char* argv[]) {
                 scenario.final_inflation = args[13] == "true";
             }
 
+            if (args.size() > 14) {
+                if (args[14] == "fixed") {
+                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+                } else if (args[14] == "current") {
+                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+                } else if (args[14] == "vanguard") {
+                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+                } else {
+                    std::cout << "No support for method: " << args[14] << std::endl;
+                    return 1;
+                }
+            } else {
+                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+            }
+
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            if (args.size() > 14) {
-                std::string country = args[14];
+            if (args.size() > 15) {
+                std::string country = args[15];
 
                 if (country == "switzerland") {
                     auto exchange_data = swr::load_exchange("usd_chf");
@@ -2001,6 +2016,8 @@ int main(int argc, const char* argv[]) {
                     std::cout << "No support for country: " << country << std::endl;
                     return 1;
                 }
+            } else {
+                prepare_exchange_rates(scenario, "usd");
             }
 
             Graph g(graph);
@@ -2045,7 +2062,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -2116,7 +2133,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -2161,7 +2178,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -2222,7 +2239,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
@@ -2281,7 +2298,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
             scenario.fees       = 0.001; // TER = 0.1%
@@ -2372,7 +2389,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio    = swr::parse_portfolio(args[4]);
+            scenario.portfolio    = swr::parse_portfolio(args[4], false);
             auto inflation        = args[5];
 
             const float start_wr = 3.0f;
@@ -2417,7 +2434,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
             auto inflation      = args[5];
 
             const float start_wr = 3.0f;
@@ -2473,7 +2490,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
             float yield_adjust  = atof(args[7].c_str());
@@ -2538,7 +2555,7 @@ int main(int argc, const char* argv[]) {
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4]);
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 

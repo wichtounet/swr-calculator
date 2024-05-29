@@ -12,7 +12,7 @@ std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> 
     return out << "}";
 }
 
-std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_view) {
+std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_view, bool allow_zero) {
     std::vector<allocation> portfolio;
     std::string portfolio_str(portfolio_view);
 
@@ -28,7 +28,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
         alloc.asset = std::string(position.begin(), position.begin() + position.find(':'));
         alloc.allocation = atof(pos_alloc.c_str());
 
-        if (alloc.allocation > 0.0f) {
+        if (allow_zero || alloc.allocation > 0.0f) {
             portfolio.emplace_back(alloc);
         }
     }
