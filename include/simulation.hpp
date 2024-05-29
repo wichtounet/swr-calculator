@@ -15,14 +15,14 @@ enum class Rebalancing : uint64_t {
     THRESHOLD
 };
 
-enum class Method : uint64_t {
+enum class WithdrawalMethod : uint64_t {
     STANDARD, // Withdraw based on the initial portfolio
     CURRENT   // Withdraw based on the current portfolio
 };
 
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
-std::ostream & operator<<(std::ostream& out, const Method & method);
+std::ostream & operator<<(std::ostream& out, const WithdrawalMethod & wmethod);
 
 struct scenario {
     std::vector<swr::allocation> portfolio;
@@ -31,17 +31,17 @@ struct scenario {
     std::vector<bool>            exchange_set;
     std::vector<data_vector>     exchange_rates;
 
-    size_t      years;
-    float       wr;
-    size_t      start_year;
-    size_t      end_year;
-    float       initial_value      = 1000.0f;
-    size_t      withdraw_frequency = 1;
-    Rebalancing rebalance          = Rebalancing::NONE;
-    float       threshold          = 0.0f;
-    float       fees               = 0.001f; // TER 0.1% = 0.001
-    Method      method             = Method::STANDARD;
-    float       minimum            = 0.03f; // Minimum of 3% * initial
+    size_t           years;
+    float            wr;
+    size_t           start_year;
+    size_t           end_year;
+    float            initial_value      = 1000.0f;
+    size_t           withdraw_frequency = 1;
+    Rebalancing      rebalance          = Rebalancing::NONE;
+    float            threshold          = 0.0f;
+    float            fees               = 0.001f; // TER 0.1% = 0.001
+    WithdrawalMethod wmethod            = WithdrawalMethod::STANDARD;
+    float            minimum            = 0.03f; // Minimum of 3% * initial
 
     // By default, simulations can run for ever but the server will set that lower
     size_t timeout_msecs = 0;

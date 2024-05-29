@@ -647,9 +647,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     if (req.has_param("withdraw_method")) {
-        scenario.method = req.get_param_value("withdraw_method") == "current" ? swr::Method::CURRENT : swr::Method::STANDARD;
+        scenario.wmethod = req.get_param_value("withdraw_method") == "current" ? swr::WithdrawalMethod::CURRENT : swr::WithdrawalMethod::STANDARD;
     } else {
-        scenario.method = swr::Method::STANDARD;
+        scenario.wmethod = swr::WithdrawalMethod::STANDARD;
     }
 
     if (req.has_param("initial_cash")) {
@@ -2277,7 +2277,7 @@ int main(int argc, const char* argv[]) {
 
             swr::scenario scenario;
 
-            scenario.method     = swr::Method::CURRENT;
+            scenario.wmethod     = swr::WithdrawalMethod::CURRENT;
             scenario.years      = atoi(args[1].c_str());
             scenario.start_year = atoi(args[2].c_str());
             scenario.end_year   = atoi(args[3].c_str());
@@ -2313,7 +2313,7 @@ int main(int argc, const char* argv[]) {
             }
 
             if (args.size() > 12 && args[12] == "standard") {
-                scenario.method = swr::Method::STANDARD;
+                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
             }
 
             scenario.values         = swr::load_values(scenario.portfolio);

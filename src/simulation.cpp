@@ -202,9 +202,9 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
         float withdrawal_amount = 0;
 
         // Compute the withdrawal amount based on the withdrawal strategy
-        if (scenario.method == swr::Method::STANDARD) {
+        if (scenario.wmethod == swr::WithdrawalMethod::STANDARD) {
             withdrawal_amount = withdrawal / (12.0f / periods);
-        } else if (scenario.method == swr::Method::CURRENT) {
+        } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
             float minimum_withdrawal = minimum / (12.0f / periods);
 
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
@@ -384,7 +384,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             return res;
         }
 
-        if (scenario.method != swr::Method::STANDARD) {
+        if (scenario.wmethod != swr::WithdrawalMethod::STANDARD) {
             res.message = "Social security is only implemented for standard withdrawal method";
             res.error = true;
             return res;
@@ -683,15 +683,15 @@ std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance)
     return out << "Unknown rebalancing";
 }
 
-std::ostream & swr::operator<<(std::ostream& out, const Method & method){
-    switch (method) {
-        case Method::STANDARD:
+std::ostream & swr::operator<<(std::ostream& out, const WithdrawalMethod & wmethod){
+    switch (wmethod) {
+        case WithdrawalMethod::STANDARD:
             return out << "standard";
-        case Method::CURRENT:
+        case WithdrawalMethod::CURRENT:
             return out << "current";
     }
 
-    return out << "Unknown method";
+    return out << "Unknown withdrawal method";
 }
 
 swr::results swr::simulation(scenario & scenario) {
@@ -737,7 +737,7 @@ std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
         << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
         << " init=" << scenario.initial_value
         << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
-        << " withdraw={" << scenario.withdraw_frequency << "," << scenario.method << "," << scenario.minimum << "}"
+        << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.minimum << "}"
         << " fees=" << scenario.fees
         << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
