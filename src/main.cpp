@@ -1979,8 +1979,10 @@ int main(int argc, const char* argv[]) {
                     scenario.wmethod = swr::WithdrawalMethod::STANDARD;
                 } else if (args[14] == "current") {
                     scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+                    scenario.minimum = 0.04f;
                 } else if (args[14] == "vanguard") {
                     scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+                    scenario.minimum = 0.04f;
                 } else {
                     std::cout << "No support for method: " << args[14] << std::endl;
                     return 1;

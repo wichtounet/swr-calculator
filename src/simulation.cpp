@@ -191,10 +191,6 @@ template <size_t N>
 bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
     const bool end = months == total_months;
 
-    if (months == 1) {
-        scenario.last_year_withdrawal = 0.0f;
-    }
-
     if ((months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
@@ -218,14 +214,13 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
             }
         } else if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD) {
             // Compute the withdrawal for the year
-            if (months % 13 == 1) {
+
+            if (months == 1) {
+                scenario.vanguard_withdrawal = total_value * (scenario.wr / 100.0f);
                 scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
-
-                scenario.vanguard_withdrawal = (total_value * (scenario.wr / 100.0f));
-
-                if (scenario.last_year_withdrawal == 0.0f) {
-                    scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
-                }
+            } else if ((months - 1) % 12 == 0) {
+                scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
+                scenario.vanguard_withdrawal  = total_value * (scenario.wr / 100.0f);
 
                 // Don't go over a given maximum decrease or increase
                 if (scenario.vanguard_withdrawal > (1.0f + scenario.vanguard_max_increase) * scenario.last_year_withdrawal) {
