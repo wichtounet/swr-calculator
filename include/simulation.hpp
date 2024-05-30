@@ -25,6 +25,13 @@ Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 std::ostream & operator<<(std::ostream& out, const WithdrawalMethod & wmethod);
 
+struct context {
+    float target_value_ = 0.0f;
+
+    float vanguard_withdrawal = 0.0f;
+    float last_year_withdrawal = 0.0f;
+};
+
 struct scenario {
     std::vector<swr::allocation> portfolio;
     data_vector                  inflation_data;
@@ -72,11 +79,7 @@ struct scenario {
 
     bool strict_validation = true;
 
-    // Temporary values
-    // TODO: Should maybe be moved later into a context class
-    float target_value_ = 0.0f;
-
-    bool is_failure(bool end, float current_value) const {
+    bool is_failure(context context, bool end, float current_value) const {
         // If it's not the end, we simply need to not run out of money
         if (!end) {
             return current_value <= 0.0f;
@@ -84,16 +87,11 @@ struct scenario {
 
         // If it's the end, we need to respect the threshold
         if (final_inflation) {
-            return current_value <= final_threshold * target_value_;
+            return current_value <= final_threshold * context.target_value_;
         } else {
             return current_value <= final_threshold * initial_value;
         }
     }
-};
-
-struct context {
-    float vanguard_withdrawal = 0.0f;
-    float last_year_withdrawal = 0.0f;
 };
 
 std::ostream & operator<<(std::ostream& out, const scenario & scenario);
