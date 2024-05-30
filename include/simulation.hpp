@@ -30,6 +30,21 @@ struct context {
 
     float vanguard_withdrawal = 0.0f;
     float last_year_withdrawal = 0.0f;
+
+    float cash = 0.0f;
+    float minimum = 0.0f;
+
+    float year_start_value = 0.0f;
+    float year_withdrawn = 0.0f;
+
+    float withdrawal = 0.0f;
+
+    size_t months = 0;
+    size_t total_months = 0;
+
+    bool end() const {
+        return months == total_months;
+    }
 };
 
 struct scenario {
@@ -79,9 +94,9 @@ struct scenario {
 
     bool strict_validation = true;
 
-    bool is_failure(context context, bool end, float current_value) const {
+    bool is_failure(const context & context, float current_value) const {
         // If it's not the end, we simply need to not run out of money
-        if (!end) {
+        if (!context.end()) {
             return current_value <= 0.0f;
         }
 

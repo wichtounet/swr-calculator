@@ -35,7 +35,7 @@ auto current_value(const std::array<float, N>& current_values) {
 }
 
 template <size_t N>
-bool glidepath(bool end, swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool glidepath(swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
     if (scenario.glidepath) {
         // Check if we have already reached the target
         if (scenario.portfolio[0].allocation_ == scenario.gp_goal) {
@@ -65,7 +65,7 @@ bool glidepath(bool end, swr::scenario & scenario, swr::context & context, std::
             const auto total_value = current_value(current_values);
 
             // Fees can cause failure
-            if (scenario.is_failure(context, end, total_value)) {
+            if (scenario.is_failure(context, total_value)) {
                 return false;
             }
 
@@ -79,7 +79,7 @@ bool glidepath(bool end, swr::scenario & scenario, swr::context & context, std::
 }
 
 template <size_t N>
-bool monthly_rebalance(bool end, swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool monthly_rebalance(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
     // Nothing to rebalance if we have a single asset
     if constexpr (N == 1) {
         return true;
@@ -95,7 +95,7 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, swr::context & contex
         const auto total_value = current_value(current_values);
 
         // Fees can cause failure
-        if (scenario.is_failure(context, end, total_value)) {
+        if (scenario.is_failure(context, total_value)) {
             return false;
         }
 
@@ -128,7 +128,7 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, swr::context & contex
             const auto total_value = current_value(current_values);
 
             // Fees can cause failure
-            if (scenario.is_failure(context, end, total_value)) {
+            if (scenario.is_failure(context, total_value)) {
                 return false;
             }
 
@@ -142,7 +142,7 @@ bool monthly_rebalance(bool end, swr::scenario & scenario, swr::context & contex
 }
 
 template <size_t N>
-bool yearly_rebalance(bool end, swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool yearly_rebalance(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
     // Nothing to rebalance if we have a single asset
     if constexpr (N == 1) {
         return true;
@@ -158,7 +158,7 @@ bool yearly_rebalance(bool end, swr::scenario & scenario, swr::context & context
         const auto total_value = current_value(current_values);
 
         // Fees can cause failure
-        if (scenario.is_failure(context, end, total_value)) {
+        if (scenario.is_failure(context, total_value)) {
             return false;
         }
 
@@ -171,7 +171,7 @@ bool yearly_rebalance(bool end, swr::scenario & scenario, swr::context & context
 }
 
 template <size_t N>
-bool pay_fees(bool end, swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool pay_fees(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
     // Simulate TER
     if (scenario.fees > 0.0f) {
         for (size_t i = 0; i < N; ++i) {
@@ -179,7 +179,7 @@ bool pay_fees(bool end, swr::scenario & scenario, swr::context & context, std::a
         }
 
         // TER can cause failure
-        if (scenario.is_failure(context, end, current_value(current_values))) {
+        if (scenario.is_failure(context, current_value(current_values))) {
             return false;
         }
     }
@@ -188,37 +188,35 @@ bool pay_fees(bool end, swr::scenario & scenario, swr::context & context, std::a
 }
 
 template <size_t N>
-bool withdraw(size_t months, size_t total_months, const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
-    const bool end = months == total_months;
-
-    if ((months - 1) % scenario.withdraw_frequency == 0) {
+bool withdraw(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+    if ((context.months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
         auto periods = scenario.withdraw_frequency;
-        if ((months - 1) + scenario.withdraw_frequency > total_months) {
-            periods = total_months - (months - 1);
+        if ((context.months - 1) + scenario.withdraw_frequency > context.total_months) {
+            periods = context.total_months - (context.months - 1);
         }
 
         float withdrawal_amount = 0;
 
         // Compute the withdrawal amount based on the withdrawal strategy
         if (scenario.wmethod == swr::WithdrawalMethod::STANDARD) {
-            withdrawal_amount = withdrawal / (12.0f / periods);
+            withdrawal_amount = context.withdrawal / (12.0f / periods);
         } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
 
             // Make sure, we don't go over the minimum
-            const float minimum_withdrawal = minimum / (12.0f / periods);
+            const float minimum_withdrawal = context.minimum / (12.0f / periods);
             if (withdrawal_amount < minimum_withdrawal) {
                 withdrawal_amount = minimum_withdrawal;
             }
         } else if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD) {
             // Compute the withdrawal for the year
 
-            if (months == 1) {
+            if (context.months == 1) {
                 context.vanguard_withdrawal = total_value * (scenario.wr / 100.0f);
                 context.last_year_withdrawal = context.vanguard_withdrawal;
-            } else if ((months - 1) % 12 == 0) {
+            } else if ((context.months - 1) % 12 == 0) {
                 context.last_year_withdrawal = context.vanguard_withdrawal;
                 context.vanguard_withdrawal  = total_value * (scenario.wr / 100.0f);
 
@@ -234,14 +232,14 @@ bool withdraw(size_t months, size_t total_months, const swr::scenario & scenario
             withdrawal_amount = context.vanguard_withdrawal / (12.0f / periods);
 
             // Make sure, we don't go over the minimum
-            const float minimum_withdrawal = minimum / (12.0f / periods);
+            const float minimum_withdrawal = context.minimum / (12.0f / periods);
             if (withdrawal_amount < minimum_withdrawal) {
                 withdrawal_amount = minimum_withdrawal;
             }
         }
 
         if (scenario.social_security) {
-            if ((months / 12.0f) >= scenario.social_delay) {
+            if ((context.months / 12.0f) >= scenario.social_delay) {
                 withdrawal_amount -= (scenario.social_coverage * withdrawal_amount);
             }
         }
@@ -250,20 +248,20 @@ bool withdraw(size_t months, size_t total_months, const swr::scenario & scenario
             return true;
         }
 
-        auto eff_wr = withdrawal_amount / starting_value;
+        auto eff_wr = withdrawal_amount / context.year_start_value;
 
         // Strategies with cash
         if (scenario.cash_simple || ((eff_wr * 100.0f) >= (scenario.wr / 12.0f))) {
             // First, withdraw from cash if possible
-            if (cash > 0.0f) {
-                if (withdrawal_amount <= cash) {
-                    withdrawn += withdrawal_amount;
-                    cash -= withdrawal_amount;
+            if (context.cash > 0.0f) {
+                if (withdrawal_amount <= context.cash) {
+                    context.year_withdrawn += withdrawal_amount;
+                    context.cash -= withdrawal_amount;
                     withdrawal_amount = 0;
                 } else {
-                    withdrawn += cash;
-                    withdrawal_amount -= cash;
-                    cash = 0.0f;
+                    context.year_withdrawn += context.cash;
+                    withdrawal_amount -= context.cash;
+                    context.cash = 0.0f;
                 }
             }
         }
@@ -273,12 +271,12 @@ bool withdraw(size_t months, size_t total_months, const swr::scenario & scenario
         }
 
         // Check for failure after the withdrawal
-        if (scenario.is_failure(context, end, current_value(current_values))) {
-            withdrawn += total_value;
+        if (scenario.is_failure(context, current_value(current_values))) {
+            context.year_withdrawn += total_value;
             return false;
         }
 
-        withdrawn += withdrawal_amount;
+        context.year_withdrawn += withdrawal_amount;
     }
 
     return true;
@@ -489,8 +487,6 @@ swr::results swr_simulation(swr::scenario & scenario) {
         return res;
     }
 
-    const size_t total_months           = scenario.years * 12;
-
     // Prepare the starting points (for efficiency)
     std::array<swr::data_vector::const_iterator, N> start_returns;
     std::array<swr::data_vector::const_iterator, N> start_exchanges;
@@ -510,22 +506,24 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            const size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
-            const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
-
             swr::context context;
+            context.months = 1;
+            context.total_months = scenario.years * 12;
 
             // The amount of money withdrawn per year (STANDARD method)
-            float withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
+            context.withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
 
             // The minimum amount of money withdraw (CURRENT method)
-            float minimum = scenario.initial_value * scenario.minimum;
+            context.minimum = scenario.initial_value * scenario.minimum;
 
             // The amount of cash available
-            float cash = scenario.initial_cash;
+            context.cash = scenario.initial_cash;
 
             // Used for the target threshold
             context.target_value_ = scenario.initial_value;
+
+            const size_t end_year  = current_year + (current_month - 1 + context.total_months - 1) / 12;
+            const size_t end_month = 1 + ((current_month - 1) + (context.total_months - 1) % 12) % 12;
 
             // Reset the allocation for the context
             for (auto & asset : scenario.portfolio) {
@@ -543,25 +541,21 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             auto inflation = start_inflation++;
 
-            size_t months = 1;
             float total_withdrawn = 0.0f;
             bool failure = false;
 
             auto step = [&](auto result) {
                 if (!failure && !result()) {
                     failure = true;
-                    res.record_failure(months, current_month, current_year);
+                    res.record_failure(context.months, current_month, current_year);
                 }
             };
 
             for (size_t y = current_year; y <= end_year; ++y) {
-                const auto starting_value = current_value(current_values);
+                context.year_start_value = current_value(current_values);
+                context.year_withdrawn = 0.0f;
 
-                float withdrawn = 0.0f;
-
-                for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++months) {
-                    const bool end = months == total_months;
-
+                for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
                     // Adjust the portfolio with the returns and exchanges
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
@@ -572,36 +566,36 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     // Stock market losses can cause failure
-                    step([&]() { return !scenario.is_failure(context, end, current_value(current_values)); });
+                    step([&]() { return !scenario.is_failure(context, current_value(current_values)); });
 
                     // Glidepath
-                    step([&]() { return glidepath(end, scenario, context, current_values); });
+                    step([&]() { return glidepath(scenario, context, current_values); });
 
                     // Monthly Rebalance
-                    step([&]() { return monthly_rebalance(end, scenario, context, current_values); });
+                    step([&]() { return monthly_rebalance(scenario, context, current_values); });
 
                     // Simulate TER
-                    step([&]() { return pay_fees(end, scenario, context, current_values); });
+                    step([&]() { return pay_fees(scenario, context, current_values); });
 
                     // Adjust the withdrawals for inflation
-                    withdrawal *= inflation->value;
-                    minimum *= inflation->value;
+                    context.withdrawal *= inflation->value;
+                    context.minimum *= inflation->value;
                     context.target_value_ *= inflation->value;
                     ++inflation;
 
                     // Monthly withdrawal
-                    step([&]() { return withdraw(months, total_months, scenario, context, current_values, cash, withdrawn, minimum, withdrawal, starting_value); });
+                    step([&]() { return withdraw(scenario, context, current_values); });
                 }
 
-                total_withdrawn += withdrawn;
+                total_withdrawn += context.year_withdrawn;
 
                 // Yearly Rebalance and check for failure
-                step([&]() { return yearly_rebalance(months == total_months, scenario, context, current_values); });
+                step([&]() { return yearly_rebalance(scenario, context, current_values); });
 
                 // Record effective withdrawal rates
 
                 if (failure) {
-                    auto eff_wr = withdrawn / starting_value;
+                    auto eff_wr = context.year_withdrawn / context.year_start_value;
 
                     if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
                         res.lowest_eff_wr_start_year  = current_year;
