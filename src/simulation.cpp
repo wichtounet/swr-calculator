@@ -188,7 +188,7 @@ bool pay_fees(bool end, swr::scenario & scenario, std::array<float, N> & current
 }
 
 template <size_t N>
-bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
+bool withdraw(size_t months, size_t total_months, const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values, float & cash, float & withdrawn, float minimum, float withdrawal, float starting_value) {
     const bool end = months == total_months;
 
     if ((months - 1) % scenario.withdraw_frequency == 0) {
@@ -216,22 +216,22 @@ bool withdraw(size_t months, size_t total_months, swr::scenario & scenario, std:
             // Compute the withdrawal for the year
 
             if (months == 1) {
-                scenario.vanguard_withdrawal = total_value * (scenario.wr / 100.0f);
-                scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
+                context.vanguard_withdrawal = total_value * (scenario.wr / 100.0f);
+                context.last_year_withdrawal = context.vanguard_withdrawal;
             } else if ((months - 1) % 12 == 0) {
-                scenario.last_year_withdrawal = scenario.vanguard_withdrawal;
-                scenario.vanguard_withdrawal  = total_value * (scenario.wr / 100.0f);
+                context.last_year_withdrawal = context.vanguard_withdrawal;
+                context.vanguard_withdrawal  = total_value * (scenario.wr / 100.0f);
 
                 // Don't go over a given maximum decrease or increase
-                if (scenario.vanguard_withdrawal > (1.0f + scenario.vanguard_max_increase) * scenario.last_year_withdrawal) {
-                    scenario.vanguard_withdrawal = (1.0f + scenario.vanguard_max_increase) * scenario.last_year_withdrawal;
-                } else if (scenario.vanguard_withdrawal < (1.0f - scenario.vanguard_max_decrease) * scenario.last_year_withdrawal) {
-                    scenario.vanguard_withdrawal = (1.0f - scenario.vanguard_max_decrease) * scenario.last_year_withdrawal;
+                if (context.vanguard_withdrawal > (1.0f + scenario.vanguard_max_increase) * context.last_year_withdrawal) {
+                    context.vanguard_withdrawal = (1.0f + scenario.vanguard_max_increase) * context.last_year_withdrawal;
+                } else if (context.vanguard_withdrawal < (1.0f - scenario.vanguard_max_decrease) * context.last_year_withdrawal) {
+                    context.vanguard_withdrawal = (1.0f - scenario.vanguard_max_decrease) * context.last_year_withdrawal;
                 }
             }
 
             // The base amount to withdraw
-            withdrawal_amount = scenario.vanguard_withdrawal / (12.0f / periods);
+            withdrawal_amount = context.vanguard_withdrawal / (12.0f / periods);
 
             // Make sure, we don't go over the minimum
             const float minimum_withdrawal = minimum / (12.0f / periods);
@@ -513,6 +513,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
             const size_t end_year  = current_year + (current_month - 1 + total_months - 1) / 12;
             const size_t end_month = 1 + ((current_month - 1) + (total_months - 1) % 12) % 12;
 
+            swr::context context;
+
             // The amount of money withdrawn per year (STANDARD method)
             float withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
 
@@ -588,7 +590,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     ++inflation;
 
                     // Monthly withdrawal
-                    step([&]() { return withdraw(months, total_months, scenario, current_values, cash, withdrawn, minimum, withdrawal, starting_value); });
+                    step([&]() { return withdraw(months, total_months, scenario, context, current_values, cash, withdrawn, minimum, withdrawal, starting_value); });
                 }
 
                 total_withdrawn += withdrawn;

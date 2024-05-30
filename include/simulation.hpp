@@ -76,9 +76,6 @@ struct scenario {
     // TODO: Should maybe be moved later into a context class
     float target_value_ = 0.0f;
 
-    float vanguard_withdrawal = 0.0f;
-    float last_year_withdrawal = 0.0f;
-
     bool is_failure(bool end, float current_value) const {
         // If it's not the end, we simply need to not run out of money
         if (!end) {
@@ -92,6 +89,11 @@ struct scenario {
             return current_value <= final_threshold * initial_value;
         }
     }
+};
+
+struct context {
+    float vanguard_withdrawal = 0.0f;
+    float last_year_withdrawal = 0.0f;
 };
 
 std::ostream & operator<<(std::ostream& out, const scenario & scenario);
