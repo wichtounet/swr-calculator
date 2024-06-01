@@ -826,12 +826,11 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     scenario.inflation_data = swr::load_inflation(values_100, "us_inflation");
 
-    // Setup exchange rate
     scenario.portfolio  = portfolio_100;
     scenario.values     = values_100;
-    scenario.years      = 30;
     prepare_exchange_rates(scenario, "usd");
 
+    scenario.years      = 30;
     auto results_30_100 = simulation(scenario);
     scenario.years              = 40;
     auto results_40_100 = simulation(scenario);
@@ -840,6 +839,8 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     scenario.portfolio = portfolio_60;
     scenario.values    = values_60;
+    prepare_exchange_rates(scenario, "usd");
+
     scenario.years              = 30;
     auto results_30_60 = simulation(scenario);
     scenario.years              = 40;
@@ -849,6 +850,8 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     scenario.portfolio = portfolio_40;
     scenario.values    = values40;
+    prepare_exchange_rates(scenario, "usd");
+
     scenario.years              = 30;
     auto results_30_40 = simulation(scenario);
     scenario.years              = 40;
