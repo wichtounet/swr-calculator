@@ -828,11 +828,10 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     // Setup exchange rate
     scenario.portfolio  = portfolio_100;
+    scenario.values     = values_100;
+    scenario.years      = 30;
     prepare_exchange_rates(scenario, "usd");
 
-    scenario.portfolio  = portfolio_100;
-    scenario.values     = values_100;
-    scenario.years              = 30;
     auto results_30_100 = simulation(scenario);
     scenario.years              = 40;
     auto results_40_100 = simulation(scenario);
