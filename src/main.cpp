@@ -855,23 +855,58 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.years              = 50;
     auto results_50_40 = simulation(scenario);
 
+    bool error = false;
+    std::string message;
+    if (results_50_40.error) {
+        error = true;
+        message = results_50_40.message;
+    } else if (results_40_40.error) {
+        error = true;
+        message = results_40_40.message;
+    } else if (results_30_40.error) {
+        error = true;
+        message = results_30_40.message;
+    } else if (results_50_60.error) {
+        error = true;
+        message = results_50_60.message;
+    } else if (results_40_60.error) {
+        error = true;
+        message = results_40_60.message;
+    } else if (results_30_60.error) {
+        error = true;
+        message = results_30_60.message;
+    } else if (results_50_100.error) {
+        error = true;
+        message = results_50_100.message;
+    } else if (results_40_100.error) {
+        error = true;
+        message = results_40_100.message;
+    } else if (results_30_100.error) {
+        error = true;
+        message = results_30_100.message;
+    }
+
+    if (error) {
+        std::cout << "ERROR: Simulation error: " << message;
+    }
+
     std::stringstream ss;
 
     ss << "{ \"results\": {\n"
-       << "  \"message\": \"\",\n"
-       << "  \"error\": false,\n"
+       << "  \"message\": \"" << message << "\",\n"
+       << "  \"error\": " << (error ? "true" : "false") << ",\n"
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
        << "  \"success_rate_100\": " << results_30_100.success_rate << ",\n"
-       << "  \"success_rate_60\": "  << results_30_60.success_rate << ",\n"
-       << "  \"success_rate_40\": "  << results_30_40.success_rate << ",\n"
+       << "  \"success_rate_60\": " << results_30_60.success_rate << ",\n"
+       << "  \"success_rate_40\": " << results_30_40.success_rate << ",\n"
        << "  \"success_rate40_100\": " << results_40_100.success_rate << ",\n"
-       << "  \"success_rate40_60\": "  << results_40_60.success_rate << ",\n"
-       << "  \"success_rate40_40\": "  << results_40_40.success_rate << ",\n"
+       << "  \"success_rate40_60\": " << results_40_60.success_rate << ",\n"
+       << "  \"success_rate40_40\": " << results_40_40.success_rate << ",\n"
        << "  \"success_rate50_100\": " << results_50_100.success_rate << ",\n"
-       << "  \"success_rate50_60\": "  << results_50_60.success_rate << ",\n"
-       << "  \"success_rate50_40\": "  << results_50_40.success_rate << "\n"
+       << "  \"success_rate50_60\": " << results_50_60.success_rate << ",\n"
+       << "  \"success_rate50_40\": " << results_50_40.success_rate << "\n"
        << "}}";
 
     res.set_content(ss.str(), "text/json");
