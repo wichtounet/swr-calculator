@@ -826,6 +826,8 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     scenario.inflation_data = swr::load_inflation(values_100, "us_inflation");
 
+    // Setup exchange rate
+    scenario.portfolio  = portfolio_100;
     prepare_exchange_rates(scenario, "usd");
 
     scenario.portfolio  = portfolio_100;
@@ -887,7 +889,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     if (error) {
-        std::cout << "ERROR: Simulation error: " << message;
+        std::cout << "ERROR: Simulation error: " << message << std::endl;
     }
 
     std::stringstream ss;
