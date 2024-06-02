@@ -2015,7 +2015,7 @@ int main(int argc, const char* argv[]) {
                 scenario.final_inflation = args[13] == "true";
             }
 
-            if (args.size() > 14) {
+            if (args.size() > 7) {
                 if (args[14] == "fixed") {
                     scenario.wmethod = swr::WithdrawalMethod::STANDARD;
                 } else if (args[14] == "current") {
@@ -2109,19 +2109,37 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.fees = 0.001f;
             if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str()) / 100.0f;
+                if (args[7] == "fixed") {
+                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+                } else if (args[7] == "current") {
+                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+                    scenario.minimum = 0.04f;
+                } else if (args[7] == "vanguard") {
+                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+                    scenario.minimum = 0.04f;
+                } else {
+                    std::cout << "No support for method: " << args[7] << std::endl;
+                    return 1;
+                }
+            } else {
+                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
             }
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 5.0f;
+            if (args.size() > 8) {
+                scenario.fees = atof(args[8].c_str()) / 100.0f;
+            }
+
+            const float start_wr = 4.0f;
+            const float end_wr   = 6.0f;
             const float add_wr   = 0.1f;
 
-            const float portfolio_add = 25;
+            const float portfolio_add = 20;
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            prepare_exchange_rates(scenario, "usd");
 
             if (!graph) {
                 std::cout << "Portfolio";
@@ -2180,17 +2198,35 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.fees = 0.001f;
             if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str()) / 100.0f;
+                if (args[7] == "fixed") {
+                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+                } else if (args[7] == "current") {
+                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+                    scenario.minimum = 0.04f;
+                } else if (args[7] == "vanguard") {
+                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+                    scenario.minimum = 0.04f;
+                } else {
+                    std::cout << "No support for method: " << args[7] << std::endl;
+                    return 1;
+                }
+            } else {
+                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
             }
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 5.0f;
-            const float add_wr   = 0.25f;
+            if (args.size() > 8) {
+                scenario.fees = atof(args[8].c_str()) / 100.0f;
+            }
+
+            const float start_wr = 4.0f;
+            const float end_wr   = 6.0f;
+            const float add_wr   = 0.1f;
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            prepare_exchange_rates(scenario, "usd");
 
             if (!graph) {
                 std::cout << "Withdrawal Rate";
