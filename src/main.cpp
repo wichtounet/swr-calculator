@@ -344,12 +344,6 @@ void multiple_wr_tv_graph(Graph & graph, swr::scenario scenario, float start_wr,
     std::map<float, float> med_tv;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        max_tv[wr] = 0.0f;
-        avg_tv[wr] = 0.0f;
-        med_tv[wr] = 0.0f;
-    }
-
-    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
         scenario.wr = wr;
 
         auto results = swr::simulation(scenario);
@@ -388,6 +382,57 @@ void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr,
     csv_print("AVG", avg_tv);
     csv_print("MED", med_tv);
     csv_print("MAX", max_tv);
+}
+
+void multiple_wr_spending_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, float> max_spending;
+    std::map<float, float> min_spending;
+    std::map<float, float> avg_spending;
+    std::map<float, float> med_spending;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        scenario.wr = wr;
+
+        auto results = swr::simulation(scenario);
+
+        max_spending[wr] = results.spending_maximum;
+        min_spending[wr] = results.spending_minimum;
+        avg_spending[wr] = results.spending_average;
+        med_spending[wr] = results.spending_median;
+    }
+
+    graph.add_legend("MAX");
+    graph.add_data(max_spending);
+
+    graph.add_legend("MIN");
+    graph.add_data(min_spending);
+
+    graph.add_legend("AVG");
+    graph.add_data(avg_spending);
+
+    graph.add_legend("MED");
+    graph.add_data(med_spending);
+}
+
+void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::vector<float> min_spending;
+    std::vector<float> max_spending;
+    std::vector<float> avg_spending;
+    std::vector<float> med_spending;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
+        min_spending.push_back(monthly_results.spending_minimum);
+        max_spending.push_back(monthly_results.spending_maximum);
+        avg_spending.push_back(monthly_results.spending_average);
+        med_spending.push_back(monthly_results.spending_median);
+    }
+
+    csv_print("MIN", min_spending);
+    csv_print("AVG", avg_spending);
+    csv_print("MED", med_spending);
+    csv_print("MAX", max_spending);
 }
 
 void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal, std::ostream & out) {
@@ -2242,6 +2287,70 @@ int main(int argc, const char* argv[]) {
                 multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
             } else {
                 multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+            }
+        } else if (command == "trinity_spending_sheets" || command == "trinity_spending_graph") {
+            if (args.size() < 7) {
+                std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+                return 1;
+            }
+
+            const bool graph = command == "trinity_spending_graph";
+
+            Graph g(graph, "Value (USD)", "bar-graph");
+
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4], false);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+            if (args.size() > 7) {
+                if (args[7] == "fixed") {
+                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+                } else if (args[7] == "current") {
+                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+                    scenario.minimum = 0.04f;
+                } else if (args[7] == "vanguard") {
+                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+                    scenario.minimum = 0.04f;
+                } else {
+                    std::cout << "No support for method: " << args[7] << std::endl;
+                    return 1;
+                }
+            } else {
+                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+            }
+
+            if (args.size() > 8) {
+                scenario.fees = atof(args[8].c_str()) / 100.0f;
+            }
+
+            const float start_wr = 4.0f;
+            const float end_wr   = 6.0f;
+            const float add_wr   = 0.1f;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            prepare_exchange_rates(scenario, "usd");
+
+            if (!graph) {
+                std::cout << "Withdrawal Rate";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
+            }
+
+            swr::normalize_portfolio(scenario.portfolio);
+
+            if (graph) {
+                multiple_wr_spending_graph(g, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_spending_sheets(scenario, start_wr, end_wr, add_wr);
             }
         } else if (command == "social_sheets" || command == "social_graph") {
             if (args.size() < 11) {

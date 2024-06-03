@@ -501,6 +501,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
     // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
+    std::vector<float> spending;
     std::array<swr::data_vector::const_iterator, N> returns;
     std::array<swr::data_vector::const_iterator, N> exchanges;
 
@@ -628,6 +629,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             terminal_values.push_back(final_value);
 
+            if (!failure) {
+                spending.push_back(total_withdrawn);
+            }
+
             // Record periods
 
             if (!res.best_tv_year) {
@@ -677,6 +682,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
     res.compute_terminal_values(terminal_values);
+    res.compute_spending(spending, scenario.years);
 
     simulations += terminal_values.size();
 
@@ -754,6 +760,15 @@ void swr::results::compute_terminal_values(std::vector<float> & terminal_values)
     tv_minimum = terminal_values.front();
     tv_maximum = terminal_values.back();
     tv_average = std::accumulate(terminal_values.begin(), terminal_values.end(), 0.0f) / terminal_values.size();
+}
+
+void swr::results::compute_spending(std::vector<float> & spending, size_t years) {
+    std::ranges::sort(spending);
+
+    spending_median  = spending[spending.size() / 2 + 1] / years;
+    spending_minimum = spending.front() / years;
+    spending_maximum = spending.back() / years;
+    spending_average = (std::accumulate(spending.begin(), spending.end(), 0.0f) / spending.size()) / years;
 }
 
 size_t swr::simulations_ran() {
