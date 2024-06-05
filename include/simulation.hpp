@@ -36,6 +36,7 @@ struct context {
 
     float year_start_value = 0.0f;
     float year_withdrawn = 0.0f;
+    float last_withdrawal_amount = 0.0f;
 
     float withdrawal = 0.0f;
 
@@ -122,10 +123,14 @@ struct results {
     float tv_maximum = 0.0f;
     float tv_median  = 0.0f;
 
-    float spending_average = 0.0f;
-    float spending_minimum = 0.0f;
-    float spending_maximum = 0.0f;
-    float spending_median  = 0.0f;
+    float  spending_average             = 0.0f;
+    float  spending_minimum             = 0.0f;
+    float  spending_maximum             = 0.0f;
+    float  spending_median              = 0.0f;
+    size_t years_large_spending         = 0;
+    size_t years_small_spending         = 0;
+    size_t years_volatile_up_spending   = 0;
+    size_t years_volatile_down_spending = 0;
 
     size_t worst_duration       = 0;
     size_t worst_starting_month = 0;
@@ -154,7 +159,7 @@ struct results {
     bool error = false;
 
     void compute_terminal_values(std::vector<float> & terminal_values);
-    void compute_spending(std::vector<float> & terminal_values, size_t years);
+    void compute_spending(std::vector<std::vector<float>> & terminal_values, size_t years);
 
     void record_failure(size_t months, size_t current_month, size_t current_year) {
         if (!worst_duration || months < worst_duration) {

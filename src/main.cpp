@@ -414,6 +414,36 @@ void multiple_wr_spending_graph(Graph & graph, swr::scenario scenario, float sta
     graph.add_data(med_spending);
 }
 
+void multiple_wr_spending_trend_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, float> small_spending;
+    std::map<float, float> large_spending;
+    std::map<float, float> volatile_up_spending;
+    std::map<float, float> volatile_down_spending;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        scenario.wr = wr;
+
+        auto results = swr::simulation(scenario);
+
+        small_spending[wr] = 100.0f * (results.years_small_spending / float(results.successes * scenario.years));
+        large_spending[wr] = 100.0f * (results.years_large_spending / float(results.successes * scenario.years));
+        volatile_up_spending[wr] = 100.0f * (results.years_volatile_up_spending / float(results.successes * scenario.years));
+        volatile_down_spending[wr] = 100.0f * (results.years_volatile_down_spending / float(results.successes * scenario.years));
+    }
+
+    graph.add_legend("Small Spending Years");
+    graph.add_data(small_spending);
+
+    graph.add_legend("Large Spending Years");
+    graph.add_data(large_spending);
+
+    graph.add_legend("Volatile Up Years");
+    graph.add_data(volatile_up_spending);
+
+    graph.add_legend("Volatile Down Years");
+    graph.add_data(volatile_down_spending);
+}
+
 void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
     std::vector<float> min_spending;
     std::vector<float> max_spending;
@@ -2296,7 +2326,8 @@ int main(int argc, const char* argv[]) {
 
             const bool graph = command == "trinity_spending_graph";
 
-            Graph g(graph, "Value (USD)", "bar-graph");
+            Graph g1(graph, "Average Spending (USD)", "bar-graph");
+            Graph g2(graph, "Spending Trends Years", "bar-graph");
 
             swr::scenario scenario;
 
@@ -2348,7 +2379,13 @@ int main(int argc, const char* argv[]) {
             swr::normalize_portfolio(scenario.portfolio);
 
             if (graph) {
-                multiple_wr_spending_graph(g, scenario, start_wr, end_wr, add_wr);
+                multiple_wr_spending_graph(g1, scenario, start_wr, end_wr, add_wr);
+                multiple_wr_spending_trend_graph(g2, scenario, start_wr, end_wr, add_wr);
+
+                std::cout << "\n";
+                g1.flush();
+                std::cout << "\n";
+                g2.flush();
             } else {
                 multiple_wr_spending_sheets(scenario, start_wr, end_wr, add_wr);
             }

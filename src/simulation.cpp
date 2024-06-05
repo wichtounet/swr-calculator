@@ -244,6 +244,8 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
             }
         }
 
+        context.last_withdrawal_amount = withdrawal_amount;
+
         if (withdrawal_amount <= 0.0f) {
             return true;
         }
@@ -501,12 +503,14 @@ swr::results swr_simulation(swr::scenario & scenario) {
     // 3. Do the actual simulation
 
     std::vector<float> terminal_values;
-    std::vector<float> spending;
+    std::vector<std::vector<float>> spending;
     std::array<swr::data_vector::const_iterator, N> returns;
     std::array<swr::data_vector::const_iterator, N> exchanges;
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            spending.emplace_back();
+
             swr::context context;
             context.months = 1;
             context.total_months = scenario.years * 12;
@@ -556,7 +560,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 context.year_start_value = current_value(current_values);
                 context.year_withdrawn = 0.0f;
 
-                for (size_t m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
+                size_t m = 0;
+                for (m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
                     // Adjust the portfolio with the returns and exchanges
                     for (size_t i = 0; i < N; ++i) {
                         current_values[i] *= returns[i]->value;
@@ -586,6 +591,13 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
                     // Monthly withdrawal
                     step([&]() { return withdraw(scenario, context, current_values); });
+
+                    // Record spending
+                    if ((context.months - 1) % 12 == 0) {
+                        spending.back().push_back(context.last_withdrawal_amount);
+                    } else {
+                        spending.back().back() += context.last_withdrawal_amount;
+                    }
                 }
 
                 total_withdrawn += context.year_withdrawn;
@@ -629,8 +641,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             terminal_values.push_back(final_value);
 
-            if (!failure) {
-                spending.push_back(total_withdrawn);
+            if (failure) {
+                spending.pop_back();
             }
 
             // Record periods
@@ -762,7 +774,31 @@ void swr::results::compute_terminal_values(std::vector<float> & terminal_values)
     tv_average = std::accumulate(terminal_values.begin(), terminal_values.end(), 0.0f) / terminal_values.size();
 }
 
-void swr::results::compute_spending(std::vector<float> & spending, size_t years) {
+void swr::results::compute_spending(std::vector<std::vector<float>> & yearly_spending, size_t years) {
+    std::vector<float> spending;
+
+    for (auto & yearly : yearly_spending) {
+        spending.push_back(std::accumulate(yearly.begin(), yearly.end(), 0.0f));
+
+        for (size_t y = 1; y < yearly.size(); ++y) {
+            if (yearly[y] >= 1.5f * yearly[0]){
+                ++years_large_spending;
+            }
+
+            if (yearly[y] <= 0.5f * yearly[0]){
+                ++years_small_spending;
+            }
+
+            if (yearly[y] >= 1.1f * yearly[y - 1]) {
+                ++years_volatile_up_spending;
+            }
+
+            if (yearly[y] <= 0.9f * yearly[y - 1]) {
+                ++years_volatile_down_spending;
+            }
+        }
+    }
+
     std::ranges::sort(spending);
 
     spending_median  = spending[spending.size() / 2 + 1] / years;
