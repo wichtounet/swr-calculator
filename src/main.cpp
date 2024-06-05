@@ -592,6 +592,30 @@ bool prepare_exchange_rates(swr::scenario & scenario, const std::string& currenc
     return true;
 }
 
+void configure_withdrawal_method(swr::scenario & scenario, std::vector<std::string> args, size_t n){
+    if (args.size() > n) {
+        if (args[n] == "fixed") {
+            scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+        } else if (args[n] == "current") {
+            scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+            scenario.minimum = 0.04f;
+        } else if (args[n] == "vanguard") {
+            scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+            scenario.minimum = 0.04f;
+        } else if (args[n] == "current3") {
+            scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+            scenario.minimum = 0.03f;
+        } else if (args[n] == "vanguard3") {
+            scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
+            scenario.minimum = 0.03f;
+        } else {
+            std::cout << "No support for method: " << args[n] << std::endl;
+        }
+    } else {
+        scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+    }
+}
+
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
@@ -2090,22 +2114,7 @@ int main(int argc, const char* argv[]) {
                 scenario.final_inflation = args[13] == "true";
             }
 
-            if (args.size() > 7) {
-                if (args[14] == "fixed") {
-                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-                } else if (args[14] == "current") {
-                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
-                    scenario.minimum = 0.04f;
-                } else if (args[14] == "vanguard") {
-                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
-                    scenario.minimum = 0.04f;
-                } else {
-                    std::cout << "No support for method: " << args[14] << std::endl;
-                    return 1;
-                }
-            } else {
-                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-            }
+            configure_withdrawal_method(scenario, args, 14);
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -2184,22 +2193,7 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            if (args.size() > 7) {
-                if (args[7] == "fixed") {
-                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-                } else if (args[7] == "current") {
-                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
-                    scenario.minimum = 0.04f;
-                } else if (args[7] == "vanguard") {
-                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
-                    scenario.minimum = 0.04f;
-                } else {
-                    std::cout << "No support for method: " << args[7] << std::endl;
-                    return 1;
-                }
-            } else {
-                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-            }
+            configure_withdrawal_method(scenario, args, 7);
 
             if (args.size() > 8) {
                 scenario.fees = atof(args[8].c_str()) / 100.0f;
@@ -2273,22 +2267,7 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            if (args.size() > 7) {
-                if (args[7] == "fixed") {
-                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-                } else if (args[7] == "current") {
-                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
-                    scenario.minimum = 0.04f;
-                } else if (args[7] == "vanguard") {
-                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
-                    scenario.minimum = 0.04f;
-                } else {
-                    std::cout << "No support for method: " << args[7] << std::endl;
-                    return 1;
-                }
-            } else {
-                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-            }
+            configure_withdrawal_method(scenario, args, 7);
 
             if (args.size() > 8) {
                 scenario.fees = atof(args[8].c_str()) / 100.0f;
@@ -2338,22 +2317,7 @@ int main(int argc, const char* argv[]) {
             auto inflation      = args[5];
             scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            if (args.size() > 7) {
-                if (args[7] == "fixed") {
-                    scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-                } else if (args[7] == "current") {
-                    scenario.wmethod = swr::WithdrawalMethod::CURRENT;
-                    scenario.minimum = 0.04f;
-                } else if (args[7] == "vanguard") {
-                    scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
-                    scenario.minimum = 0.04f;
-                } else {
-                    std::cout << "No support for method: " << args[7] << std::endl;
-                    return 1;
-                }
-            } else {
-                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-            }
+            configure_withdrawal_method(scenario, args, 7);
 
             if (args.size() > 8) {
                 scenario.fees = atof(args[8].c_str()) / 100.0f;
