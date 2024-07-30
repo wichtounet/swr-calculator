@@ -1383,7 +1383,9 @@ int main(int argc, const char* argv[]) {
             size_t frequency   = atoi(args[4].c_str());
             size_t monthly_buy = atoi(args[5].c_str());
 
-            auto portfolio = swr::parse_portfolio("ch_stocks:100;", false);
+            auto portfolio = swr::parse_portfolio("us_stocks:100;", false);
+            swr::normalize_portfolio(portfolio);
+
             auto values    = swr::load_values(portfolio);
 
             const auto months = years * 12;
