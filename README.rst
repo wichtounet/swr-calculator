@@ -18,3 +18,5 @@ Safe Withdrawal Rate (SWR) Calculator
    :alt: MIT License
 
 This tool lets you compute the success rate of many different withdrawal rates and portfolios.
+
+[This blog post](https://thepoorswiss.com/updated-trinity-study/) provides the background for what is about.
