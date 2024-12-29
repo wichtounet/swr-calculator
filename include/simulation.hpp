@@ -28,6 +28,12 @@ enum class WithdrawalMethod : uint64_t {
     VANGUARD  // Vanguard Dynamic Spending strategy
 };
 
+enum class Flexibility : uint64_t {
+    NONE,      // The default of no spending flexibility
+    PORTFOLIO, // The strategy for being flexible when the total portfolio goes down below initial %
+    MARKET     // The strategy for being flexible when the the current market is in correction or bear market
+};
+
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 std::ostream & operator<<(std::ostream& out, const WithdrawalMethod & wmethod);
@@ -99,6 +105,13 @@ struct scenario {
     bool   social_security = false;
     size_t social_delay    = 0;
     float  social_coverage = 0.0f;
+
+    // Configuration for flexibility
+    Flexibility flexibility = Flexibility::NONE;
+    float flexibility_threshold_1 = 0.0;
+    float flexibility_threshold_2 = 0.0;
+    float flexibility_change_1 = 0.0;
+    float flexibility_change_2 = 0.0;
 
     bool strict_validation = true;
 
