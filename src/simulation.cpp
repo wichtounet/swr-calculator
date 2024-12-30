@@ -209,6 +209,14 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
         // Compute the withdrawal amount based on the withdrawal strategy
         if (scenario.wmethod == swr::WithdrawalMethod::STANDARD) {
             withdrawal_amount = context.withdrawal / (12.0f / periods);
+
+            if (scenario.flexibility == swr::Flexibility::PORTFOLIO) {
+                if (total_value < scenario.flexibility_threshold_2 * scenario.initial_value) {
+                    withdrawal_amount *= scenario.flexibility_change_2;
+                } else if (total_value < scenario.flexibility_threshold_1 * scenario.initial_value) {
+                    withdrawal_amount *= scenario.flexibility_change_1;
+                }
+            }
         } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
 
@@ -475,6 +483,20 @@ swr::results swr_simulation(swr::scenario & scenario) {
             std::cout << scenario.gp_goal << std::endl;
             std::cout << portfolio[0].allocation << std::endl;
             res.message = "Invalid goal/pass (2) for glidepath";
+            res.error = true;
+            return res;
+        }
+    }
+
+    if (scenario.flexibility != swr::Flexibility::NONE) {
+        if (scenario.wmethod != swr::WithdrawalMethod::STANDARD) {
+            res.message = "Invalid withdrawal method for flexibility";
+            res.error = true;
+            return res;
+        }
+
+        if (scenario.initial_cash > 0.0f) {
+            res.message = "Cannot use cash with flexibility";
             res.error = true;
             return res;
         }
