@@ -500,6 +500,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
             res.error = true;
             return res;
         }
+
+        if (scenario.flexibility_threshold_1 <= scenario.flexibility_threshold_2) {
+            res.message = "The first threshold must be higher than the second";
+            res.error = true;
+            return res;
+        }
     }
 
     // More validation of data (should not happen but would fail silently otherwise)
