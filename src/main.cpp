@@ -2801,6 +2801,93 @@ int main(int argc, const char* argv[]) {
                 swr::normalize_portfolio(scenario.portfolio);
                 multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
             }
+        } else if (command == "flexibility_auto_graph") {
+            if (args.size() < 8) {
+                std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
+            auto inflation      = args[5];
+            scenario.rebalance  = swr::parse_rebalance(args[6]);
+            auto flexibility = swr::Flexibility::NONE;
+
+            if (args[7] == "market") {
+                flexibility = swr::Flexibility::MARKET;
+            } else if (args[7] == "portfolio") {
+                flexibility = swr::Flexibility::PORTFOLIO;
+            } else {
+                std::cout << "Invalid flexibility parameter" << std::endl;
+                return 1;
+            }
+
+            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            prepare_exchange_rates(scenario, "usd");
+
+            const float start_wr = 3.5f;
+            const float end_wr   = 5.5f;
+            const float add_wr   = 0.1f;
+
+            Graph g(true);
+
+            swr::normalize_portfolio(scenario.portfolio);
+
+            scenario.flexibility = swr::Flexibility::NONE;
+            multiple_wr_success_graph(g, "Zero", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility = flexibility;
+
+            scenario.flexibility_threshold_1 = 0.90f;
+            scenario.flexibility_change_1    = 0.95f;
+            scenario.flexibility_threshold_2 = 0.80f;
+            scenario.flexibility_change_2    = 0.90f;
+
+            multiple_wr_success_graph(g, "90/5 80/10", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility_threshold_1 = 0.90f;
+            scenario.flexibility_change_1    = 0.90f;
+            scenario.flexibility_threshold_2 = 0.80f;
+            scenario.flexibility_change_2    = 0.80f;
+
+            multiple_wr_success_graph(g, "90/10 80/20", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility_threshold_1 = 0.95f;
+            scenario.flexibility_change_1    = 0.95f;
+            scenario.flexibility_threshold_2 = 0.90f;
+            scenario.flexibility_change_2    = 0.90f;
+
+            multiple_wr_success_graph(g, "95/5 90/10", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility_threshold_1 = 0.95f;
+            scenario.flexibility_change_1    = 0.90f;
+            scenario.flexibility_threshold_2 = 0.90f;
+            scenario.flexibility_change_2    = 0.80f;
+
+            multiple_wr_success_graph(g, "95/10 90/20", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility = flexibility;
+
+            scenario.flexibility_threshold_1 = 0.80f;
+            scenario.flexibility_change_1    = 0.95f;
+            scenario.flexibility_threshold_2 = 0.60f;
+            scenario.flexibility_change_2    = 0.90f;
+
+            multiple_wr_success_graph(g, "80/5 60/10", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.flexibility_threshold_1 = 0.80f;
+            scenario.flexibility_change_1    = 0.90f;
+            scenario.flexibility_threshold_2 = 0.60f;
+            scenario.flexibility_change_2    = 0.80f;
+
+            multiple_wr_success_graph(g, "80/10 60/20", true, scenario, start_wr, end_wr, add_wr);
         } else if (command == "trinity_cash") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
