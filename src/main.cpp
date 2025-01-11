@@ -298,14 +298,31 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, 
     std::cout << "\n";
 }
 
-void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
+
+void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.success_rate;
     });
 }
 
-void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_withdrawn_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
+        return results.withdrawn_per_year;
+    });
+}
+
+void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results) {
+        if (results.failures) {
+            return results.worst_duration;
+        } else {
+            return scenario.years * 12;
+        }
+    });
+}
+
+void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.success_rate;
     });
 }
@@ -318,16 +335,6 @@ void multiple_wr_withdrawn_sheets(std::string_view title, const swr::scenario & 
 
 void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results) {
-        if (results.failures) {
-            return results.worst_duration;
-        } else {
-            return scenario.years * 12;
-        }
-    });
-}
-
-void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results) {
         if (results.failures) {
             return results.worst_duration;
         } else {
@@ -2832,16 +2839,21 @@ int main(int argc, const char* argv[]) {
 
             prepare_exchange_rates(scenario, "usd");
 
-            const float start_wr = 3.5f;
-            const float end_wr   = 5.5f;
+            const float success_start_wr = 3.5f;
+            const float success_end_wr   = 5.5f;
+            const float withdrawn_start_wr = 3.5f;
+            const float withdrawn_end_wr   = 4.5f;
+
             const float add_wr   = 0.1f;
 
-            Graph g(true);
+            Graph withdrawnGraph(true, "Withdrawn per year (CHF)");
+            Graph successGraph(true);
 
             swr::normalize_portfolio(scenario.portfolio);
 
             scenario.flexibility = swr::Flexibility::NONE;
-            multiple_wr_success_graph(g, "Zero", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "Zero", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "Zero", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility = flexibility;
 
@@ -2850,28 +2862,32 @@ int main(int argc, const char* argv[]) {
             scenario.flexibility_threshold_2 = 0.80f;
             scenario.flexibility_change_2    = 0.90f;
 
-            multiple_wr_success_graph(g, "90/5 80/10", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "90/5 80/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "90/5 80/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility_threshold_1 = 0.90f;
             scenario.flexibility_change_1    = 0.90f;
             scenario.flexibility_threshold_2 = 0.80f;
             scenario.flexibility_change_2    = 0.80f;
 
-            multiple_wr_success_graph(g, "90/10 80/20", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "90/10 80/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "90/10 80/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility_threshold_1 = 0.95f;
             scenario.flexibility_change_1    = 0.95f;
             scenario.flexibility_threshold_2 = 0.90f;
             scenario.flexibility_change_2    = 0.90f;
 
-            multiple_wr_success_graph(g, "95/5 90/10", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "95/5 90/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "95/5 90/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility_threshold_1 = 0.95f;
             scenario.flexibility_change_1    = 0.90f;
             scenario.flexibility_threshold_2 = 0.90f;
             scenario.flexibility_change_2    = 0.80f;
 
-            multiple_wr_success_graph(g, "95/10 90/20", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "95/10 90/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "95/10 90/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility = flexibility;
 
@@ -2880,14 +2896,22 @@ int main(int argc, const char* argv[]) {
             scenario.flexibility_threshold_2 = 0.60f;
             scenario.flexibility_change_2    = 0.90f;
 
-            multiple_wr_success_graph(g, "80/5 60/10", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "80/5 60/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "80/5 60/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility_threshold_1 = 0.80f;
             scenario.flexibility_change_1    = 0.90f;
             scenario.flexibility_threshold_2 = 0.60f;
             scenario.flexibility_change_2    = 0.80f;
 
-            multiple_wr_success_graph(g, "80/10 60/20", true, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(successGraph, "80/10 60/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+            multiple_wr_withdrawn_graph(withdrawnGraph, "80/10 60/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+
+            successGraph.flush();
+            std::cout << "\n";
+
+            withdrawnGraph.flush();
+            std::cout << "\n";
         } else if (command == "trinity_cash") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
