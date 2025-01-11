@@ -2768,12 +2768,11 @@ int main(int argc, const char* argv[]) {
             }
 
             scenario.flexibility_threshold_1 = atof(args[8].c_str()) / 100.0f;
-            scenario.flexibility_change_1 = atof(args[9].c_str()) / 100.0f;
+            scenario.flexibility_change_1    = atof(args[9].c_str()) / 100.0f;
             scenario.flexibility_threshold_2 = atof(args[10].c_str()) / 100.0f;
-            scenario.flexibility_change_2 = atof(args[11].c_str()) / 100.0f;
+            scenario.flexibility_change_2    = atof(args[11].c_str()) / 100.0f;
 
-
-            scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
