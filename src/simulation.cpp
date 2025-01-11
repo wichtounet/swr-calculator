@@ -539,10 +539,11 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     // 3. Do the actual simulation
 
-    std::vector<float> terminal_values;
     std::vector<std::vector<float>> spending;
     std::array<swr::data_vector::const_iterator, N> returns;
     std::array<swr::data_vector::const_iterator, N> exchanges;
+
+    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
 
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
@@ -684,7 +685,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                 }
             }
 
-            terminal_values.push_back(final_value);
+            res.terminal_values.push_back(final_value);
 
             if (failure) {
                 spending.pop_back();
@@ -738,10 +739,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
     res.lowest_eff_wr *= 100.0f;
 
     res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
-    res.compute_terminal_values(terminal_values);
+    res.compute_terminal_values(res.terminal_values);
     res.compute_spending(spending, scenario.years);
 
-    simulations += terminal_values.size();
+    simulations += res.terminal_values.size();
 
     return res;
 }
