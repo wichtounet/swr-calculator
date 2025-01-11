@@ -56,6 +56,8 @@ struct context {
     size_t months = 0;
     size_t total_months = 0;
 
+    bool flexible = false; // true if we had to reduce spending in this simulation
+
     bool end() const {
         return months == total_months;
     }
@@ -136,6 +138,9 @@ struct results {
     size_t successes = 0;
     size_t failures  = 0;
 
+    size_t flexible_successes = 0;
+    size_t flexible_failures  = 0;
+
     float success_rate = 0.0f;
 
     float tv_average = 0.0f;
@@ -173,6 +178,7 @@ struct results {
     size_t best_tv_month  = 0;
     size_t best_tv_year   = 0;
 
+    float total_withdrawn    = 0;
     float withdrawn_per_year = 0;
 
     std::string message;

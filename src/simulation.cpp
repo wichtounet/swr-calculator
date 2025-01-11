@@ -213,8 +213,10 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
             if (scenario.flexibility == swr::Flexibility::PORTFOLIO) {
                 if (total_value < scenario.flexibility_threshold_2 * scenario.initial_value) {
                     withdrawal_amount *= scenario.flexibility_change_2;
+                    context.flexible = true;
                 } else if (total_value < scenario.flexibility_threshold_1 * scenario.initial_value) {
                     withdrawal_amount *= scenario.flexibility_change_1;
+                    context.flexible = true;
                 }
             }
         } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
@@ -668,10 +670,18 @@ swr::results swr_simulation(swr::scenario & scenario) {
             if (!failure) {
                 ++res.successes;
 
+                if (context.flexible) {
+                    ++res.flexible_successes;
+                }
+
                 // Total amount of money withdrawn
-                res.withdrawn_per_year += total_withdrawn;
+                res.total_withdrawn += total_withdrawn;
             } else {
                 ++res.failures;
+
+                if (context.flexible) {
+                    ++res.flexible_failures;
+                }
             }
 
             terminal_values.push_back(final_value);
@@ -722,7 +732,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
         }
     }
 
-    res.withdrawn_per_year = (res.withdrawn_per_year / scenario.years) / float(res.successes);
+    res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / float(res.successes);
 
     res.highest_eff_wr *= 100.0f;
     res.lowest_eff_wr *= 100.0f;
