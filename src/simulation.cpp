@@ -686,6 +686,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             }
 
             res.terminal_values.push_back(final_value);
+            res.flexible.push_back(context.flexible ? 1.0f : 0.0f);
 
             if (failure) {
                 spending.pop_back();

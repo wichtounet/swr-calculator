@@ -185,6 +185,7 @@ struct results {
     bool error = false;
 
     std::vector<float> terminal_values;
+    std::vector<float> flexible;
     void compute_terminal_values(std::vector<float> & terminal_values);
     void compute_spending(std::vector<std::vector<float>> & terminal_values, size_t years);
 
