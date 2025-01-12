@@ -77,7 +77,7 @@ AlignTrailingComments: true
 SpacesBeforeTrailingComments: 1
 
 # Avoid empty lines
-KeepEmptyLinesAtTheStartOfBlocks: false
+#KeepEmptyLinesAtTheStartOfBlocks: false
 
 # Force pointers to the type
 DerivePointerAlignment: false
