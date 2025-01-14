@@ -106,6 +106,7 @@ struct Graph {
         flush();
     }
 
+    // We don't use JSON, but a form of retarded JSON for WPML to handle
     void flush() {
         if (enabled_ && !flushed_) {
             std::cout << "[" << graph_ << " title=\"" << title_ << "\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
@@ -118,29 +119,29 @@ struct Graph {
                 legends << sep << legend;
                 sep = ",";
             }
-            std::cout << " legends=\"" << legends.str() << "\"]{\"labels\":[";
+            std::cout << " legends=\"" << legends.str() << "\"]{\"labels\":|";
 
             sep = "";
             for (auto& [key, value] : data_.front()) {
                 std::cout << sep << key;
                 sep = ",";
             }
-            std::cout << "],\"series\":[";
+            std::cout << "|,\"series\":|";
 
             std::string serie_sep;
 
             for (auto& serie : data_) {
-                std::cout << serie_sep << "[";
+                std::cout << serie_sep << "|";
                 sep = "";
                 for (auto& [key, value] : serie) {
                     std::cout << sep << value;
                     sep = ",";
                 }
-                std::cout << "]";
+                std::cout << "|";
                 serie_sep = ",";
             }
 
-            std::cout << "]}[/" << graph_ << "]";
+            std::cout << "|}[/" << graph_ << "]";
 
             flushed_ = true;
         }
