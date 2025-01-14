@@ -238,7 +238,7 @@ void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, co
                 error = false;
                 std::cout << std::endl << "ERROR: " << res.message << std::endl;
             } else {
-                results[wr] = functor(res);
+                results[wr] = functor(res, wr);
             }
         }, wr);
     }
@@ -298,21 +298,52 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, 
     std::cout << "\n";
 }
 
+std::map<float, swr::results> multiple_wr_success_graph_save(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, swr::results> all_results;
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&all_results](const auto & results, float wr) {
+        all_results[wr] = results;
+        return results.success_rate;
+    });
+    return all_results;
+}
 
 void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results, float ) {
         return results.success_rate;
     });
 }
 
 void multiple_wr_withdrawn_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results, float ) {
         return results.withdrawn_per_year;
     });
 }
 
+void multiple_wr_errors_graph(Graph&                               graph,
+                              std::string_view                     title,
+                              bool                                 shortForm,
+                              const swr::scenario&                 scenario,
+                              float                                start_wr,
+                              float                                end_wr,
+                              float                                add_wr,
+                              const std::map<float, swr::results>& base_results) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&base_results](const auto& results, float wr) {
+        const auto& base_result = base_results.at(wr);
+
+        size_t errors = 0;
+
+        for (size_t i = 0; i < results.flexible.size(); ++i) {
+            if (results.flexible[i] == 1.0f && base_result.terminal_values[i] > 0.0f) {
+                ++errors;
+            }
+        }
+
+        return float(errors) / float(results.flexible.size());
+    });
+}
+
 void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results, float ) {
         if (results.failures) {
             return results.worst_duration;
         } else {
@@ -2981,16 +3012,19 @@ int main(int argc, const char* argv[]) {
             const float success_end_wr   = 5.5f;
             const float withdrawn_start_wr = 3.5f;
             const float withdrawn_end_wr   = 4.5f;
+            const float errors_start_wr = 3.5f;
+            const float errors_end_wr   = 5.5f;
 
             const float add_wr   = 0.1f;
 
-            Graph withdrawnGraph(true, "Withdrawn per year (CHF)");
             Graph successGraph(true);
+            Graph withdrawnGraph(true, "Withdrawn per year (CHF)");
+            Graph errorsGraph(true, "Error Rate (%)");
 
             swr::normalize_portfolio(scenario.portfolio);
 
             scenario.flexibility = swr::Flexibility::NONE;
-            multiple_wr_success_graph(successGraph, "Zero", true, scenario, success_start_wr, success_end_wr, add_wr);
+            const auto base_results = multiple_wr_success_graph_save(successGraph, "Zero", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "Zero", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
             scenario.flexibility = flexibility;
@@ -3002,6 +3036,7 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "90/5 80/10", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "90/5 80/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "90/5 80/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             scenario.flexibility_threshold_1 = 0.90f;
             scenario.flexibility_change_1    = 0.90f;
@@ -3010,6 +3045,7 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "90/10 80/20", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "90/10 80/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "90/10 80/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             scenario.flexibility_threshold_1 = 0.95f;
             scenario.flexibility_change_1    = 0.95f;
@@ -3018,6 +3054,7 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "95/5 90/10", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "95/5 90/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "95/5 90/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             scenario.flexibility_threshold_1 = 0.95f;
             scenario.flexibility_change_1    = 0.90f;
@@ -3026,6 +3063,7 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "95/10 90/20", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "95/10 90/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "95/10 90/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             scenario.flexibility = flexibility;
 
@@ -3036,6 +3074,7 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "80/5 60/10", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "80/5 60/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "80/5 60/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             scenario.flexibility_threshold_1 = 0.80f;
             scenario.flexibility_change_1    = 0.90f;
@@ -3044,12 +3083,16 @@ int main(int argc, const char* argv[]) {
 
             multiple_wr_success_graph(successGraph, "80/10 60/20", true, scenario, success_start_wr, success_end_wr, add_wr);
             multiple_wr_withdrawn_graph(withdrawnGraph, "80/10 60/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+            multiple_wr_errors_graph(errorsGraph, "80/10 60/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
             successGraph.flush();
-            std::cout << "\n";
+            std::cout << "\n\n";
 
             withdrawnGraph.flush();
-            std::cout << "\n";
+            std::cout << "\n\n";
+
+            errorsGraph.flush();
+            std::cout << "\n\n";
         } else if (command == "trinity_cash") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
