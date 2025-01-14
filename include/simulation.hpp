@@ -57,6 +57,7 @@ struct context {
     size_t total_months = 0;
 
     bool flexible = false; // true if we had to reduce spending in this simulation
+    float hist_high = 0.0f;
 
     bool end() const {
         return months == total_months;

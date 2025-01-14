@@ -195,7 +195,7 @@ bool pay_fees(const swr::scenario & scenario, swr::context & context, std::array
 }
 
 template <size_t N>
-bool withdraw(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool withdraw(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values, const std::array<float, N> & market_values) {
     if ((context.months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
@@ -215,6 +215,20 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
                     withdrawal_amount *= scenario.flexibility_change_2;
                     context.flexible = true;
                 } else if (total_value < scenario.flexibility_threshold_1 * scenario.initial_value) {
+                    withdrawal_amount *= scenario.flexibility_change_1;
+                    context.flexible = true;
+                }
+            } else if (scenario.flexibility == swr::Flexibility::MARKET) {
+                const auto market_value = current_value(market_values);
+
+                if (market_value > context.hist_high) {
+                    context.hist_high = market_value;
+                }
+
+                if (market_value < scenario.flexibility_threshold_2 * context.hist_high) {
+                    withdrawal_amount *= scenario.flexibility_change_2;
+                    context.flexible = true;
+                } else if (market_value < scenario.flexibility_threshold_1 * context.hist_high) {
                     withdrawal_amount *= scenario.flexibility_change_1;
                     context.flexible = true;
                 }
@@ -574,10 +588,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
             }
 
             std::array<float, N> current_values;
+            std::array<float, N> market_values;
 
             // Compute the initial values of the assets
             for (size_t i = 0; i < N; ++i) {
                 current_values[i] = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
+                market_values[i]  = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
                 returns[i]        = start_returns[i]++;
                 exchanges[i]      = start_exchanges[i]++;
             }
@@ -605,6 +621,9 @@ swr::results swr_simulation(swr::scenario & scenario) {
                         current_values[i] *= returns[i]->value;
                         current_values[i] *= exchanges[i]->value;
 
+                        market_values[i] *= returns[i]->value;
+                        market_values[i] *= exchanges[i]->value;
+
                         ++returns[i];
                         ++exchanges[i];
                     }
@@ -628,7 +647,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     ++inflation;
 
                     // Monthly withdrawal
-                    step([&]() { return withdraw(scenario, context, current_values); });
+                    step([&]() { return withdraw(scenario, context, current_values, market_values); });
 
                     // Record spending
                     if ((context.months - 1) % 12 == 0) {
