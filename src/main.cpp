@@ -1035,18 +1035,152 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
 } // namespace
 
+void print_general_help() {
+    std::cout << "\nSafe Withdrawal Rate (SWR) Calculator - Command Line Tool\n"
+              << "-------------------------------------------------------\n\n"
+              << "Usage:\n"
+              << "  swr_calculator <command> [arguments]\n\n"
+              << "Available Commands:\n\n"
+
+              << "1. fixed\n"
+              << "   Analyze a fixed withdrawal rate over a historical period.\n"
+              << "   Usage:\n"
+              << "     swr_calculator fixed <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [final_threshold]\n"
+              << "   Example:\n"
+              << "     swr_calculator fixed 4 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 5\n\n"
+
+              << "2. swr\n"
+              << "   Find the safe withdrawal rate that meets a success rate limit.\n"
+              << "   Usage:\n"
+              << "     swr_calculator swr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [success_rate_limit]\n"
+              << "   Example:\n"
+              << "     swr_calculator swr 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 95\n\n"
+
+              << "3. multiple_wr\n"
+              << "   Analyze multiple withdrawal rates with rebalancing strategies.\n"
+              << "   Usage:\n"
+              << "     swr_calculator multiple_wr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> <rebalance_strategy>\n"
+              << "   Example:\n"
+              << "     swr_calculator multiple_wr 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation annual\n\n"
+
+              << "4. withdraw_frequency\n"
+              << "   Analyze different withdrawal frequencies.\n"
+              << "   Usage:\n"
+              << "     swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n"
+              << "   Example:\n"
+              << "     swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n\n"
+
+              << "5. frequency\n"
+              << "   Analyze portfolio performance with different withdrawal frequencies and contributions.\n"
+              << "   Usage:\n"
+              << "     swr_calculator frequency <start_year> <end_year> <years> <withdraw_frequency> <monthly_contribution>\n"
+              << "   Example:\n"
+              << "     swr_calculator frequency 1871 2024 30 12 500\n\n"
+
+              << "General Help:\n"
+              << "  Use 'swr_calculator help' to display this help message.\n"
+              << "  For detailed help on a specific command, provide incorrect arguments to trigger command-specific help.\n"
+              << std::endl;
+}
+
+void print_fixed_help() {
+    std::cout << "\nUsage:\n"
+              << "  swr_calculator fixed <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [final_threshold]\n\n"
+              << "Arguments:\n"
+              << "  fixed               Mode for fixed withdrawal rate analysis.\n"
+              << "  <withdrawal_rate>   Annual withdrawal rate percentage (e.g., 4 for 4%).\n"
+              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+              << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:100;\").\n"
+              << "  <inflation_data>   Inflation dataset to adjust for inflation (e.g., us_inflation).\n"
+              << "  [fees]             (Optional) Total Expense Ratio (TER) as a percentage (default: 0%).\n"
+              << "  [final_threshold]  (Optional) Final portfolio threshold as a percentage (default: 0%).\n\n"
+              << "Example:\n"
+              << "  swr_calculator fixed 4 30 1871 2024 \"us_stocks:100;\" us_inflation\n"
+              << std::endl;
+}
+
+void print_swr_help() {
+    std::cout << "\nUsage:\n"
+              << "  swr_calculator swr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [success_rate_limit]\n\n"
+              << "Arguments:\n"
+              << "  swr                 Mode for safe withdrawal rate (SWR) discovery.\n"
+              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+              << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:100;\").\n"
+              << "  <inflation_data>   Inflation dataset to adjust for inflation (e.g., us_inflation).\n"
+              << "  [fees]             (Optional) Total Expense Ratio (TER) as a percentage (default: 0%).\n"
+              << "  [success_rate_limit] (Optional) Desired success rate limit as a percentage (default: 95%).\n\n"
+              << "Example:\n"
+              << "  swr_calculator swr 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 95\n"
+              << std::endl;
+}
+
+void print_multiple_wr_help() {
+    std::cout << "\nUsage:\n"
+              << "  swr_calculator multiple_wr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> <rebalance_strategy>\n\n"
+              << "Arguments:\n"
+              << "  multiple_wr         Mode for analyzing multiple withdrawal rates with rebalancing strategies.\n"
+              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+              << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:70;us_bonds:30;\").\n"
+              << "  <inflation_data>   Inflation dataset to adjust for inflation (e.g., us_inflation).\n"
+              << "  <rebalance_strategy> Strategy for rebalancing (e.g., 'annual', 'none').\n\n"
+              << "Example:\n"
+              << "  swr_calculator multiple_wr 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation annual\n"
+              << std::endl;
+}
+
+void print_withdraw_frequency_help() {
+    std::cout << "\nUsage:\n"
+              << "  swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n\n"
+              << "Arguments:\n"
+              << "  withdraw_frequency  Mode to analyze different withdrawal frequencies.\n"
+              << "  <withdrawal_rate>   Annual withdrawal rate percentage (e.g., 4 for 4%).\n"
+              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+              << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:70;us_bonds:30;\").\n"
+              << "  <inflation_data>   Inflation dataset for adjusting withdrawals (e.g., us_inflation).\n"
+              << "  [fees]             (Optional) Total Expense Ratio (TER) as a percentage (default: 0%).\n"
+              << "  [portfolio_adjustment] (Optional) Adjustment factor for the portfolio in percentage (default: 20%).\n\n"
+              << "Example:\n"
+              << "  swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n"
+              << std::endl;
+}
+
+void print_frequency_help() {
+    std::cout << "\nUsage:\n"
+              << "  swr_calculator frequency <start_year> <end_year> <years> <withdraw_frequency> <monthly_contribution>\n\n"
+              << "Arguments:\n"
+              << "  frequency           Mode for analyzing different withdrawal frequencies with contributions.\n"
+              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+              << "  <withdraw_frequency> Frequency of withdrawals (e.g., 1 for yearly, 12 for monthly).\n"
+              << "  <monthly_contribution> Monthly contribution amount (e.g., 500).\n\n"
+              << "Example:\n"
+              << "  swr_calculator frequency 1871 2024 30 12 500\n"
+              << std::endl;
+}
+
 int main(int argc, const char* argv[]) {
     auto args = parse_args(argc, argv);
 
     if (args.empty()) {
-        std::cout << "Not enough arguments" << std::endl;
-        return 0;
+        std::cout << "Error: Not enough arguments." << std::endl;
+        print_general_help();
+        return 1;
     } else {
         const auto & command = args[0];
 
         if (command == "fixed") {
             if (args.size() < 7) {
-                std::cout << "Not enough arguments for fixed" << std::endl;
+                std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
+                print_fixed_help();
                 return 1;
             }
 
@@ -1141,7 +1275,8 @@ int main(int argc, const char* argv[]) {
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "swr") {
             if (args.size() < 6) {
-                std::cout << "Not enough arguments for swr" << std::endl;
+                std::cout << "Error: Not enough arguments for the 'swr' command." << std::endl;
+                print_swr_help();
                 return 1;
             }
 
@@ -1207,7 +1342,8 @@ int main(int argc, const char* argv[]) {
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "multiple_wr") {
             if (args.size() < 7) {
-                std::cout << "Not enough arguments for multiple_wr" << std::endl;
+                std::cout << "Error: Not enough arguments for the 'multiple_wr' command." << std::endl;
+                print_multiple_wr_help();
                 return 1;
             }
 
@@ -1254,7 +1390,8 @@ int main(int argc, const char* argv[]) {
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "withdraw_frequency") {
             if (args.size() < 7) {
-                std::cout << "Not enough arguments for withdraw_frequency" << std::endl;
+                std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
+                print_withdraw_frequency_help();
                 return 1;
             }
 
@@ -1387,7 +1524,8 @@ int main(int argc, const char* argv[]) {
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
         } else if (command == "frequency") {
             if (args.size() < 6) {
-                std::cout << "Not enough arguments for frequency" << std::endl;
+                std::cout << "Error: Not enough arguments for the 'frequency' command." << std::endl;
+                print_frequency_help();
                 return 1;
             }
 
