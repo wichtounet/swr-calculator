@@ -841,6 +841,14 @@ void swr::results::compute_terminal_values(std::vector<float> & terminal_values)
 }
 
 void swr::results::compute_spending(std::vector<std::vector<float>> & yearly_spending, size_t years) {
+    if (yearly_spending.empty()) {
+        spending_median  = 0;
+        spending_minimum = 0;
+        spending_maximum = 0;
+        spending_average = 0;
+        return;
+    }
+
     std::vector<float> spending;
 
     for (auto & yearly : yearly_spending) {
