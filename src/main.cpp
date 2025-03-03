@@ -670,7 +670,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     if (!req.has_param("portfolio")) {
-        if (!check_parameters(req, res, {"p_us_stocks", "p_us_bonds", "p_gold", "p_cash", "p_ex_us_stocks"})) {
+        if (!check_parameters(req, res, {"p_us_stocks", "p_us_bonds", "p_commodities", "p_gold", "p_cash", "p_ex_us_stocks"})) {
             return;
         }
     }
@@ -702,9 +702,10 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         portfolio_base = req.get_param_value("portfolio");
         scenario.portfolio  = swr::parse_portfolio(portfolio_base, false);
     } else {
-        portfolio_base     = std::format("us_stocks:{};us_bonds:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
+        portfolio_base     = std::format("us_stocks:{};us_bonds:{};commodities:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
                                      req.get_param_value("p_us_stocks"),
                                      req.get_param_value("p_us_bonds"),
+                                     req.get_param_value("p_commodities"),
                                      req.get_param_value("p_gold"),
                                      req.get_param_value("p_cash"),
                                      req.get_param_value("p_ex_us_stocks"),
