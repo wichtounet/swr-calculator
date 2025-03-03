@@ -178,6 +178,8 @@ std::string asset_to_string(std::string_view asset) {
         return "US Bonds";
     } else if (asset == "gold") {
         return "Gold";
+    } else if (asset == "commodities") {
+        return "Commodities";
     } else {
         return std::string(asset);
     }
