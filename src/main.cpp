@@ -623,7 +623,7 @@ void multiple_rebalance_graph(Graph & graph, swr::scenario scenario, float start
     }
 
     if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
-        graph.add_legend(std::to_string(scenario.threshold * 100.0f) + "%");
+        graph.add_legend(std::to_string(static_cast<uint32_t>(scenario.threshold * 100)) + "%");
     } else if (scenario.rebalance == swr::Rebalancing::NONE) {
         graph.add_legend("None");
     } else if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
@@ -2885,6 +2885,7 @@ int main(int argc, const char* argv[]) {
             Graph g(graph);
             g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance method";
             g.set_extra("\"legend_position\": \"bottom_left\",");
+
             if (!graph) {
                 std::cout << "Rebalance";
                 for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -2922,11 +2923,13 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s) \n\n";
-        } else if (command == "threshold_rebalance_sheets") {
+        } else if (command == "threshold_rebalance_sheets" || command == "threshold_rebalance_graph") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "threshold_rebalance_graph";
 
             swr::scenario scenario;
 
@@ -2945,11 +2948,17 @@ int main(int argc, const char* argv[]) {
 
             prepare_exchange_rates(scenario, "usd");
 
-            std::cout << "Rebalance";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            Graph g(graph);
+            g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance threshold";
+            g.set_extra("\"legend_position\": \"bottom_left\",");
+
+            if (!graph) {
+                std::cout << "Rebalance";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -2957,29 +2966,49 @@ int main(int argc, const char* argv[]) {
 
             scenario.rebalance = swr::Rebalancing::THRESHOLD;
 
-            scenario.threshold = 0.01;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+            if(graph) {
+                scenario.threshold = 0.01;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.threshold = 0.02;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.threshold = 0.02;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.threshold = 0.05;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.threshold = 0.05;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.threshold = 0.10;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.threshold = 0.10;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.threshold = 0.25;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.threshold = 0.25;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.threshold = 0.50;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.threshold = 0.50;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+            } else {
+                scenario.threshold = 0.01;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.threshold = 0.02;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.threshold = 0.05;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.threshold = 0.10;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.threshold = 0.25;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.threshold = 0.50;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+            }
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
         } else if (command == "trinity_low_yield_sheets") {
             if (args.size() < 8) {
                 std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
