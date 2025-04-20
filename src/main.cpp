@@ -7,6 +7,7 @@
 
 #include <string>
 #include <iostream>
+#include <string_view>
 #include <tuple>
 #include <chrono>
 #include <sstream>
@@ -119,7 +120,7 @@ struct Graph {
                 legends << sep << legend;
                 sep = ",";
             }
-            std::cout << " legends=\"" << legends.str() << "\"]{\"labels\":|";
+            std::cout << " legends=\"" << legends.str() << "\"]{" << extra_ << "\"labels\":|";
 
             sep = "";
             for (auto& [key, value] : data_.front()) {
@@ -155,11 +156,16 @@ struct Graph {
         data_.emplace_back(data);
     }
 
+    void set_extra(std::string_view extra) {
+        extra_ = extra;
+    }
+
     const bool                          enabled_;
     const std::string                   graph_;
     const std::string                   yitle_;
     std::string                         xtitle_ = "Withdrawal Rate (%)";
     std::string                         title_  = "TODO";
+    std::string                         extra_;
     std::vector<std::string>            legends_;
     std::vector<std::map<float, float>> data_;
     bool                                flushed_ = false;
@@ -2832,6 +2838,7 @@ int main(int argc, const char* argv[]) {
             prepare_exchange_rates(scenario, "usd");
 
             Graph g(graph, portfolio_to_string(scenario, false) + " - " + std::to_string(scenario.years) + " - Rebalance method");
+            g.set_extra("\"legend_position\": \"bottom_left\",");
             if (!graph) {
                 std::cout << "Rebalance";
                 for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
