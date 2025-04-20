@@ -195,6 +195,51 @@ std::string asset_to_string_percent(std::string_view asset) {
     return "% " + asset_to_string(asset);
 }
 
+std::string_view asset_to_blog_string(std::string_view asset) {
+    if (asset == "ch_stocks") {
+        return "Stocks";
+    } else if (asset == "us_stocks") {
+        return "Stocks";
+    } else if (asset == "ex_us_stocks") {
+        return "Stocks";
+    } else if (asset == "ch_bonds") {
+        return "Bonds";
+    } else if (asset == "us_bonds") {
+        return "Bonds";
+    } else if (asset == "gold") {
+        return "Gold";
+    } else if (asset == "commodities") {
+        return "Commodities";
+    } else {
+        return asset;
+    }
+}
+
+std::string portfolio_to_blog_string(const swr::scenario& scenario, bool shortForm) {
+    std::stringstream ss;
+    if (shortForm && scenario.portfolio.size() == 2) {
+        auto & first = scenario.portfolio.front();
+        auto & second = scenario.portfolio.back();
+
+        if (first.allocation == 0) {
+            ss << second.allocation << "% " << asset_to_blog_string(second.asset);
+        } else if (second.allocation == 0) {
+            ss << first.allocation << "% " << asset_to_blog_string(first.asset);
+        } else {
+            ss << first.allocation << "% " << asset_to_blog_string(first.asset);
+        }
+    } else {
+        std::string sep;
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                ss << sep << position.allocation << "% " << asset_to_blog_string(position.asset);
+                sep = " / ";
+            }
+        }
+    }
+    return ss.str();
+}
+
 std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
     std::stringstream ss;
     if (shortForm && scenario.portfolio.size() == 2) {
@@ -2837,7 +2882,8 @@ int main(int argc, const char* argv[]) {
 
             prepare_exchange_rates(scenario, "usd");
 
-            Graph g(graph, portfolio_to_string(scenario, false) + " - " + std::to_string(scenario.years) + " - Rebalance method");
+            Graph g(graph);
+            g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance method";
             g.set_extra("\"legend_position\": \"bottom_left\",");
             if (!graph) {
                 std::cout << "Rebalance";
