@@ -562,6 +562,30 @@ void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end
     std::cout << "\n";
 }
 
+void multiple_rebalance_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, float> data;
+
+    for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+        scenario.wr = wr;
+        auto results = swr::simulation(scenario);
+        data[wr] = results.success_rate;
+    }
+
+    if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
+        graph.add_legend(std::to_string(scenario.threshold * 100.0f) + "%");
+    } else if (scenario.rebalance == swr::Rebalancing::NONE) {
+        graph.add_legend("None");
+    } else if (scenario.rebalance == swr::Rebalancing::MONTHLY) {
+        graph.add_legend("Monthly");
+    } else if (scenario.rebalance == swr::Rebalancing::YEARLY) {
+        graph.add_legend("Yearly");
+    } else {
+        graph.add_legend("Error");
+    }
+
+    graph.add_data(data);
+}
+
 httplib::Server * server_ptr = nullptr;
 
 void server_signal_handler(int signum) {
@@ -2782,11 +2806,13 @@ int main(int argc, const char* argv[]) {
             }
 
             std::cout << "\n";
-        } else if (command == "rebalance_sheets") {
+        } else if (command == "rebalance_sheets" || command == "rebalance_graph") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "rebalance_graph";
 
             swr::scenario scenario;
 
@@ -2805,30 +2831,44 @@ int main(int argc, const char* argv[]) {
 
             prepare_exchange_rates(scenario, "usd");
 
-            std::cout << "Rebalance";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            Graph g(graph, portfolio_to_string(scenario, false) + " - " + std::to_string(scenario.years) + " - Rebalance method");
+            if (!graph) {
+                std::cout << "Rebalance";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
             auto start = std::chrono::high_resolution_clock::now();
 
             swr::normalize_portfolio(scenario.portfolio);
 
-            scenario.rebalance = swr::Rebalancing::NONE;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+            if (graph) {
+                scenario.rebalance = swr::Rebalancing::NONE;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.rebalance = swr::Rebalancing::MONTHLY;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.rebalance = swr::Rebalancing::MONTHLY;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
 
-            scenario.rebalance = swr::Rebalancing::YEARLY;
-            multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                scenario.rebalance = swr::Rebalancing::YEARLY;
+                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+            } else {
+                scenario.rebalance = swr::Rebalancing::NONE;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::MONTHLY;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::YEARLY;
+                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+            }
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s) \n\n";
         } else if (command == "threshold_rebalance_sheets") {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
