@@ -2664,11 +2664,13 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_sheets(portfolio_to_string(scenario, false) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
                 }
             }
-        } else if (command == "current_wr") {
+        } else if (command == "current_wr"|| command == "current_wr_graph") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for current_wr" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "current_wr_graph";
 
             swr::scenario scenario;
 
@@ -2714,13 +2716,19 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            std::cout << "Portfolio";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            if (!graph) {
+                std::cout << "Portfolio";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
             }
-            std::cout << "\n";
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
+                Graph success_graph(graph);
+                Graph withdrawn_graph(graph);
+                Graph duration_graph(graph);
+
                 if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
                     return 1;
@@ -2730,7 +2738,11 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_success_graph(success_graph, "", true, scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
                 }
 
                 std::cout << '\n';
@@ -2739,7 +2751,11 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_withdrawn_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_withdrawn_graph(withdrawn_graph, "", true, scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_withdrawn_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
                 }
 
                 std::cout << '\n';
@@ -2748,11 +2764,21 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+                    if (graph) {
+                        multiple_wr_duration_graph(duration_graph, "", true, scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
                 }
             } else {
+                Graph g(graph);
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+
+                if (graph) {
+                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+                } else {
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
             }
 
             std::cout << "\n";
