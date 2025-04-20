@@ -2803,6 +2803,8 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            prepare_exchange_rates(scenario, "usd");
+
             std::cout << "Rebalance";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
                 std::cout << ";" << wr << "%";
@@ -2847,6 +2849,8 @@ int main(int argc, const char* argv[]) {
 
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            prepare_exchange_rates(scenario, "usd");
 
             std::cout << "Rebalance";
             for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
