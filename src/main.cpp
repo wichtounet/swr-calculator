@@ -3050,6 +3050,8 @@ int main(int argc, const char* argv[]) {
                 }
             }
 
+            prepare_exchange_rates(scenario, "usd");
+
             auto start = std::chrono::high_resolution_clock::now();
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
