@@ -3009,11 +3009,13 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
-        } else if (command == "trinity_low_yield_sheets") {
+        } else if (command == "trinity_low_yield_sheets" || command == "trinity_low_yield_graph") {
             if (args.size() < 8) {
                 std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "trinity_low_yield_graph";
 
             swr::scenario scenario;
 
@@ -3026,7 +3028,7 @@ int main(int argc, const char* argv[]) {
             float yield_adjust  = atof(args[7].c_str());
 
             const float start_wr = 3.0f;
-            const float end_wr   = 6.0f;
+            const float end_wr   = 5.0f;
             const float add_wr   = 0.1f;
 
             const float portfolio_add = 10;
@@ -3034,23 +3036,44 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            std::cout << "Portfolio";
-            for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                std::cout << ";" << wr << "%";
+            auto real_scenario = scenario;
+
+            Graph g(graph);
+            Graph gp(graph && yield_adjust < 1.0f);
+
+            g.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
+            gp.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
+
+            if (args[7] == "1.0") {
+                g.title_ = "Success Rates with Historical Yields";
+            } else {
+                g.title_ = std::format("Success Rates with {}% of the Historical Yields", static_cast<uint32_t>(yield_adjust * 100));
+                gp.title_ = std::format("Success Rates with {}% of the Historical Yields - Portfolios", static_cast<uint32_t>(yield_adjust * 100));
             }
-            std::cout << "\n";
 
-            for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-                if (scenario.portfolio[i].asset == "us_bonds") {
-                    for (auto & value : scenario.values[i]) {
-                        value.value = value.value - ((value.value - 1.0f) * yield_adjust);
+            if (!graph) {
+                std::cout << "Portfolio";
+                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+                    std::cout << ";" << wr << "%";
+                }
+                std::cout << "\n";
+            }
+
+            if (yield_adjust < 1.0f) { 
+                for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+                    if (scenario.portfolio[i].asset == "us_bonds") {
+                        for (auto & value : scenario.values[i]) {
+                            // We must adjust only the part above 1.0f
+                            value.value = 1.0f + (value.value - 1.0f) * yield_adjust;
+                        }
+
+                        break;
                     }
-
-                    break;
                 }
             }
 
             prepare_exchange_rates(scenario, "usd");
+            prepare_exchange_rates(real_scenario, "usd");
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -3064,18 +3087,43 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    real_scenario.portfolio[0].allocation = float(i);
+                    real_scenario.portfolio[1].allocation = float(100 - i);
+
+                    if (g.enabled_) {
+                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+                    } else {
+                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                    }
+
+                    if (gp.enabled_) {
+                        if (i == 60 || i == 40) {
+                            multiple_wr_success_graph(gp, std::format("{} ({}%)", portfolio_to_string(scenario, true), static_cast<uint32_t>(yield_adjust * 100)), true, scenario, start_wr, end_wr, add_wr);
+                            multiple_wr_success_graph(gp, std::format("{} ({}%)", portfolio_to_string(scenario, true), 100), true, real_scenario, start_wr, end_wr, add_wr);
+                        }
+                    }
                 }
+
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+
+                if (g.enabled_) {
+                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+                } else {
+                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
             }
 
             auto end = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
+                      << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
+
+            if (gp.enabled_) {
+                g.flush();
+                std::cout << "\n\n";
+            }
         } else if (command == "flexibility_graph") {
             if (args.size() < 12) {
                 std::cout << "Not enough arguments for flexibility_graph" << std::endl;
