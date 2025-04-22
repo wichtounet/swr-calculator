@@ -2413,6 +2413,8 @@ int main(int argc, const char* argv[]) {
             }
 
             Graph g(graph);
+            g.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+            g.set_extra("\"legend_position\": \"bottom_left\",");
 
             if (!graph) {
                 std::cout << "Portfolio";
