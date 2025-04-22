@@ -143,6 +143,7 @@ struct Graph {
             }
 
             std::cout << "|}[/" << graph_ << "]";
+            std::cout << '\n';
 
             flushed_ = true;
         }
@@ -2791,6 +2792,8 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            prepare_exchange_rates(scenario, "usd");
+
             if (!graph) {
                 std::cout << "Portfolio";
                 for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -2801,8 +2804,18 @@ int main(int argc, const char* argv[]) {
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
                 Graph success_graph(graph);
-                Graph withdrawn_graph(graph);
-                Graph duration_graph(graph);
+                Graph withdrawn_graph(graph, "Money withdrawn per year");
+                Graph duration_graph(graph, "Worst Duration (months)");
+
+                if (scenario.minimum == 0.0f) {
+                    duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ = std::format("Withdraw from current portfolio - {} Years", scenario.years);
+                } else {
+                    duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ = std::format("Withdraw from current portfolio (Min: {}%) - {} Years", args[11], scenario.years);
+                }
+
+                success_graph.set_extra("\"legend_position\": \"bottom_left\",");
+                withdrawn_graph.set_extra("\"legend_position\": \"bottom_right\",");
+                duration_graph.set_extra("\"legend_position\": \"bottom_left\",");
 
                 if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
