@@ -1797,7 +1797,7 @@ int main(int argc, const char* argv[]) {
             size_t start_year = atoi(args[1].c_str());
             size_t end_year   = atoi(args[2].c_str());
 
-            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;", false);
+            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;gold:10;", false);
 
             auto values         = swr::load_values(portfolio);
             auto ch_inflation_data = swr::load_inflation(values, "ch_inflation");
@@ -1805,11 +1805,13 @@ int main(int argc, const char* argv[]) {
 
             Graph yearly_inflation_graph(true, "Yearly Inflation");
             Graph yearly_stocks_graph(true, "Yearly Stock Returns");
+            Graph gold_graph(true, "Historical Gold Price");
 
             yearly_inflation_graph.xtitle_ = "Years";
             yearly_stocks_graph.xtitle_ = "Years";
+            gold_graph.xtitle_ = "Years";
 
-            auto to_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
+            auto to_returns_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
                 std::map<float, float> yearly_results;
                 for (auto & value : data) {
                     if (value.year < start_year || value.year > end_year) {
@@ -1827,11 +1829,30 @@ int main(int argc, const char* argv[]) {
                 graph.add_data(yearly_results);
             };
 
-            to_graph(yearly_inflation_graph, ch_inflation_data, "Inflation CH");
-            to_graph(yearly_inflation_graph, us_inflation_data, "Inflation US");
+            auto to_price_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
+                std::map<float, float> yearly_results;
+                for (auto & value : data) {
+                    if (value.year < start_year || value.year > end_year) {
+                        continue;
+                    }
 
-            to_graph(yearly_stocks_graph, values[0], "CH Stocks");
-            to_graph(yearly_stocks_graph, values[1], "US Stocks");
+                    if (yearly_results.empty()) {
+                        yearly_results[value.year] = 100.0f;
+                    } else if (value.month == 1) {
+                        yearly_results[value.year] = yearly_results[value.year - 1];
+                    }
+                    yearly_results[value.year] *= value.value;
+                }
+                graph.add_legend(title);
+                graph.add_data(yearly_results);
+            };
+
+            to_returns_graph(yearly_inflation_graph, ch_inflation_data, "Inflation CH");
+            to_returns_graph(yearly_inflation_graph, us_inflation_data, "Inflation US");
+
+            to_returns_graph(yearly_stocks_graph, values[0], "CH Stocks");
+            to_returns_graph(yearly_stocks_graph, values[1], "US Stocks");
+            to_price_graph(gold_graph, values[3], "Gold");
 
             auto analyzer = [&](auto & v, const std::string & name) {
                 float average = 0.0f;
@@ -1882,6 +1903,8 @@ int main(int argc, const char* argv[]) {
             yearly_inflation_graph.flush();
             std::cout << "\n";
             yearly_stocks_graph.flush();
+            std::cout << "\n";
+            gold_graph.flush();
             std::cout << "\n";
         } else if (command == "allocation") {
             Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
