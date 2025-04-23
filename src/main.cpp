@@ -1499,12 +1499,14 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-        } else if (command == "withdraw_frequency") {
+        } else if (command == "withdraw_frequency" || command == "withdraw_frequency_graph") {
             if (args.size() < 7) {
                 std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
                 print_withdraw_frequency_help();
                 return 1;
             }
+
+            const bool graph = command == "withdraw_frequency_graph";
 
             swr::scenario scenario;
 
@@ -1531,15 +1533,27 @@ int main(int argc, const char* argv[]) {
                       << "     Number of years: " << scenario.years << "\n"
                       << "               Start: " << scenario.start_year << "\n"
                       << "                 End: " << scenario.end_year << "\n"
-                      << "                 TER: " << 100.0f * scenario.fees << "%\n";
+                      << "                 TER: " << 100.0f * scenario.fees << "%\n\n";
 
             auto start = std::chrono::high_resolution_clock::now();
 
-            std::cout << "portfolio;";
-            for (size_t f = 1; f <= 24; ++f) {
-                std::cout << f << ";";
+            Graph g(graph);
+            g.xtitle_ = "Withdrawal Frequency (months)";
+            g.title_ = std::format("Withdrawal Frequency - {} Years - {}% Withdrawal Rate", scenario.years, args[1]);
+
+            Graph duration_g(graph, "Worst Duration (months)");
+            duration_g.xtitle_ = "Withdrawal Frequency (months)";
+            duration_g.title_ = std::format("Withdrawal Frequency And Worst Duration - {} Years - {}% WR", scenario.years, args[1]);
+
+            if (!g.enabled_) {
+                std::cout << "portfolio;";
+                for (size_t f = 1; f <= 24; ++f) {
+                    std::cout << f << ";";
+                }
+                std::cout << std::endl;
             }
-            std::cout << std::endl;
+
+            prepare_exchange_rates(scenario, "usd");
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
                 if (scenario.portfolio.size() != 2) {
@@ -1551,9 +1565,17 @@ int main(int argc, const char* argv[]) {
                     scenario.portfolio[0].allocation = float(i);
                     scenario.portfolio[1].allocation = float(100 - i);
 
-                    for (auto& position : scenario.portfolio) {
-                        if (position.allocation > 0) {
-                            std::cout << position.allocation << "% " << position.asset << " ";
+                    g.add_legend(portfolio_to_string(scenario, true));
+                    duration_g.add_legend(portfolio_to_string(scenario, true));
+
+                    std::map<float, float> g_results;
+                    std::map<float, float> duration_g_results;
+
+                    if (!g.enabled_) {
+                        for (auto& position : scenario.portfolio) {
+                            if (position.allocation > 0) {
+                                std::cout << position.allocation << "% " << position.asset << " ";
+                            }
                         }
                     }
 
@@ -1570,17 +1592,29 @@ int main(int argc, const char* argv[]) {
                             return 1;
                         }
 
-                        std::cout << ";" << results.success_rate;
+                        if (g.enabled_) {
+                            g_results[f] = results.success_rate;
+                            duration_g_results[f] = results.worst_duration;
+                        } else {
+                            std::cout << ";" << results.success_rate;
+                        }
                     }
 
-                    std::cout << std::endl;
+                    if (g.enabled_) {
+                        g.add_data(g_results);
+                        duration_g.add_data(duration_g_results);
+                    } else {
+                        std::cout << std::endl;
+                    }
                 }
             } else {
                 swr::normalize_portfolio(scenario.portfolio);
 
-                for (auto& position : scenario.portfolio) {
-                    if (position.allocation > 0) {
-                        std::cout << position.allocation << "% " << position.asset << " ";
+                if (!g.enabled_) {
+                    for (auto& position : scenario.portfolio) {
+                        if (position.allocation > 0) {
+                            std::cout << position.allocation << "% " << position.asset << " ";
+                        }
                     }
                 }
 
@@ -1608,6 +1642,9 @@ int main(int argc, const char* argv[]) {
 
                     scenario.wr = w;
 
+                    g.add_legend(std::to_string(w));
+                    std::map<float, float> g_results;
+
                     for (size_t f = 1; f <= 24; ++f) {
                         scenario.withdraw_frequency = f;
 
@@ -1621,10 +1658,18 @@ int main(int argc, const char* argv[]) {
                             return 1;
                         }
 
-                        std::cout << ";" << results.success_rate;
+                        if (g.enabled_) {
+                            g_results[f] = results.success_rate;
+                        } else {
+                            std::cout << ";" << results.success_rate;
+                        }
                     }
 
-                    std::cout << std::endl;
+                    if (g.enabled_) {
+                        g.add_data(g_results);
+                    } else {
+                        std::cout << std::endl;
+                    }
                 }
             }
 
