@@ -2553,6 +2553,11 @@ int main(int argc, const char* argv[]) {
                 std::cout << "\n";
             }
 
+            if (scenario.portfolio.size() != 2) {
+                std::cout << "trinity_duration needs 2 assets in the portfolio" << std::endl;
+                return 1;
+            }
+
             {
                 Graph g(graph, "Worst Duration (months)");
                 for (size_t i = 0; i <= 100; i += portfolio_add) {
