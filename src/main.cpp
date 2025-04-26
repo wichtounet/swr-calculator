@@ -407,6 +407,16 @@ void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shor
     });
 }
 
+void multiple_wr_quality_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results, float ) {
+        if (results.failures) {
+            return results.success_rate * (results.worst_duration / (scenario.years * 12.0f));
+        } else {
+            return 1.0f * results.success_rate;
+        }
+    });
+}
+
 void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
         return results.success_rate;
@@ -461,6 +471,14 @@ void multiple_wr_tv_graph(Graph & graph, swr::scenario scenario, float start_wr,
 
     graph.add_legend("MED");
     graph.add_data(med_tv);
+}
+
+void multiple_wr_avg_tv_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+    std::map<float, swr::results> all_results;
+    multiple_wr_graph(graph, "", true, scenario, start_wr, end_wr, add_wr, [&all_results](const auto & results, float wr) {
+        all_results[wr] = results;
+        return results.tv_average;
+    });
 }
 
 void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
@@ -2514,6 +2532,93 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
                 } else {
                     multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
+            }
+        } else if (command == "trinity_cash_graphs") {
+            if (args.size() < 4) {
+                std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
+                return 1;
+            }
+
+            swr::scenario base_scenario;
+
+            base_scenario.years      = atoi(args[1].c_str());
+            base_scenario.start_year = atoi(args[2].c_str());
+            base_scenario.end_year   = atoi(args[3].c_str());
+
+            float portfolio_add = 25;
+            if (args.size() > 4){
+                portfolio_add = atof(args[4].c_str());
+            }
+
+            float start_wr = 3.0f;
+            if (args.size() > 5) {
+                start_wr = atof(args[5].c_str());
+            }
+
+            float end_wr   = 6.0f;
+            if (args.size() > 6) {
+                end_wr = atof(args[6].c_str());
+            }
+
+            float add_wr   = 0.1f;
+            if (args.size() > 7) {
+                add_wr = atof(args[7].c_str());
+            }
+
+            base_scenario.fees = 0.1f / 100.0f;
+            base_scenario.rebalance  = swr::parse_rebalance("yearly");
+            base_scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+
+            Graph success_graph(true);
+            success_graph.title_ = std::format("Trinity Study with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+            success_graph.set_extra("\"legend_position\": \"bottom_left\",");
+
+            Graph tv_graph(true, "Average Terminal Value (USD)", "bar-graph");
+            tv_graph.title_ = std::format("Terminal values with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+            tv_graph.set_extra("\"legend_position\": \"right\",");
+
+            Graph duration_graph(true, "Worst Duration (months)", "line-graph");
+            duration_graph.title_ = std::format("Worst duration with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+            duration_graph.set_extra("\"legend_position\": \"right\",");
+
+            Graph quality_graph(true, "Quality (%)", "line-graph");
+            quality_graph.title_ = std::format("Quality with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+            quality_graph.set_extra("\"legend_position\": \"right\",");
+
+            {
+                auto scenario_bonds = base_scenario;
+                scenario_bonds.portfolio  = swr::parse_portfolio("us_bonds:0;us_stocks:0;", true);
+                scenario_bonds.values         = swr::load_values(scenario_bonds.portfolio);
+                scenario_bonds.inflation_data = swr::load_inflation(scenario_bonds.values, "us_inflation");
+                prepare_exchange_rates(scenario_bonds, "usd");
+
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario_bonds.portfolio[1].allocation = float(i);
+                    scenario_bonds.portfolio[0].allocation = float(100 - i);
+
+                    multiple_wr_success_graph(success_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+                    multiple_wr_avg_tv_graph(tv_graph, scenario_bonds, start_wr, end_wr, add_wr);
+                    multiple_wr_duration_graph(duration_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+                    multiple_wr_quality_graph(quality_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+                }
+            }
+
+            {
+                auto scenario_cash = base_scenario;
+                scenario_cash.portfolio  = swr::parse_portfolio("cash:0;us_stocks:0;", true);
+                scenario_cash.values         = swr::load_values(scenario_cash.portfolio);
+                scenario_cash.inflation_data = swr::load_inflation(scenario_cash.values, "us_inflation");
+                prepare_exchange_rates(scenario_cash, "usd");
+
+                for (size_t i = 0; i <= 100 - portfolio_add; i += portfolio_add) {
+                    scenario_cash.portfolio[1].allocation = float(i);
+                    scenario_cash.portfolio[0].allocation = float(100 - i);
+
+                    multiple_wr_success_graph(success_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
+                    multiple_wr_avg_tv_graph(tv_graph, scenario_cash, start_wr, end_wr, add_wr);
+                    multiple_wr_duration_graph(duration_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
+                    multiple_wr_quality_graph(quality_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
                 }
             }
         } else if (command == "trinity_duration_sheets" || command == "trinity_duration_graph") {
