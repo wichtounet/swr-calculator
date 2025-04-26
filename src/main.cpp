@@ -3492,11 +3492,13 @@ int main(int argc, const char* argv[]) {
 
             errorsGraph.flush();
             std::cout << "\n\n";
-        } else if (command == "trinity_cash") {
+        } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
                 return 1;
             }
+
+            const bool graph = command == "trinity_cash_graph";
 
             swr::scenario scenario;
 
@@ -3530,6 +3532,18 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            prepare_exchange_rates(scenario, "usd");
+
+            Graph success_graph(graph);
+            success_graph.xtitle_ = "Months of cash";
+            if (compare) {
+                success_graph.title_ = std::format("Cash Cushion vs Lower WR - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+            } else if (scenario.cash_simple) {
+                success_graph.title_ = std::format("Simple Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+            } else {
+                success_graph.title_ = std::format("Smart Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+            }
+
             auto start = std::chrono::high_resolution_clock::now();
 
             if (total_allocation(scenario.portfolio) == 0.0f) {
@@ -3538,22 +3552,9 @@ int main(int argc, const char* argv[]) {
                     return 1;
                 }
 
-                std::cout << "Portfolio";
+                if (!graph) {
+                    std::cout << "Portfolio";
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    std::cout << ";";
-
-                    for (auto& position : scenario.portfolio) {
-                        if (position.allocation > 0) {
-                            std::cout << position.allocation << "% " << position.asset << " ";
-                        }
-                    }
-                }
-
-                if (compare) {
                     for (size_t i = 0; i <= 100; i += portfolio_add) {
                         scenario.portfolio[0].allocation = float(i);
                         scenario.portfolio[1].allocation = float(100 - i);
@@ -3566,9 +3567,24 @@ int main(int argc, const char* argv[]) {
                             }
                         }
                     }
-                }
 
-                std::cout << "\n";
+                    if (compare) {
+                        for (size_t i = 0; i <= 100; i += portfolio_add) {
+                            scenario.portfolio[0].allocation = float(i);
+                            scenario.portfolio[1].allocation = float(100 - i);
+
+                            std::cout << ";";
+
+                            for (auto& position : scenario.portfolio) {
+                                if (position.allocation > 0) {
+                                    std::cout << position.allocation << "% " << position.asset << " ";
+                                }
+                            }
+                        }
+                    }
+
+                    std::cout << "\n";
+                }
 
                 const float withdrawal = (wr / 100.0f) * scenario.initial_value;
 
@@ -3610,20 +3626,62 @@ int main(int argc, const char* argv[]) {
 
                 pool.wait();
 
-                for (size_t m = 0; m <= 60; ++m) {
-                    std::cout << m;
+                if (graph) {
+                    for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
+                        auto my_scenario = scenario;
 
-                    for (auto& results : all_results[m]) {
-                        std::cout << ';' << results.success_rate;
+                        my_scenario.portfolio[0].allocation = float(i);
+                        my_scenario.portfolio[1].allocation = float(100 - i);
+
+                        if (compare) {
+                            success_graph.add_legend(portfolio_to_string(my_scenario, true) + " CC");
+                        } else {
+                            success_graph.add_legend(portfolio_to_string(my_scenario, true));
+                        }
+
+                        std::map<float, float> results;
+
+                        for (size_t m = 0; m <= 60; ++m) {
+                            results[m] = all_results.at(m).at(j).success_rate;
+                        }
+
+                        success_graph.add_data(results);
                     }
 
                     if (compare) {
-                        for (auto& results : all_compare_results[m]) {
-                            std::cout << ';' << results.success_rate;
+                        for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
+                            auto my_scenario = scenario;
+
+                            my_scenario.portfolio[0].allocation = float(i);
+                            my_scenario.portfolio[1].allocation = float(100 - i);
+
+                            success_graph.add_legend(portfolio_to_string(my_scenario, true) + " WR");
+
+                            std::map<float, float> results;
+
+                            for (size_t m = 0; m <= 60; ++m) {
+                                results[m] = all_compare_results.at(m).at(j).success_rate;
+                            }
+
+                            success_graph.add_data(results);
                         }
                     }
+                } else {
+                    for (size_t m = 0; m <= 60; ++m) {
+                        std::cout << m;
 
-                    std::cout << "\n";
+                        for (auto& results : all_results[m]) {
+                            std::cout << ';' << results.success_rate;
+                        }
+
+                        if (compare) {
+                            for (auto& results : all_compare_results[m]) {
+                                std::cout << ';' << results.success_rate;
+                            }
+                        }
+
+                        std::cout << "\n";
+                    }
                 }
 
             } else {
