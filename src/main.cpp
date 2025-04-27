@@ -5,6 +5,7 @@
 //  http://opensource.org/licenses/MIT)
 //=======================================================================
 
+#include <format>
 #include <string>
 #include <iostream>
 #include <string_view>
@@ -582,6 +583,19 @@ void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float e
     csv_print("MAX", max_spending);
 }
 
+float failsafe_swr_one(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal) {
+    for (float wr = start_wr; wr >= end_wr; wr -= step) {
+        scenario.wr = wr;
+        auto monthly_results = swr::simulation(scenario);
+
+        if (monthly_results.success_rate >= 100.0f - goal) {
+            return wr;
+        }
+    }
+
+    return 0.0f;
+}
+
 void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal, std::ostream & out) {
     for (float wr = start_wr; wr >= end_wr; wr -= step) {
         scenario.wr = wr;
@@ -598,11 +612,7 @@ void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float 
 
 void failsafe_swr(std::string_view title, swr::scenario & scenario, float start_wr, float end_wr, float step, std::ostream & out) {
     if (title.empty()) {
-        for (auto& position : scenario.portfolio) {
-            if (position.allocation > 0) {
-                out << position.allocation << "% " << position.asset << " ";
-            }
-        }
+        out << portfolio_to_string(scenario, true);
     } else {
         out << title << " ";
     }
@@ -2387,7 +2397,9 @@ int main(int argc, const char* argv[]) {
             std::cout << std::endl;
             std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
             std::cout << failsafe_ss.str();
-        } else if (command == "failsafe") {
+        } else if (command == "failsafe" || command == "failsafe_graph") {
+            const bool graph = command == "failsafe_graph";
+
             swr::scenario scenario;
 
             scenario.years      = atoi(args[1].c_str());
@@ -2405,6 +2417,12 @@ int main(int argc, const char* argv[]) {
             scenario.values         = swr::load_values(scenario.portfolio);
             scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+            prepare_exchange_rates(scenario, "usd");
+
+            Graph g(graph, "Failsafe SWR (%)");
+            g.title_ = std::format("Failsafe Withdrawal Rates - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+            g.xtitle_ = "Stocks Allocation (%)";
+
             if (total_allocation(scenario.portfolio) == 0.0f) {
                 if (scenario.portfolio.size() != 2) {
                     std::cout << "Portfolio allocation cannot be zero!" << std::endl;
@@ -2413,11 +2431,26 @@ int main(int argc, const char* argv[]) {
 
                 std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
+                if (g.enabled_) {
+                    std::map<float, float> results;
 
-                    failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+                    for (size_t i = 0; i <= 100; i += portfolio_add) {
+                        scenario.portfolio[0].allocation = float(i);
+                        scenario.portfolio[1].allocation = float(100 - i);
+
+                        failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+                        results[i] = failsafe_swr_one(scenario, 6.0f, 0.0f, 0.01f, 0.0f);
+                    }
+
+                    g.add_legend("Failsafe SWR");
+                    g.add_data(results);
+                } else {
+                    for (size_t i = 0; i <= 100; i += portfolio_add) {
+                        scenario.portfolio[0].allocation = float(i);
+                        scenario.portfolio[1].allocation = float(100 - i);
+
+                        failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+                    }
                 }
             } else {
                 std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
