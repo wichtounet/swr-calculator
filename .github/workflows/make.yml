@@ -8,11 +8,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    name: Compile and test on Linux
+    runs-on: ubuntu-latest
+    container:
+      image: wichtounet/cpp:latest
     strategy:
         matrix:
-            os: [ubuntu-latest]
-            compiler: [g++-14,clang++-18]
+            compiler: [gcc, clang]
 
     steps:
     - name: Checkout code
@@ -20,17 +22,5 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install GCC compiler
-      run: sudo apt install g++-14
-
-    - name: install LLVM compiler
-      run: |
-          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-          sudo apt-add-repository "deb http://apt.llvm.org/noble/ llvm-toolchain-noble-18 main"
-          sudo apt update
-          sudo apt install clang-18
-
     - name: Build binaries
-      env:
-          CXX: ${{ matrix.compiler }}
-      run: make -j5 release_debug
+      run: make -j5 release_debug compiler=${{ matrix.compiler }}
