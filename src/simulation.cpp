@@ -315,9 +315,10 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
                 if (current_values[context.withdraw_index] > withdrawal_amount) {
                     current_values[context.withdraw_index] -= withdrawal_amount;
                 } else {
-                    auto leftover = withdrawal_amount - current_values[context.withdraw_index];
+                    const auto leftover = withdrawal_amount - current_values[context.withdraw_index];
+                    const auto other_index = context.withdraw_index == 1 ? 0 : 1;
                     current_values[context.withdraw_index] = 0;
-                    current_values[context.withdraw_index == 1 ? 0 : 1] = std::max(0.0f, current_values[context.withdraw_index == 1 ? 0 : 1] - leftover);
+                    current_values[other_index] = std::max(0.0f, current_values[other_index] - leftover);
                 }
             }
         }
@@ -480,7 +481,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
         auto & portfolio = scenario.portfolio;
 
         if (portfolio.size() != 2) {
-            res.message = "This withdrawal selection method only works with bonds and stocks";
+            res.message = "This withdrawal selection method only works with two assets";
             res.error = true;
             return res;
         }
@@ -491,7 +492,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             return res;
         }
 
-        if (portfolio[1].asset != "us_stocks" && portfolio[2].asset != "us_bonds") {
+        if (portfolio[1].asset != "us_stocks" && portfolio[1].asset != "us_bonds") {
             res.message = "This withdrawal selection method only works with bonds and stocks";
             res.error = true;
             return res;
