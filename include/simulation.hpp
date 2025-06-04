@@ -28,6 +28,12 @@ enum class WithdrawalMethod : uint64_t {
     VANGUARD  // Vanguard Dynamic Spending strategy
 };
 
+enum class WithdrawalSelection : uint64_t {
+    ALLOCATION, // Withdraw based on the asset allocation
+    STOCKS,     // Withdraw only stocks
+    BONDS       // Withdraw only bonds
+};
+
 enum class Flexibility : uint64_t {
     NONE,      // The default of no spending flexibility
     PORTFOLIO, // The strategy for being flexible when the total portfolio goes down below initial %
@@ -37,6 +43,7 @@ enum class Flexibility : uint64_t {
 Rebalancing parse_rebalance(const std::string& str);
 std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
 std::ostream & operator<<(std::ostream& out, const WithdrawalMethod & wmethod);
+std::ostream & operator<<(std::ostream& out, const WithdrawalSelection & wmethod);
 
 struct context {
     float target_value_ = 0.0f;
@@ -52,6 +59,7 @@ struct context {
     float last_withdrawal_amount = 0.0f;
 
     float withdrawal = 0.0f;
+    size_t withdraw_index = 0;
 
     size_t months = 0;
     size_t total_months = 0;
@@ -81,6 +89,7 @@ struct scenario {
     float            threshold          = 0.0f;
     float            fees               = 0.001f; // TER 0.1% = 0.001
     WithdrawalMethod wmethod            = WithdrawalMethod::STANDARD;
+    WithdrawalSelection wselection      = WithdrawalSelection::ALLOCATION;
     float            minimum            = 0.03f; // Minimum of 3% * initial
 
     float vanguard_max_increase = 0.05f;

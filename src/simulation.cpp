@@ -299,9 +299,29 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
             }
         }
 
-        for (auto& value : current_values) {
-            value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+        switch (scenario.wselection) {
+            case swr::WithdrawalSelection::ALLOCATION:
+            {
+                for (auto& value : current_values) {
+                    value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
+                }
+                break;
+            }
+
+            case swr::WithdrawalSelection::STOCKS:
+                [[fallthrough]];
+            case swr::WithdrawalSelection::BONDS:
+            {
+                if (current_values[context.withdraw_index] > withdrawal_amount) {
+                    current_values[context.withdraw_index] -= withdrawal_amount;
+                } else {
+                    auto leftover = withdrawal_amount - current_values[context.withdraw_index];
+                    current_values[context.withdraw_index] = 0;
+                    current_values[context.withdraw_index == 1 ? 0 : 1] = std::max(0.0f, current_values[context.withdraw_index == 1 ? 0 : 1] - leftover);
+                }
+            }
         }
+
 
         // Check for failure after the withdrawal
         if (scenario.is_failure(context, current_value(current_values))) {
@@ -455,6 +475,35 @@ swr::results swr_simulation(swr::scenario & scenario) {
         return res;
     }
 
+    size_t withdraw_index = 0;
+    if (scenario.wselection != swr::WithdrawalSelection::ALLOCATION) {
+        auto & portfolio = scenario.portfolio;
+
+        if (portfolio.size() != 2) {
+            res.message = "This withdrawal selection method only works with bonds and stocks";
+            res.error = true;
+            return res;
+        }
+
+        if (portfolio[0].asset != "us_stocks" && portfolio[0].asset != "us_bonds") {
+            res.message = "This withdrawal selection method only works with bonds and stocks";
+            res.error = true;
+            return res;
+        }
+
+        if (portfolio[1].asset != "us_stocks" && portfolio[2].asset != "us_bonds") {
+            res.message = "This withdrawal selection method only works with bonds and stocks";
+            res.error = true;
+            return res;
+        }
+
+        if (scenario.wselection == swr::WithdrawalSelection::BONDS) {
+            withdraw_index = portfolio[0].asset == "us_bonds" ? 0 : 1;
+        } else if (scenario.wselection == swr::WithdrawalSelection::STOCKS) {
+            withdraw_index = portfolio[0].asset == "us_stocks" ? 0 : 1;
+        } 
+    }
+
     if (scenario.end_year - scenario.start_year < scenario.years) {
         std::stringstream ss;
         ss << "The period is too short for a " << scenario.years << " years simulation. "
@@ -566,6 +615,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             swr::context context;
             context.months = 1;
             context.total_months = scenario.years * 12;
+            context.withdraw_index = withdraw_index;
 
             // The amount of money withdrawn per year (STANDARD method)
             context.withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
@@ -809,6 +859,19 @@ std::ostream & swr::operator<<(std::ostream& out, const WithdrawalMethod & wmeth
     return out << "Unknown withdrawal method";
 }
 
+std::ostream & swr::operator<<(std::ostream& out, const WithdrawalSelection & wselection){
+    switch (wselection) {
+        case swr::WithdrawalSelection::ALLOCATION:
+            return out << "allocatio";
+        case swr::WithdrawalSelection::STOCKS:
+            return out << "stocks";
+        case swr::WithdrawalSelection::BONDS:
+            return out << "bonds";
+    }
+
+    return out << "Unknown withdrawal method";
+}
+
 swr::results swr::simulation(scenario & scenario) {
     const size_t number_of_assets = scenario.portfolio.size();
 
@@ -893,7 +956,7 @@ std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
         << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
         << " init=" << scenario.initial_value
         << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
-        << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.minimum << "}"
+        << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.wselection << "," << scenario.minimum << "}"
         << " fees=" << scenario.fees
         << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
