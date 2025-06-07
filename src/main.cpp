@@ -3566,6 +3566,117 @@ int main(int argc, const char* argv[]) {
 
             errorsGraph.flush();
             std::cout << "\n\n";
+        } else if (command == "selection_graph") {
+            if (args.size() < 7) {
+                std::cout << "Not enough arguments for selection_graph" << std::endl;
+                return 1;
+            }
+
+            swr::scenario scenario;
+
+            scenario.years      = atoi(args[1].c_str());
+            scenario.start_year = atoi(args[2].c_str());
+            scenario.end_year   = atoi(args[3].c_str());
+            scenario.portfolio  = swr::parse_portfolio(args[4], true);
+            auto inflation      = args[5];
+            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+            std::string test = args[6];
+            if (args[6] == "none") {
+                scenario.rebalance  = swr::parse_rebalance(args[6]);
+            } else if (args[6] != "auto" && args[6] != "gp"){
+                std::cout << "Invalid arguments for selection_graph" << std::endl;
+                return 1;
+            }
+
+            std::cout << "Portfolio: \n";
+
+            for (auto & position : scenario.portfolio) {
+                std::cout << " " << position.asset << ": " << position.allocation << "%\n";
+            }
+
+            if (!prepare_exchange_rates(scenario, "usd")) {
+                std::cout << "Error with exchange rates" << std::endl;
+                return 1;
+            }
+
+            swr::normalize_portfolio(scenario.portfolio);
+
+            const float success_start_wr = 3.5f;
+            const float success_end_wr   = 5.5f;
+            const float add_wr   = 0.1f;
+
+            Graph success_graph(true);
+
+            if (test == "none") {
+                success_graph.title_ = std::format("Sell stocks or bonds - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+
+                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+                multiple_wr_success_graph(success_graph, "Alloc", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.wselection = swr::WithdrawalSelection::BONDS;
+                multiple_wr_success_graph(success_graph, "Bonds", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.wselection = swr::WithdrawalSelection::STOCKS;
+                multiple_wr_success_graph(success_graph, "Stocks", true, scenario, success_start_wr, success_end_wr, add_wr);
+            } else if (test == "auto"){
+                success_graph.title_ = std::format("Rebalance or not - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+
+                scenario.rebalance = swr::Rebalancing::NONE;
+                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+                multiple_wr_success_graph(success_graph, "Alloc/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::YEARLY;
+                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+                multiple_wr_success_graph(success_graph, "Alloc/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::NONE;
+                scenario.wselection = swr::WithdrawalSelection::BONDS;
+                multiple_wr_success_graph(success_graph, "Bonds/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::YEARLY;
+                scenario.wselection = swr::WithdrawalSelection::BONDS;
+                multiple_wr_success_graph(success_graph, "Bonds/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::NONE;
+                scenario.wselection = swr::WithdrawalSelection::STOCKS;
+                multiple_wr_success_graph(success_graph, "Stocks/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.rebalance = swr::Rebalancing::YEARLY;
+                scenario.wselection = swr::WithdrawalSelection::STOCKS;
+                multiple_wr_success_graph(success_graph, "Stocks/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+            } else if (test == "gp") {
+                success_graph.title_ = std::format("Which glidepath - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+
+                scenario.rebalance  = swr::parse_rebalance("none");
+
+                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+                multiple_wr_success_graph(success_graph, "Alloc", false, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.wselection = swr::WithdrawalSelection::BONDS;
+                multiple_wr_success_graph(success_graph, "Bonds", false, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.glidepath = true;
+                scenario.gp_goal = 100.0f;
+
+                scenario.gp_pass = 0.2;
+                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.2", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.gp_pass = 0.3;
+                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.3", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.gp_pass = 0.4;
+                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.4", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+
+                scenario.gp_pass = 0.5;
+                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.5", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+
+            }
+
+            success_graph.flush();
+            std::cout << "\n\n";
         } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
