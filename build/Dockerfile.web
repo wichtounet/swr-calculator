@@ -1,6 +1,6 @@
-FROM wichtounet/swr:build
+FROM wichtounet/cpp
 
-ADD release_debug/bin/swr_calculator /bin/swr_calculator
+ADD release_debug/gcc-15/bin/swr_calculator /bin/swr_calculator
 ADD stock-data /bin/stock-data
 
 WORKDIR /bin/
