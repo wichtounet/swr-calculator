@@ -988,6 +988,15 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     ss << "  \"best_tv\": " << results.best_tv << ",\n";
     ss << "  \"best_tv_month\": " << results.best_tv_month << ",\n";
     ss << "  \"best_tv_year\": " << results.best_tv_year << ",\n";
+    ss << "  \"withdrawn_per_year\": " << results.withdrawn_per_year << ",\n";
+    ss << "  \"spending_average\": " << results.spending_average << ",\n";
+    ss << "  \"spending_minimum\": " << results.spending_minimum << ",\n";
+    ss << "  \"spending_maximum\": " << results.spending_maximum << ",\n";
+    ss << "  \"spending_median\": " << results.spending_median << ",\n";
+    ss << "  \"years_large_spending\": " << results.years_large_spending << ",\n";
+    ss << "  \"years_small_spending\": " << results.years_small_spending << ",\n";
+    ss << "  \"years_volatile_up_spending\": " << results.years_volatile_up_spending << ",\n";
+    ss << "  \"years_volatile_down_spending\": " << results.years_volatile_down_spending << ",\n";
     ss << "  \"message\": \"" << results.message << "\",\n";
     ss << "  \"error\": " << (results.error ? "true" : "false") << "\n";
     ss << "}}";
