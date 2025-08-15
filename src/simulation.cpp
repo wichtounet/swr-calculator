@@ -272,7 +272,7 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
         if (scenario.social_security) {
             if ((context.months / 12.0f) >= scenario.social_delay) {
                 withdrawal_amount -= (scenario.social_coverage * withdrawal_amount);
-                withdrawal_amount -= scenario.social_amount;
+                withdrawal_amount -= scenario.social_amount / 12.0f;
             }
         }
 
