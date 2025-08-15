@@ -272,6 +272,7 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
         if (scenario.social_security) {
             if ((context.months / 12.0f) >= scenario.social_delay) {
                 withdrawal_amount -= (scenario.social_coverage * withdrawal_amount);
+                withdrawal_amount -= scenario.social_amount;
             }
         }
 
@@ -959,7 +960,7 @@ std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
         << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.wselection << "," << scenario.minimum << "}"
         << " fees=" << scenario.fees
-        << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << "}"
+        << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << ',' << scenario.social_amount << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
         << " fin={" << scenario.final_inflation << "," << scenario.final_threshold << "}"
         << " cash={" << scenario.cash_simple << "," << scenario.initial_cash << "}"

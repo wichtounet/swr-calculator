@@ -885,6 +885,12 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.social_coverage = 0;
     }
 
+    if (req.has_param("social_amount")) {
+        scenario.social_amount = atof(req.get_param_value("social_amount").c_str()) / 100.0f;
+    } else {
+        scenario.social_amount = 0;
+    }
+
     if (req.has_param("withdraw_frequency")) {
         scenario.withdraw_frequency = atoi(req.get_param_value("withdraw_frequency").c_str());
     } else {

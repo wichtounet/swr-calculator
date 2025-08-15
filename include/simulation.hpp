@@ -117,6 +117,7 @@ struct scenario {
     bool   social_security = false;
     size_t social_delay    = 0;
     float  social_coverage = 0.0f;
+    float  social_amount = 0.0f;
 
     // Configuration for flexibility
     Flexibility flexibility = Flexibility::NONE;
