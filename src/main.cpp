@@ -886,7 +886,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     if (req.has_param("social_amount")) {
-        scenario.social_amount = atof(req.get_param_value("social_amount").c_str()) / 100.0f;
+        scenario.social_amount = atof(req.get_param_value("social_amount").c_str());
     } else {
         scenario.social_amount = 0;
     }
