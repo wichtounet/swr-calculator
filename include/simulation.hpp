@@ -15,12 +15,7 @@
 
 namespace swr {
 
-enum class Rebalancing : uint64_t {
-    NONE,
-    MONTHLY,
-    YEARLY,
-    THRESHOLD
-};
+enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
 enum class WithdrawalMethod : uint64_t {
     STANDARD, // Withdraw based on the initial portfolio
@@ -40,31 +35,31 @@ enum class Flexibility : uint64_t {
     MARKET     // The strategy for being flexible when the the current market is in correction or bear market
 };
 
-Rebalancing parse_rebalance(const std::string& str);
-std::ostream & operator<<(std::ostream& out, const Rebalancing & rebalance);
-std::ostream & operator<<(std::ostream& out, const WithdrawalMethod & wmethod);
-std::ostream & operator<<(std::ostream& out, const WithdrawalSelection & wmethod);
+Rebalancing   parse_rebalance(const std::string& str);
+std::ostream& operator<<(std::ostream& out, const Rebalancing& rebalance);
+std::ostream& operator<<(std::ostream& out, const WithdrawalMethod& wmethod);
+std::ostream& operator<<(std::ostream& out, const WithdrawalSelection& wmethod);
 
 struct context {
     float target_value_ = 0.0f;
 
-    float vanguard_withdrawal = 0.0f;
+    float vanguard_withdrawal  = 0.0f;
     float last_year_withdrawal = 0.0f;
 
-    float cash = 0.0f;
+    float cash    = 0.0f;
     float minimum = 0.0f;
 
-    float year_start_value = 0.0f;
-    float year_withdrawn = 0.0f;
+    float year_start_value       = 0.0f;
+    float year_withdrawn         = 0.0f;
     float last_withdrawal_amount = 0.0f;
 
-    float withdrawal = 0.0f;
+    float  withdrawal     = 0.0f;
     size_t withdraw_index = 0;
 
-    size_t months = 0;
+    size_t months       = 0;
     size_t total_months = 0;
 
-    bool flexible = false; // true if we had to reduce spending in this simulation
+    bool  flexible  = false; // true if we had to reduce spending in this simulation
     float hist_high = 0.0f;
 
     bool end() const {
@@ -79,18 +74,18 @@ struct scenario {
     std::vector<bool>            exchange_set;
     std::vector<data_vector>     exchange_rates;
 
-    size_t           years;
-    float            wr;
-    size_t           start_year;
-    size_t           end_year;
-    float            initial_value      = 1000.0f;
-    size_t           withdraw_frequency = 1;
-    Rebalancing      rebalance          = Rebalancing::NONE;
-    float            threshold          = 0.0f;
-    float            fees               = 0.001f; // TER 0.1% = 0.001
-    WithdrawalMethod wmethod            = WithdrawalMethod::STANDARD;
-    WithdrawalSelection wselection      = WithdrawalSelection::ALLOCATION;
-    float            minimum            = 0.03f; // Minimum of 3% * initial
+    size_t              years;
+    float               wr;
+    size_t              start_year;
+    size_t              end_year;
+    float               initial_value      = 1000.0f;
+    size_t              withdraw_frequency = 1;
+    Rebalancing         rebalance          = Rebalancing::NONE;
+    float               threshold          = 0.0f;
+    float               fees               = 0.001f; // TER 0.1% = 0.001
+    WithdrawalMethod    wmethod            = WithdrawalMethod::STANDARD;
+    WithdrawalSelection wselection         = WithdrawalSelection::ALLOCATION;
+    float               minimum            = 0.03f; // Minimum of 3% * initial
 
     float vanguard_max_increase = 0.05f;
     float vanguard_max_decrease = 0.02f;
@@ -117,18 +112,18 @@ struct scenario {
     bool   social_security = false;
     size_t social_delay    = 0;
     float  social_coverage = 0.0f;
-    float  social_amount = 0.0f;
+    float  social_amount   = 0.0f;
 
     // Configuration for flexibility
-    Flexibility flexibility = Flexibility::NONE;
-    float flexibility_threshold_1 = 0.0;
-    float flexibility_threshold_2 = 0.0;
-    float flexibility_change_1 = 0.0;
-    float flexibility_change_2 = 0.0;
+    Flexibility flexibility             = Flexibility::NONE;
+    float       flexibility_threshold_1 = 0.0;
+    float       flexibility_threshold_2 = 0.0;
+    float       flexibility_change_1    = 0.0;
+    float       flexibility_change_2    = 0.0;
 
     bool strict_validation = true;
 
-    bool is_failure(const context & context, float current_value) const {
+    bool is_failure(const context& context, float current_value) const {
         // If it's not the end, we simply need to not run out of money
         if (!context.end()) {
             return current_value <= 0.0f;
@@ -143,7 +138,7 @@ struct scenario {
     }
 };
 
-std::ostream & operator<<(std::ostream& out, const scenario & scenario);
+std::ostream& operator<<(std::ostream& out, const scenario& scenario);
 
 struct results {
     size_t successes = 0;
@@ -175,12 +170,12 @@ struct results {
     size_t lowest_eff_wr_year        = 0;
     size_t lowest_eff_wr_start_year  = 0;
     size_t lowest_eff_wr_start_month = 0;
-    float lowest_eff_wr              = 0.0f;
+    float  lowest_eff_wr             = 0.0f;
 
     size_t highest_eff_wr_year        = 0;
     size_t highest_eff_wr_start_year  = 0;
     size_t highest_eff_wr_start_month = 0;
-    float highest_eff_wr              = 0.0f;
+    float  highest_eff_wr             = 0.0f;
 
     size_t worst_tv       = 0;
     size_t worst_tv_month = 0;
@@ -193,12 +188,12 @@ struct results {
     float withdrawn_per_year = 0;
 
     std::string message;
-    bool error = false;
+    bool        error = false;
 
     std::vector<float> terminal_values;
     std::vector<float> flexible;
-    void compute_terminal_values(std::vector<float> & terminal_values);
-    void compute_spending(std::vector<std::vector<float>> & terminal_values, size_t years);
+    void               compute_terminal_values(std::vector<float> terminal_values);
+    void               compute_spending(std::vector<std::vector<float>>& terminal_values, size_t years);
 
     void record_failure(size_t months, size_t current_month, size_t current_year) {
         if (!worst_duration || months < worst_duration) {
@@ -209,7 +204,7 @@ struct results {
     }
 };
 
-results simulation(scenario & scenario);
+results simulation(scenario& scenario);
 
 size_t simulations_ran();
 

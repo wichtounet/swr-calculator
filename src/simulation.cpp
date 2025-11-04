@@ -890,7 +890,7 @@ swr::results swr::simulation(scenario& scenario) {
     }
 }
 
-void swr::results::compute_terminal_values(std::vector<float>& terminal_values) {
+void swr::results::compute_terminal_values(std::vector<float> terminal_values) {
     std::ranges::sort(terminal_values);
 
     tv_median  = terminal_values[terminal_values.size() / 2 + 1];
