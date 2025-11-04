@@ -103,49 +103,54 @@ void multiple_wr(const swr::scenario& scenario) {
     }
 }
 
-struct Graph {
-    explicit Graph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") :
-            enabled_(enabled), graph_(graph), yitle_(ytitle) {}
+struct GraphBase {
+    explicit GraphBase(bool enabled, std::string_view ytitle, std::string_view graph) : enabled_(enabled), graph_(graph), yitle_(ytitle) {}
 
-    ~Graph() {
-        flush();
+    template <typename T1, typename T2>
+    void dump_labels(const std::vector<std::map<T1, T2>>& data) {
+        cpp_assert(data.size(), "data cannot be empty");
+
+        std::string sep = "";
+        for (auto& [key, value] : data.front()) {
+            std::cout << sep << key;
+            sep = ",";
+        }
+        std::cout << "|,\"series\":|";
+
+        std::string serie_sep;
+
+        for (auto& serie : data) {
+            std::cout << serie_sep << "|";
+            sep = "";
+            for (auto& [key, value] : serie) {
+                std::cout << sep << value;
+                sep = ",";
+            }
+            std::cout << "|";
+            serie_sep = ",";
+        }
     }
 
-    // We don't use JSON, but a form of retarded JSON for WPML to handle
-    void flush() {
+    template <typename T1, typename T2>
+    void dump_graph(const std::vector<std::map<T1, T2>>& data) {
         if (enabled_ && !flushed_) {
             std::cout << "[" << graph_ << " title=\"" << title_ << "\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
 
-            cpp_assert(data_.size(), "data cannot be empty");
+            if (legends_.empty()) {
+                std::cout << "]";
 
-            std::stringstream legends;
-            std::string       sep;
-            for (auto& legend : legends_) {
-                legends << sep << legend;
-                sep = ",";
-            }
-            std::cout << " legends=\"" << legends.str() << "\"]{" << extra_ << "\"labels\":|";
-
-            sep = "";
-            for (auto& [key, value] : data_.front()) {
-                std::cout << sep << key;
-                sep = ",";
-            }
-            std::cout << "|,\"series\":|";
-
-            std::string serie_sep;
-
-            for (auto& serie : data_) {
-                std::cout << serie_sep << "|";
-                sep = "";
-                for (auto& [key, value] : serie) {
-                    std::cout << sep << value;
+                extra_ += "\"legend_position\":\"none\", ";
+            } else {
+                std::stringstream legends;
+                std::string       sep;
+                for (auto& legend : legends_) {
+                    legends << sep << legend;
                     sep = ",";
                 }
-                std::cout << "|";
-                serie_sep = ",";
+                std::cout << " legends=\"" << legends.str() << "\"]";
             }
-
+            std::cout << "{" << extra_ << "\"labels\":|";
+            dump_labels(data);
             std::cout << "|}[/" << graph_ << "]";
             std::cout << '\n';
 
@@ -157,23 +162,57 @@ struct Graph {
         legends_.emplace_back(title);
     }
 
-    void add_data(const std::map<float, float>& data) {
-        data_.emplace_back(data);
-    }
-
     void set_extra(std::string_view extra) {
         extra_ = extra;
     }
 
-    const bool                          enabled_;
-    const std::string                   graph_;
-    const std::string                   yitle_;
-    std::string                         xtitle_ = "Withdrawal Rate (%)";
-    std::string                         title_  = "TODO";
-    std::string                         extra_;
-    std::vector<std::string>            legends_;
+    const bool               enabled_;
+    const std::string        graph_;
+    const std::string        yitle_;
+    std::string              xtitle_ = "Withdrawal Rate (%)";
+    std::string              title_  = "TODO";
+    std::string              extra_;
+    std::vector<std::string> legends_;
+    bool                     flushed_ = false;
+};
+
+struct Graph : GraphBase {
+    explicit Graph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") : GraphBase(enabled, ytitle, graph) {}
+
+    ~Graph() {
+        flush();
+    }
+
+    // We don't use JSON, but a form of retarded JSON for WPML to handle
+    void flush() {
+        dump_graph(data_);
+    }
+
+    void add_data(const std::map<float, float>& data) {
+        data_.emplace_back(data);
+    }
+
     std::vector<std::map<float, float>> data_;
-    bool                                flushed_ = false;
+};
+
+struct TimeGraph : GraphBase {
+    explicit TimeGraph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "line-graph") : GraphBase(enabled, ytitle, graph) {}
+
+    ~TimeGraph() {
+        flush();
+    }
+
+    // We don't use JSON, but a form of retarded JSON for WPML to handle
+    void flush() {
+        extra_ += "\"x_data_type\":\"time\", ";
+        dump_graph(data_);
+    }
+
+    void add_data(const std::map<int64_t, float>& data) {
+        data_.emplace_back(data);
+    }
+
+    std::vector<std::map<int64_t, float>> data_;
 };
 
 std::string asset_to_string(std::string_view asset) {
@@ -3670,6 +3709,75 @@ int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+int times_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for times_graph" << std::endl;
+        return 1;
+    }
+
+    swr::scenario scenario;
+
+    scenario.years          = atoi(args[1].c_str());
+    scenario.start_year     = atoi(args[2].c_str());
+    scenario.end_year       = atoi(args[3].c_str());
+    scenario.portfolio      = swr::parse_portfolio(args[4], true);
+    auto inflation          = args[5];
+    scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    scenario.rebalance      = swr::parse_rebalance(args[6]);
+    scenario.wr             = 4.0f / 100.0f;
+
+    std::cout << "Portfolio: \n";
+
+    for (auto& position : scenario.portfolio) {
+        std::cout << " " << position.asset << ": " << position.allocation << "%\n";
+    }
+
+    if (!prepare_exchange_rates(scenario, "usd")) {
+        std::cout << "Error with exchange rates" << std::endl;
+        return 1;
+    }
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    auto res = swr::simulation(scenario);
+
+    if (res.error) {
+        std::cout << "Simulation error: " << res.message << std::endl;
+
+        return 1;
+    }
+
+    std::map<int64_t, float> data;
+
+    size_t i = 0;
+    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            if (res.terminal_values[i] > 2.0f * res.tv_average) {
+                if (current_year < 1970) {
+                    int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
+                    data[timestamp]   = res.terminal_values[i];
+                    std::cout << current_year << ":" << current_month << "=" << timestamp;
+                } else {
+                    int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
+                    data[timestamp]   = res.terminal_values[i];
+
+                    std::cout << current_year << ":" << current_month << "=" << timestamp << std::endl;
+                }
+            }
+            ++i;
+        }
+    }
+
+    // TODO Turn that into a bar-graph
+
+    TimeGraph graph(true, "Terminal Value (USD)", "line-graph");
+    graph.add_data(data);
+
+    return 0;
+}
+
 int selection_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 7) {
         std::cout << "Not enough arguments for selection_graph" << std::endl;
@@ -4075,6 +4183,8 @@ int main(int argc, const char* argv[]) {
             return selection_graph_scenario(args);
         } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
             return trinity_cash_graph_scenario(command, args);
+        } else if (command == "times_graph") {
+            return times_graph_scenario(args);
         } else if (command == "server") {
             if (args.size() < 3) {
                 std::cout << "Not enough arguments for server" << std::endl;
