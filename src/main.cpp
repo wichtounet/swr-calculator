@@ -1963,7 +1963,7 @@ int analysis_scenario(const std::vector<std::string> & args) {
     return 0;
 }
 
-int allocation_scenario(const std::vector<std::string> & args) {
+int allocation_scenario() {
             Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
             g_us.title_ = "US Portfolio Allocation Annualized Returns";
             g_us.xtitle_ = "Portfolio";
@@ -2668,7 +2668,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
     return 0;
 }
 
-int trinity_cash_graphs_scenario(std::string_view command, const std::vector<std::string> & args) {
+int trinity_cash_graphs_scenario(const std::vector<std::string> & args) {
             if (args.size() < 4) {
                 std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
                 return 1;
@@ -3501,7 +3501,7 @@ int trinity_low_yield_scenario(std::string_view command, const std::vector<std::
     return 0;
 }
 
-int flexibility_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
+int flexibility_graph_scenario(const std::vector<std::string> & args) {
             if (args.size() < 12) {
                 std::cout << "Not enough arguments for flexibility_graph" << std::endl;
                 return 1;
@@ -3565,7 +3565,7 @@ int flexibility_graph_scenario(std::string_view command, const std::vector<std::
     return 0;
 }
 
-int flexibility_auto_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
+int flexibility_auto_graph_scenario(const std::vector<std::string> & args) {
             if (args.size() < 8) {
                 std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
                 return 1;
@@ -3686,7 +3686,7 @@ int flexibility_auto_graph_scenario(std::string_view command, const std::vector<
     return 0;
 }
 
-int selection_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
+int selection_graph_scenario(const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for selection_graph" << std::endl;
                 return 1;
@@ -4048,7 +4048,7 @@ int main(int argc, const char* argv[]) {
         } else if (command == "analysis") {
             return analysis_scenario(args);
         } else if (command == "allocation") {
-            return allocation_scenario(args);
+            return allocation_scenario();
         } else if (command == "term") {
             return term_scenario(args);
         } else if (command == "glidepath" || command == "glidepath_graph" || command == "reverse_glidepath" || command == "reverse_glidepath_graph") {
@@ -4060,7 +4060,7 @@ int main(int argc, const char* argv[]) {
         } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
             return trinity_success_scenario(command, args);
         } else if (command == "trinity_cash_graphs") {
-            return trinity_cash_graphs_scenario(command, args);
+            return trinity_cash_graphs_scenario(args);
         } else if (command == "trinity_duration_sheets" || command == "trinity_duration_graph") {
             return trinity_duration_scenario(command, args);
         } else if (command == "trinity_tv_sheets" || command == "trinity_tv_graph") {
@@ -4080,11 +4080,11 @@ int main(int argc, const char* argv[]) {
         } else if (command == "trinity_low_yield_sheets" || command == "trinity_low_yield_graph") {
             return trinity_low_yield_scenario(command, args);
         } else if (command == "flexibility_graph") {
-            return flexibility_graph_scenario(command, args);
+            return flexibility_graph_scenario(args);
         } else if (command == "flexibility_auto_graph") {
-            return flexibility_auto_graph_scenario(command, args);
+            return flexibility_auto_graph_scenario(args);
         } else if (command == "selection_graph") {
-            return selection_graph_scenario(command, args);
+            return selection_graph_scenario(args);
         } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
             return trinity_cash_graph_scenario(command, args);
         } else if (command == "server") {
