@@ -24,19 +24,19 @@
 
 namespace {
 
-std::vector<std::string> parse_args(int argc, const char* argv[]){
+std::vector<std::string> parse_args(int argc, const char* argv[]) {
     std::vector<std::string> args;
 
-    for(int i = 0; i < argc - 1; ++i){
-        args.emplace_back(argv[i+1]);
+    for (int i = 0; i < argc - 1; ++i) {
+        args.emplace_back(argv[i + 1]);
     }
 
     return args;
 }
 
-void multiple_wr(const swr::scenario & scenario){
+void multiple_wr(const swr::scenario& scenario) {
     std::cout << "           Portfolio: \n";
-    for (auto & position : scenario.portfolio) {
+    for (auto& position : scenario.portfolio) {
         std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
     }
 
@@ -76,19 +76,23 @@ void multiple_wr(const swr::scenario & scenario){
     i = 0;
 
     for (float wr = 3.0; wr < 5.1f; wr += 0.25f) {
-        auto & yearly_results = all_yearly_results[i];
-        auto & monthly_results = all_monthly_results[i];
+        auto& yearly_results  = all_yearly_results[i];
+        auto& monthly_results = all_monthly_results[i];
 
-        std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") " << yearly_results.success_rate << "%"
-                  << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":" << yearly_results.tv_maximum << "]" << std::endl;
+        std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") "
+                  << yearly_results.success_rate << "%"
+                  << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":"
+                  << yearly_results.tv_maximum << "]" << std::endl;
 
         if (yearly_results.error) {
             std::cout << "Error in simulation: " << yearly_results.message << std::endl;
             return;
         }
 
-        std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") " << monthly_results.success_rate << "%"
-                  << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":" << monthly_results.tv_maximum << "]" << std::endl;
+        std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") "
+                  << monthly_results.success_rate << "%"
+                  << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":"
+                  << monthly_results.tv_maximum << "]" << std::endl;
 
         if (monthly_results.error) {
             std::cout << "Error in simulation: " << monthly_results.message << std::endl;
@@ -153,7 +157,7 @@ struct Graph {
         legends_.emplace_back(title);
     }
 
-    void add_data(const std::map<float, float> & data) {
+    void add_data(const std::map<float, float>& data) {
         data_.emplace_back(data);
     }
 
@@ -219,8 +223,8 @@ std::string_view asset_to_blog_string(std::string_view asset) {
 std::string portfolio_to_blog_string(const swr::scenario& scenario, bool shortForm) {
     std::stringstream ss;
     if (shortForm && scenario.portfolio.size() == 2) {
-        auto & first = scenario.portfolio.front();
-        auto & second = scenario.portfolio.back();
+        auto& first  = scenario.portfolio.front();
+        auto& second = scenario.portfolio.back();
 
         if (first.allocation == 0) {
             ss << second.allocation << "% " << asset_to_blog_string(second.asset);
@@ -244,8 +248,8 @@ std::string portfolio_to_blog_string(const swr::scenario& scenario, bool shortFo
 std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
     std::stringstream ss;
     if (shortForm && scenario.portfolio.size() == 2) {
-        auto & first = scenario.portfolio.front();
-        auto & second = scenario.portfolio.back();
+        auto& first  = scenario.portfolio.front();
+        auto& second = scenario.portfolio.back();
 
         if (first.allocation == 0) {
             ss << second.allocation << asset_to_string_percent(second.asset);
@@ -267,7 +271,8 @@ std::string portfolio_to_string(const swr::scenario& scenario, bool shortForm) {
 }
 
 template <typename F>
-void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
+void multiple_wr_graph(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr, F functor) {
     if (title.empty()) {
         graph.add_legend(portfolio_to_string(scenario, shortForm));
     } else {
@@ -275,7 +280,7 @@ void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, co
     }
 
     cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
-    std::map<float, float> results;
+    std::map<float, float>   results;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
         results[wr] = 0.0f;
@@ -284,18 +289,20 @@ void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, co
     std::atomic<bool> error = false;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        pool.do_task([&results, &scenario, &error, &functor](float wr) {
-            auto my_scenario = scenario;
-            my_scenario.wr  = wr;
-            auto res = swr::simulation(my_scenario);
+        pool.do_task(
+                [&results, &scenario, &error, &functor](float wr) {
+                    auto my_scenario = scenario;
+                    my_scenario.wr   = wr;
+                    auto res         = swr::simulation(my_scenario);
 
-            if (res.error) {
-                error = false;
-                std::cout << std::endl << "ERROR: " << res.message << std::endl;
-            } else {
-                results[wr] = functor(res, wr);
-            }
-        }, wr);
+                    if (res.error) {
+                        error = false;
+                        std::cout << std::endl << "ERROR: " << res.message << std::endl;
+                    } else {
+                        results[wr] = functor(res, wr);
+                    }
+                },
+                wr);
     }
 
     pool.wait();
@@ -306,7 +313,7 @@ void multiple_wr_graph(Graph & graph, std::string_view title, bool shortForm, co
 }
 
 template <typename F>
-void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr, F functor){
+void multiple_wr_sheets(std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr, F functor) {
     if (title.empty()) {
         for (auto& position : scenario.portfolio) {
             if (position.allocation > 0) {
@@ -318,34 +325,37 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, 
     }
 
     cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
-    std::vector<float> results;
+    std::vector<float>       results;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
         results.push_back(0.0f);
     }
 
-    std::size_t i =0;
+    std::size_t       i     = 0;
     std::atomic<bool> error = false;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        pool.do_task([&results, &scenario, &error, &functor](float wr, size_t i) {
-            auto my_scenario = scenario;
-            my_scenario.wr  = wr;
-            auto res = swr::simulation(my_scenario);
+        pool.do_task(
+                [&results, &scenario, &error, &functor](float wr, size_t i) {
+                    auto my_scenario = scenario;
+                    my_scenario.wr   = wr;
+                    auto res         = swr::simulation(my_scenario);
 
-            if (res.error) {
-                error = false;
-                std::cout << std::endl << "ERROR: " << res.message << std::endl;
-            } else {
-                results[i] = functor(res);
-            }
-        }, wr, i++);
+                    if (res.error) {
+                        error = false;
+                        std::cout << std::endl << "ERROR: " << res.message << std::endl;
+                    } else {
+                        results[i] = functor(res);
+                    }
+                },
+                wr,
+                i++);
     }
 
     pool.wait();
 
     if (!error) {
-        for (auto & res : results) {
+        for (auto& res : results) {
             std::cout << ';' << res;
         }
     }
@@ -353,25 +363,24 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario & scenario, 
     std::cout << "\n";
 }
 
-std::map<float, swr::results> multiple_wr_success_graph_save(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+std::map<float, swr::results> multiple_wr_success_graph_save(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, swr::results> all_results;
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&all_results](const auto & results, float wr) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&all_results](const auto& results, float wr) {
         all_results[wr] = results;
         return results.success_rate;
     });
     return all_results;
 }
 
-void multiple_wr_success_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results, float ) {
-        return results.success_rate;
-    });
+void multiple_wr_success_graph(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto& results, float) { return results.success_rate; });
 }
 
-void multiple_wr_withdrawn_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto & results, float ) {
-        return results.withdrawn_per_year;
-    });
+void multiple_wr_withdrawn_graph(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [](const auto& results, float) { return results.withdrawn_per_year; });
 }
 
 void multiple_wr_errors_graph(Graph&                               graph,
@@ -397,8 +406,9 @@ void multiple_wr_errors_graph(Graph&                               graph,
     });
 }
 
-void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results, float ) {
+void multiple_wr_duration_graph(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results, float) {
         if (results.failures) {
             return results.worst_duration;
         } else {
@@ -407,8 +417,9 @@ void multiple_wr_duration_graph(Graph & graph, std::string_view title, bool shor
     });
 }
 
-void multiple_wr_quality_graph(Graph & graph, std::string_view title, bool shortForm, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto & results, float ) {
+void multiple_wr_quality_graph(
+        Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results, float) {
         if (results.failures) {
             return results.success_rate * (results.worst_duration / (scenario.years * 12.0f));
         } else {
@@ -417,19 +428,15 @@ void multiple_wr_quality_graph(Graph & graph, std::string_view title, bool short
     });
 }
 
-void multiple_wr_success_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
-        return results.success_rate;
-    });
+void multiple_wr_success_sheets(std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto& results) { return results.success_rate; });
 }
 
-void multiple_wr_withdrawn_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
-    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto & results) {
-        return results.withdrawn_per_year;
-    });
+void multiple_wr_withdrawn_sheets(std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [](const auto& results) { return results.withdrawn_per_year; });
 }
 
-void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_duration_sheets(std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results) {
         if (results.failures) {
             return results.worst_duration;
@@ -440,15 +447,15 @@ void multiple_wr_duration_sheets(std::string_view title, const swr::scenario & s
 }
 
 template <typename T>
-void csv_print(const std::string& header, const std::vector<T> & values) {
+void csv_print(const std::string& header, const std::vector<T>& values) {
     std::cout << header;
-    for (auto & v : values) {
+    for (auto& v : values) {
         std::cout << ";" << v;
     }
     std::cout << "\n";
 }
 
-void multiple_wr_tv_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_tv_graph(Graph& graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, float> max_tv;
     std::map<float, float> avg_tv;
     std::map<float, float> med_tv;
@@ -473,22 +480,22 @@ void multiple_wr_tv_graph(Graph & graph, swr::scenario scenario, float start_wr,
     graph.add_data(med_tv);
 }
 
-void multiple_wr_avg_tv_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_avg_tv_graph(Graph& graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, swr::results> all_results;
-    multiple_wr_graph(graph, "", true, scenario, start_wr, end_wr, add_wr, [&all_results](const auto & results, float wr) {
+    multiple_wr_graph(graph, "", true, scenario, start_wr, end_wr, add_wr, [&all_results](const auto& results, float wr) {
         all_results[wr] = results;
         return results.tv_average;
     });
 }
 
-void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::vector<float> min_tv;
     std::vector<float> max_tv;
     std::vector<float> avg_tv;
     std::vector<float> med_tv;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        scenario.wr = wr;
+        scenario.wr          = wr;
         auto monthly_results = swr::simulation(scenario);
         min_tv.push_back(monthly_results.tv_minimum);
         max_tv.push_back(monthly_results.tv_maximum);
@@ -502,7 +509,7 @@ void multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr,
     csv_print("MAX", max_tv);
 }
 
-void multiple_wr_spending_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_spending_graph(Graph& graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, float> max_spending;
     std::map<float, float> min_spending;
     std::map<float, float> avg_spending;
@@ -532,7 +539,7 @@ void multiple_wr_spending_graph(Graph & graph, swr::scenario scenario, float sta
     graph.add_data(med_spending);
 }
 
-void multiple_wr_spending_trend_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_spending_trend_graph(Graph& graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, float> small_spending;
     std::map<float, float> large_spending;
     std::map<float, float> volatile_up_spending;
@@ -543,9 +550,9 @@ void multiple_wr_spending_trend_graph(Graph & graph, swr::scenario scenario, flo
 
         auto results = swr::simulation(scenario);
 
-        small_spending[wr] = 100.0f * (results.years_small_spending / float(results.successes * scenario.years));
-        large_spending[wr] = 100.0f * (results.years_large_spending / float(results.successes * scenario.years));
-        volatile_up_spending[wr] = 100.0f * (results.years_volatile_up_spending / float(results.successes * scenario.years));
+        small_spending[wr]         = 100.0f * (results.years_small_spending / float(results.successes * scenario.years));
+        large_spending[wr]         = 100.0f * (results.years_large_spending / float(results.successes * scenario.years));
+        volatile_up_spending[wr]   = 100.0f * (results.years_volatile_up_spending / float(results.successes * scenario.years));
         volatile_down_spending[wr] = 100.0f * (results.years_volatile_down_spending / float(results.successes * scenario.years));
     }
 
@@ -562,14 +569,14 @@ void multiple_wr_spending_trend_graph(Graph & graph, swr::scenario scenario, flo
     graph.add_data(volatile_down_spending);
 }
 
-void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::vector<float> min_spending;
     std::vector<float> max_spending;
     std::vector<float> avg_spending;
     std::vector<float> med_spending;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        scenario.wr = wr;
+        scenario.wr          = wr;
         auto monthly_results = swr::simulation(scenario);
         min_spending.push_back(monthly_results.spending_minimum);
         max_spending.push_back(monthly_results.spending_maximum);
@@ -583,9 +590,9 @@ void multiple_wr_spending_sheets(swr::scenario scenario, float start_wr, float e
     csv_print("MAX", max_spending);
 }
 
-float failsafe_swr_one(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal) {
+float failsafe_swr_one(swr::scenario& scenario, float start_wr, float end_wr, float step, float goal) {
     for (float wr = start_wr; wr >= end_wr; wr -= step) {
-        scenario.wr = wr;
+        scenario.wr          = wr;
         auto monthly_results = swr::simulation(scenario);
 
         if (monthly_results.success_rate >= 100.0f - goal) {
@@ -596,13 +603,13 @@ float failsafe_swr_one(swr::scenario & scenario, float start_wr, float end_wr, f
     return 0.0f;
 }
 
-void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float step, float goal, std::ostream & out) {
+void failsafe_swr(swr::scenario& scenario, float start_wr, float end_wr, float step, float goal, std::ostream& out) {
     for (float wr = start_wr; wr >= end_wr; wr -= step) {
-        scenario.wr = wr;
+        scenario.wr          = wr;
         auto monthly_results = swr::simulation(scenario);
 
         if (monthly_results.success_rate >= 100.0f - goal) {
-            out<< std::format(";{:.2f}", wr);
+            out << std::format(";{:.2f}", wr);
             return;
         }
     }
@@ -610,7 +617,7 @@ void failsafe_swr(swr::scenario & scenario, float start_wr, float end_wr, float 
     out << ";0";
 }
 
-void failsafe_swr(std::string_view title, swr::scenario & scenario, float start_wr, float end_wr, float step, std::ostream & out) {
+void failsafe_swr(std::string_view title, swr::scenario& scenario, float start_wr, float end_wr, float step, std::ostream& out) {
     if (title.empty()) {
         out << portfolio_to_string(scenario, true);
     } else {
@@ -625,7 +632,7 @@ void failsafe_swr(std::string_view title, swr::scenario & scenario, float start_
     out << '\n';
 }
 
-void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
         std::cout << scenario.threshold << " ";
     } else {
@@ -633,7 +640,7 @@ void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end
     }
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        scenario.wr = wr;
+        scenario.wr          = wr;
         auto monthly_results = swr::simulation(scenario);
         std::cout << ';' << monthly_results.success_rate;
     }
@@ -641,13 +648,13 @@ void multiple_rebalance_sheets(swr::scenario scenario, float start_wr, float end
     std::cout << "\n";
 }
 
-void multiple_rebalance_graph(Graph & graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr){
+void multiple_rebalance_graph(Graph& graph, swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::map<float, float> data;
 
     for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-        scenario.wr = wr;
+        scenario.wr  = wr;
         auto results = swr::simulation(scenario);
-        data[wr] = results.success_rate;
+        data[wr]     = results.success_rate;
     }
 
     if (scenario.rebalance == swr::Rebalancing::THRESHOLD) {
@@ -665,7 +672,7 @@ void multiple_rebalance_graph(Graph & graph, swr::scenario scenario, float start
     graph.add_data(data);
 }
 
-httplib::Server * server_ptr = nullptr;
+httplib::Server* server_ptr = nullptr;
 
 void server_signal_handler(int signum) {
     std::cout << "Received signal (" << signum << ")" << std::endl;
@@ -678,7 +685,7 @@ void server_signal_handler(int signum) {
 void install_signal_handler() {
     struct sigaction action;
     sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
+    action.sa_flags   = 0;
     action.sa_handler = server_signal_handler;
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
@@ -697,8 +704,8 @@ bool check_parameters(const httplib::Request& req, httplib::Response& res, std::
     return true;
 }
 
-bool prepare_exchange_rates(swr::scenario & scenario, const std::string& currency) {
-    auto exchange_data = swr::load_exchange("usd_chf");
+bool prepare_exchange_rates(swr::scenario& scenario, const std::string& currency) {
+    auto exchange_data     = swr::load_exchange("usd_chf");
     auto inv_exchange_data = swr::load_exchange_inv("usd_chf");
 
     if (exchange_data.empty() || inv_exchange_data.empty()) {
@@ -743,7 +750,7 @@ bool prepare_exchange_rates(swr::scenario & scenario, const std::string& currenc
     return true;
 }
 
-void configure_withdrawal_method(swr::scenario & scenario, std::vector<std::string> args, size_t n){
+void configure_withdrawal_method(swr::scenario& scenario, std::vector<std::string> args, size_t n) {
     if (args.size() > n) {
         if (args[n] == "fixed") {
             scenario.wmethod = swr::WithdrawalMethod::STANDARD;
@@ -788,7 +795,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     // Don't run for too long
     scenario.timeout_msecs = 200;
 
-    auto inflation      = req.get_param_value("inflation");
+    auto inflation = req.get_param_value("inflation");
     if (req.has_param("inflation2")) {
         inflation = req.get_param_value("inflation2");
     }
@@ -802,8 +809,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     // Parse the portfolio
     std::string portfolio_base;
     if (req.has_param("portfolio")) {
-        portfolio_base = req.get_param_value("portfolio");
-        scenario.portfolio  = swr::parse_portfolio(portfolio_base, false);
+        portfolio_base     = req.get_param_value("portfolio");
+        scenario.portfolio = swr::parse_portfolio(portfolio_base, false);
     } else {
         portfolio_base     = std::format("us_stocks:{};us_bonds:{};commodities:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
                                      req.get_param_value("p_us_stocks"),
@@ -968,12 +975,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     auto results = simulation(scenario);
 
-    std::cout
-        << "DEBUG: Response"
-        << " error=" << results.error
-        << " message=" << results.message
-        << " success_rate=" << results.success_rate
-        << std::endl;
+    std::cout << "DEBUG: Response"
+              << " error=" << results.error << " message=" << results.message << " success_rate=" << results.success_rate << std::endl;
 
     std::stringstream ss;
 
@@ -1009,7 +1012,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     res.set_content(ss.str(), "text/json");
 
-    auto stop = std::chrono::high_resolution_clock::now();
+    auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
 }
@@ -1027,7 +1030,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.timeout_msecs = 200;
 
     // Parse the parameters
-    scenario.wr       = atof(req.get_param_value("wr").c_str());
+    scenario.wr    = atof(req.get_param_value("wr").c_str());
     float sr       = atof(req.get_param_value("sr").c_str());
     float income   = atoi(req.get_param_value("income").c_str());
     float expenses = atoi(req.get_param_value("expenses").c_str());
@@ -1051,16 +1054,10 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
         scenario.rebalance = swr::Rebalancing::NONE;
     }
 
-    float returns   = 7.0f;
+    float returns = 7.0f;
 
-    std::cout
-        << "DEBUG: Retirement Request wr=" << scenario.wr
-        << " sr=" << sr
-        << " nw=" << nw
-        << " income=" << income
-        << " expenses=" << expenses
-        << " rebalance=" << scenario.rebalance
-        << std::endl;
+    std::cout << "DEBUG: Retirement Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
+              << " rebalance=" << scenario.rebalance << std::endl;
 
     float fi_number = expenses * (100.0f / scenario.wr);
 
@@ -1081,78 +1078,78 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     scenario.start_year         = 1871;
     scenario.end_year           = 2022;
 
-    auto portfolio_100   = swr::parse_portfolio("us_stocks:100;", false);
-    auto values_100      = swr::load_values(portfolio_100);
+    auto portfolio_100 = swr::parse_portfolio("us_stocks:100;", false);
+    auto values_100    = swr::load_values(portfolio_100);
 
-    auto portfolio_60   = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
-    auto values_60      = swr::load_values(portfolio_60);
+    auto portfolio_60 = swr::parse_portfolio("us_stocks:60;us_bonds:40;", false);
+    auto values_60    = swr::load_values(portfolio_60);
 
-    auto portfolio_40   = swr::parse_portfolio("us_stocks:40;us_bonds:60;", false);
-    auto values40      = swr::load_values(portfolio_40);
+    auto portfolio_40 = swr::parse_portfolio("us_stocks:40;us_bonds:60;", false);
+    auto values40     = swr::load_values(portfolio_40);
 
     scenario.inflation_data = swr::load_inflation(values_100, "us_inflation");
 
-    scenario.portfolio  = portfolio_100;
-    scenario.values     = values_100;
+    scenario.portfolio = portfolio_100;
+    scenario.values    = values_100;
     prepare_exchange_rates(scenario, "usd");
 
     scenario.years      = 30;
     auto results_30_100 = simulation(scenario);
-    scenario.years              = 40;
+    scenario.years      = 40;
     auto results_40_100 = simulation(scenario);
-    scenario.years              = 50;
+    scenario.years      = 50;
     auto results_50_100 = simulation(scenario);
 
     scenario.portfolio = portfolio_60;
     scenario.values    = values_60;
     prepare_exchange_rates(scenario, "usd");
 
-    scenario.years              = 30;
+    scenario.years     = 30;
     auto results_30_60 = simulation(scenario);
-    scenario.years              = 40;
+    scenario.years     = 40;
     auto results_40_60 = simulation(scenario);
-    scenario.years              = 50;
+    scenario.years     = 50;
     auto results_50_60 = simulation(scenario);
 
     scenario.portfolio = portfolio_40;
     scenario.values    = values40;
     prepare_exchange_rates(scenario, "usd");
 
-    scenario.years              = 30;
+    scenario.years     = 30;
     auto results_30_40 = simulation(scenario);
-    scenario.years              = 40;
+    scenario.years     = 40;
     auto results_40_40 = simulation(scenario);
-    scenario.years              = 50;
+    scenario.years     = 50;
     auto results_50_40 = simulation(scenario);
 
-    bool error = false;
+    bool        error = false;
     std::string message;
     if (results_50_40.error) {
-        error = true;
+        error   = true;
         message = results_50_40.message;
     } else if (results_40_40.error) {
-        error = true;
+        error   = true;
         message = results_40_40.message;
     } else if (results_30_40.error) {
-        error = true;
+        error   = true;
         message = results_30_40.message;
     } else if (results_50_60.error) {
-        error = true;
+        error   = true;
         message = results_50_60.message;
     } else if (results_40_60.error) {
-        error = true;
+        error   = true;
         message = results_40_60.message;
     } else if (results_30_60.error) {
-        error = true;
+        error   = true;
         message = results_30_60.message;
     } else if (results_50_100.error) {
-        error = true;
+        error   = true;
         message = results_50_100.message;
     } else if (results_40_100.error) {
-        error = true;
+        error   = true;
         message = results_40_100.message;
     } else if (results_30_100.error) {
-        error = true;
+        error   = true;
         message = results_30_100.message;
     }
 
@@ -1181,7 +1178,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     res.set_content(ss.str(), "text/json");
 
-    auto stop = std::chrono::high_resolution_clock::now();
+    auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
     std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
 }
@@ -1189,51 +1186,52 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 } // namespace
 
 void print_general_help() {
-    std::cout << "\nSafe Withdrawal Rate (SWR) Calculator - Command Line Tool\n"
-              << "-------------------------------------------------------\n\n"
-              << "Usage:\n"
-              << "  swr_calculator <command> [arguments]\n\n"
-              << "Available Commands:\n\n"
+    std::cout
+            << "\nSafe Withdrawal Rate (SWR) Calculator - Command Line Tool\n"
+            << "-------------------------------------------------------\n\n"
+            << "Usage:\n"
+            << "  swr_calculator <command> [arguments]\n\n"
+            << "Available Commands:\n\n"
 
-              << "1. fixed\n"
-              << "   Analyze a fixed withdrawal rate over a historical period.\n"
-              << "   Usage:\n"
-              << "     swr_calculator fixed <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [final_threshold]\n"
-              << "   Example:\n"
-              << "     swr_calculator fixed 4 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 5\n\n"
+            << "1. fixed\n"
+            << "   Analyze a fixed withdrawal rate over a historical period.\n"
+            << "   Usage:\n"
+            << "     swr_calculator fixed <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [final_threshold]\n"
+            << "   Example:\n"
+            << "     swr_calculator fixed 4 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 5\n\n"
 
-              << "2. swr\n"
-              << "   Find the safe withdrawal rate that meets a success rate limit.\n"
-              << "   Usage:\n"
-              << "     swr_calculator swr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [success_rate_limit]\n"
-              << "   Example:\n"
-              << "     swr_calculator swr 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 95\n\n"
+            << "2. swr\n"
+            << "   Find the safe withdrawal rate that meets a success rate limit.\n"
+            << "   Usage:\n"
+            << "     swr_calculator swr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [success_rate_limit]\n"
+            << "   Example:\n"
+            << "     swr_calculator swr 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 95\n\n"
 
-              << "3. multiple_wr\n"
-              << "   Analyze multiple withdrawal rates with rebalancing strategies.\n"
-              << "   Usage:\n"
-              << "     swr_calculator multiple_wr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> <rebalance_strategy>\n"
-              << "   Example:\n"
-              << "     swr_calculator multiple_wr 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation annual\n\n"
+            << "3. multiple_wr\n"
+            << "   Analyze multiple withdrawal rates with rebalancing strategies.\n"
+            << "   Usage:\n"
+            << "     swr_calculator multiple_wr <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> <rebalance_strategy>\n"
+            << "   Example:\n"
+            << "     swr_calculator multiple_wr 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation annual\n\n"
 
-              << "4. withdraw_frequency\n"
-              << "   Analyze different withdrawal frequencies.\n"
-              << "   Usage:\n"
-              << "     swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n"
-              << "   Example:\n"
-              << "     swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n\n"
+            << "4. withdraw_frequency\n"
+            << "   Analyze different withdrawal frequencies.\n"
+            << "   Usage:\n"
+            << "     swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n"
+            << "   Example:\n"
+            << "     swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n\n"
 
-              << "5. frequency\n"
-              << "   Analyze portfolio performance with different withdrawal frequencies and contributions.\n"
-              << "   Usage:\n"
-              << "     swr_calculator frequency <start_year> <end_year> <years> <withdraw_frequency> <monthly_contribution>\n"
-              << "   Example:\n"
-              << "     swr_calculator frequency 1871 2024 30 12 500\n\n"
+            << "5. frequency\n"
+            << "   Analyze portfolio performance with different withdrawal frequencies and contributions.\n"
+            << "   Usage:\n"
+            << "     swr_calculator frequency <start_year> <end_year> <years> <withdraw_frequency> <monthly_contribution>\n"
+            << "   Example:\n"
+            << "     swr_calculator frequency 1871 2024 30 12 500\n\n"
 
-              << "General Help:\n"
-              << "  Use 'swr_calculator help' to display this help message.\n"
-              << "  For detailed help on a specific command, provide incorrect arguments to trigger command-specific help.\n"
-              << std::endl;
+            << "General Help:\n"
+            << "  Use 'swr_calculator help' to display this help message.\n"
+            << "  For detailed help on a specific command, provide incorrect arguments to trigger command-specific help.\n"
+            << std::endl;
 }
 
 void print_fixed_help() {
@@ -1288,21 +1286,22 @@ void print_multiple_wr_help() {
 }
 
 void print_withdraw_frequency_help() {
-    std::cout << "\nUsage:\n"
-              << "  swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n\n"
-              << "Arguments:\n"
-              << "  withdraw_frequency  Mode to analyze different withdrawal frequencies.\n"
-              << "  <withdrawal_rate>   Annual withdrawal rate percentage (e.g., 4 for 4%).\n"
-              << "  <years>            Number of years for retirement duration (e.g., 30).\n"
-              << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
-              << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
-              << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:70;us_bonds:30;\").\n"
-              << "  <inflation_data>   Inflation dataset for adjusting withdrawals (e.g., us_inflation).\n"
-              << "  [fees]             (Optional) Total Expense Ratio (TER) as a percentage (default: 0%).\n"
-              << "  [portfolio_adjustment] (Optional) Adjustment factor for the portfolio in percentage (default: 20%).\n\n"
-              << "Example:\n"
-              << "  swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n"
-              << std::endl;
+    std::cout
+            << "\nUsage:\n"
+            << "  swr_calculator withdraw_frequency <withdrawal_rate> <years> <start_year> <end_year> \"<portfolio>\" <inflation_data> [fees] [portfolio_adjustment]\n\n"
+            << "Arguments:\n"
+            << "  withdraw_frequency  Mode to analyze different withdrawal frequencies.\n"
+            << "  <withdrawal_rate>   Annual withdrawal rate percentage (e.g., 4 for 4%).\n"
+            << "  <years>            Number of years for retirement duration (e.g., 30).\n"
+            << "  <start_year>       Start year of historical analysis (e.g., 1871).\n"
+            << "  <end_year>         End year of historical analysis (e.g., 2024).\n"
+            << "  <portfolio>        Asset allocation in the format \"asset:percentage;\" (e.g., \"us_stocks:70;us_bonds:30;\").\n"
+            << "  <inflation_data>   Inflation dataset for adjusting withdrawals (e.g., us_inflation).\n"
+            << "  [fees]             (Optional) Total Expense Ratio (TER) as a percentage (default: 0%).\n"
+            << "  [portfolio_adjustment] (Optional) Adjustment factor for the portfolio in percentage (default: 20%).\n\n"
+            << "Example:\n"
+            << "  swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n"
+            << std::endl;
 }
 
 void print_frequency_help() {
@@ -1320,149 +1319,310 @@ void print_frequency_help() {
               << std::endl;
 }
 
-int fixed_scenario(const std::vector<std::string> & args) {
+int fixed_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
+        print_fixed_help();
+        return 1;
+    }
 
-            if (args.size() < 7) {
-                std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
-                print_fixed_help();
-                return 1;
-            }
+    swr::scenario scenario;
 
-            swr::scenario scenario;
+    scenario.wr         = atof(args[1].c_str());
+    scenario.years      = atoi(args[2].c_str());
+    scenario.start_year = atoi(args[3].c_str());
+    scenario.end_year   = atoi(args[4].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[5], false);
+    auto inflation      = args[6];
 
-            scenario.wr         = atof(args[1].c_str());
-            scenario.years      = atoi(args[2].c_str());
-            scenario.start_year = atoi(args[3].c_str());
-            scenario.end_year   = atoi(args[4].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[5], false);
-            auto inflation      = args[6];
+    if (args.size() > 7) {
+        scenario.fees = atof(args[7].c_str()) / 100.0f;
+    }
 
-            if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str()) / 100.0f;
-            }
+    if (args.size() > 8) {
+        scenario.final_threshold = atof(args[8].c_str()) / 100.0f;
+    }
 
-            if (args.size() > 8) {
-                scenario.final_threshold = atof(args[8].c_str()) / 100.0f;
-            }
+    swr::normalize_portfolio(scenario.portfolio);
 
-            swr::normalize_portfolio(scenario.portfolio);
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
+              << "     Number of years: " << scenario.years << "\n"
+              << "               Start: " << scenario.start_year << "\n"
+              << "                 End: " << scenario.end_year << "\n"
+              << "                 TER: " << 100.0f * scenario.fees << "%\n"
+              << "           Inflation: " << inflation << "\n"
+              << "           Portfolio: \n";
 
-            std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
-                      << "     Number of years: " << scenario.years << "\n"
-                      << "               Start: " << scenario.start_year << "\n"
-                      << "                 End: " << scenario.end_year << "\n"
-                      << "                 TER: " << 100.0f * scenario.fees << "%\n"
-                      << "           Inflation: " << inflation << "\n"
-                      << "           Portfolio: \n";
+    for (auto& position : scenario.portfolio) {
+        std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
+    }
 
-            for (auto & position : scenario.portfolio) {
-                std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
-            }
+    if (!prepare_exchange_rates(scenario, "usd")) {
+        std::cout << "Error with exchange rates" << std::endl;
+        return 1;
+    }
 
-            if (!prepare_exchange_rates(scenario, "usd")) {
-                std::cout << "Error with exchange rates" << std::endl;
-                return 1;
-            }
+    scenario.strict_validation = false;
 
-            scenario.strict_validation = false;
+    auto printer = [scenario](const std::string& message, const auto& results) {
+        std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") "
+                  << results.success_rate << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum
+                  << "]" << std::endl;
 
-            auto printer = [scenario](const std::string& message, const auto & results) {
-                std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") " << results.success_rate
-                          << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum << "]" << std::endl;
+        if (results.failures) {
+            std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/"
+                      << results.worst_starting_year << ")" << std::endl;
+        } else {
+            std::cout << "         Worst duration: " << scenario.years * 12 << " months" << std::endl;
+        }
 
-                if (results.failures) {
-                    std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/" << results.worst_starting_year << ")" << std::endl;
-                } else {
-                    std::cout << "         Worst duration: " << scenario.years * 12 << " months" << std::endl;
-                }
+        std::cout << "         Worst result: " << results.worst_tv << " (" << results.worst_tv_month << "/" << results.worst_tv_year << ")" << std::endl;
+        std::cout << "          Best result: " << results.best_tv << " (" << results.best_tv_month << "/" << results.best_tv_year << ")" << std::endl;
 
-                std::cout << "         Worst result: " << results.worst_tv << " (" << results.worst_tv_month << "/" << results.worst_tv_year << ")" << std::endl;
-                std::cout << "          Best result: " << results.best_tv << " (" << results.best_tv_month << "/" << results.best_tv_year << ")" << std::endl;
+        std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% (" << results.highest_eff_wr_start_month << "/"
+                  << results.highest_eff_wr_start_year << "->" << results.highest_eff_wr_year << ")" << std::endl;
+        std::cout << "          Lowest Eff. WR: " << results.lowest_eff_wr << "% (" << results.lowest_eff_wr_start_month << "/"
+                  << results.lowest_eff_wr_start_year << "->" << results.lowest_eff_wr_year << ")" << std::endl;
+    };
 
-                std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% ("
-                          << results.highest_eff_wr_start_month << "/" << results.highest_eff_wr_start_year
-                          << "->" << results.highest_eff_wr_year << ")" << std::endl;
-                std::cout << "          Lowest Eff. WR: " << results.lowest_eff_wr << "% ("
-                          << results.lowest_eff_wr_start_month << "/" << results.lowest_eff_wr_start_year
-                          << "->" << results.lowest_eff_wr_year << ")" << std::endl;
+    auto start = std::chrono::high_resolution_clock::now();
 
-            };
+    scenario.withdraw_frequency = 12;
+    std::cout << scenario << std::endl;
+    auto yearly_results = swr::simulation(scenario);
 
-            auto start = std::chrono::high_resolution_clock::now();
+    if (yearly_results.message.size()) {
+        std::cout << yearly_results.message << std::endl;
+    }
 
-            scenario.withdraw_frequency = 12;
-            std::cout << scenario << std::endl;
-            auto yearly_results = swr::simulation(scenario);
+    if (yearly_results.error) {
+        return 1;
+    }
 
-            if (yearly_results.message.size()) {
-                std::cout << yearly_results.message << std::endl;
-            }
+    printer("Yearly", yearly_results);
 
-            if (yearly_results.error) {
-                return 1;
-            }
+    scenario.withdraw_frequency = 1;
+    auto monthly_results        = swr::simulation(scenario);
 
-            printer("Yearly", yearly_results);
+    printer("Monthly", monthly_results);
 
-            scenario.withdraw_frequency = 1;
-            auto monthly_results = swr::simulation(scenario);
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-            printer("Monthly", monthly_results);
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
+              << std::endl;
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-
-            return 0;
+    return 0;
 }
 
-int single_swr_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 6) {
-                std::cout << "Error: Not enough arguments for the 'swr' command." << std::endl;
-                print_swr_help();
-                return 1;
+int single_swr_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 6) {
+        std::cout << "Error: Not enough arguments for the 'swr' command." << std::endl;
+        print_swr_help();
+        return 1;
+    }
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+
+    if (args.size() > 6) {
+        scenario.fees = atof(args[6].c_str()) / 100.0f;
+    }
+
+    float limit = 95.0f;
+    if (args.size() > 7) {
+        limit = atof(args[7].c_str());
+    }
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    for (auto& position : scenario.portfolio) {
+        std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    scenario.withdraw_frequency = 1;
+
+    float        best_wr = 0.0f;
+    swr::results best_results;
+
+    for (float wr = 6.0f; wr >= 2.0f; wr -= 0.01f) {
+        scenario.wr = wr;
+
+        auto results = swr::simulation(scenario);
+
+        if (results.message.size()) {
+            std::cout << results.message << std::endl;
+        }
+
+        if (results.error) {
+            return 1;
+        }
+
+        if (results.success_rate > limit) {
+            best_results = results;
+            best_wr      = wr;
+            break;
+        }
+    }
+
+    std::cout << "WR: " << best_wr << "(" << best_results.success_rate << ")" << std::endl;
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
+              << std::endl;
+
+    return 0;
+}
+
+int multiple_swr_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Error: Not enough arguments for the 'multiple_wr' command." << std::endl;
+        print_multiple_wr_help();
+        return 1;
+    }
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    std::cout << "     Number of years: " << scenario.years << "\n"
+              << "           Rebalance: " << scenario.rebalance << "\n"
+              << "               Start: " << scenario.start_year << "\n"
+              << "                 End: " << scenario.end_year << "\n";
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
+
+        for (size_t i = 0; i <= 100; i += 5) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            multiple_wr(scenario);
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+        multiple_wr(scenario);
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
+              << std::endl;
+
+    return 0;
+}
+
+int withdraw_frequency_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
+        print_withdraw_frequency_help();
+        return 1;
+    }
+
+    const bool graph = command == "withdraw_frequency_graph";
+
+    swr::scenario scenario;
+
+    scenario.wr         = atof(args[1].c_str());
+    scenario.years      = atoi(args[2].c_str());
+    scenario.start_year = atoi(args[3].c_str());
+    scenario.end_year   = atoi(args[4].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[5], true);
+    auto inflation      = args[6];
+
+    if (args.size() > 7) {
+        scenario.fees = atof(args[7].c_str()) / 100.0f;
+    }
+
+    float portfolio_add = 20;
+    if (args.size() > 8) {
+        portfolio_add = atof(args[8].c_str());
+    }
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
+              << "     Number of years: " << scenario.years << "\n"
+              << "               Start: " << scenario.start_year << "\n"
+              << "                 End: " << scenario.end_year << "\n"
+              << "                 TER: " << 100.0f * scenario.fees << "%\n\n";
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    Graph g(graph);
+    g.xtitle_ = "Withdrawal Frequency (months)";
+    g.title_  = std::format("Withdrawal Frequency - {} Years - {}% Withdrawal Rate", scenario.years, args[1]);
+
+    Graph duration_g(graph, "Worst Duration (months)");
+    duration_g.xtitle_ = "Withdrawal Frequency (months)";
+    duration_g.title_  = std::format("Withdrawal Frequency And Worst Duration - {} Years - {}% WR", scenario.years, args[1]);
+
+    if (!g.enabled_) {
+        std::cout << "portfolio;";
+        for (size_t f = 1; f <= 24; ++f) {
+            std::cout << f << ";";
+        }
+        std::cout << std::endl;
+    }
+
+    prepare_exchange_rates(scenario, "usd");
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            g.add_legend(portfolio_to_string(scenario, true));
+            duration_g.add_legend(portfolio_to_string(scenario, true));
+
+            std::map<float, float> g_results;
+            std::map<float, float> duration_g_results;
+
+            if (!g.enabled_) {
+                for (auto& position : scenario.portfolio) {
+                    if (position.allocation > 0) {
+                        std::cout << position.allocation << "% " << position.asset << " ";
+                    }
+                }
             }
 
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
-
-            if (args.size() > 6) {
-                scenario.fees = atof(args[6].c_str()) / 100.0f;
-            }
-
-            float limit = 95.0f;
-            if (args.size() > 7) {
-                limit = atof(args[7].c_str());
-            }
-
-            swr::normalize_portfolio(scenario.portfolio);
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            for (auto & position : scenario.portfolio) {
-                std::cout << "             " << position.asset << ": " << position.allocation << "%\n";
-            }
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            scenario.withdraw_frequency = 1;
-
-            float best_wr = 0.0f;
-            swr::results best_results;
-
-            for (float wr = 6.0f; wr >= 2.0f; wr -= 0.01f) {
-                scenario.wr = wr;
+            for (size_t f = 1; f <= 24; ++f) {
+                scenario.withdraw_frequency = f;
 
                 auto results = swr::simulation(scenario);
 
@@ -1474,2553 +1634,2381 @@ int single_swr_scenario(const std::vector<std::string> & args) {
                     return 1;
                 }
 
-                if (results.success_rate > limit) {
-                    best_results = results;
-                    best_wr = wr;
-                    break;
-                }
-            }
-
-            std::cout << "WR: " << best_wr << "(" << best_results.success_rate << ")" << std::endl;
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-
-            return 0;
-}
-
-int multiple_swr_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Error: Not enough arguments for the 'multiple_wr' command." << std::endl;
-                print_multiple_wr_help();
-                return 1;
-            }
-
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            std::cout << "     Number of years: " << scenario.years << "\n"
-                      << "           Rebalance: " << scenario.rebalance << "\n"
-                      << "               Start: " << scenario.start_year << "\n"
-                      << "                 End: " << scenario.end_year << "\n";
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
-
-                for (size_t i = 0; i <= 100; i += 5) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    multiple_wr(scenario);
-                }
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr(scenario);
-            }
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-
-            return 0;
-}
-
-int withdraw_frequency_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
-                print_withdraw_frequency_help();
-                return 1;
-            }
-
-            const bool graph = command == "withdraw_frequency_graph";
-
-            swr::scenario scenario;
-
-            scenario.wr         = atof(args[1].c_str());
-            scenario.years      = atoi(args[2].c_str());
-            scenario.start_year = atoi(args[3].c_str());
-            scenario.end_year   = atoi(args[4].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[5], true);
-            auto inflation      = args[6];
-
-            if (args.size() > 7) {
-                scenario.fees = atof(args[7].c_str()) / 100.0f;
-            }
-
-            float portfolio_add = 20;
-            if (args.size() > 8){
-                portfolio_add = atof(args[8].c_str());
-            }
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            std::cout << "Withdrawal Rate (WR): " << scenario.wr << "%\n"
-                      << "     Number of years: " << scenario.years << "\n"
-                      << "               Start: " << scenario.start_year << "\n"
-                      << "                 End: " << scenario.end_year << "\n"
-                      << "                 TER: " << 100.0f * scenario.fees << "%\n\n";
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            Graph g(graph);
-            g.xtitle_ = "Withdrawal Frequency (months)";
-            g.title_ = std::format("Withdrawal Frequency - {} Years - {}% Withdrawal Rate", scenario.years, args[1]);
-
-            Graph duration_g(graph, "Worst Duration (months)");
-            duration_g.xtitle_ = "Withdrawal Frequency (months)";
-            duration_g.title_ = std::format("Withdrawal Frequency And Worst Duration - {} Years - {}% WR", scenario.years, args[1]);
-
-            if (!g.enabled_) {
-                std::cout << "portfolio;";
-                for (size_t f = 1; f <= 24; ++f) {
-                    std::cout << f << ";";
-                }
-                std::cout << std::endl;
-            }
-
-            prepare_exchange_rates(scenario, "usd");
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    g.add_legend(portfolio_to_string(scenario, true));
-                    duration_g.add_legend(portfolio_to_string(scenario, true));
-
-                    std::map<float, float> g_results;
-                    std::map<float, float> duration_g_results;
-
-                    if (!g.enabled_) {
-                        for (auto& position : scenario.portfolio) {
-                            if (position.allocation > 0) {
-                                std::cout << position.allocation << "% " << position.asset << " ";
-                            }
-                        }
-                    }
-
-                    for (size_t f = 1; f <= 24; ++f) {
-                        scenario.withdraw_frequency = f;
-
-                        auto results = swr::simulation(scenario);
-
-                        if (results.message.size()) {
-                            std::cout << results.message << std::endl;
-                        }
-
-                        if (results.error) {
-                            return 1;
-                        }
-
-                        if (g.enabled_) {
-                            g_results[f] = results.success_rate;
-                            duration_g_results[f] = results.worst_duration;
-                        } else {
-                            std::cout << ";" << results.success_rate;
-                        }
-                    }
-
-                    if (g.enabled_) {
-                        g.add_data(g_results);
-                        duration_g.add_data(duration_g_results);
-                    } else {
-                        std::cout << std::endl;
-                    }
-                }
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
-
-                if (!g.enabled_) {
-                    for (auto& position : scenario.portfolio) {
-                        if (position.allocation > 0) {
-                            std::cout << position.allocation << "% " << position.asset << " ";
-                        }
-                    }
-                }
-
-                for (size_t f = 1; f <= 24; ++f) {
-                    scenario.withdraw_frequency = f;
-
-                    auto results = swr::simulation(scenario);
-
-                    if (results.message.size()) {
-                        std::cout << results.message << std::endl;
-                    }
-
-                    if (results.error) {
-                        return 1;
-                    }
-
+                if (g.enabled_) {
+                    g_results[f]          = results.success_rate;
+                    duration_g_results[f] = results.worst_duration;
+                } else {
                     std::cout << ";" << results.success_rate;
                 }
+            }
 
+            if (g.enabled_) {
+                g.add_data(g_results);
+                duration_g.add_data(duration_g_results);
+            } else {
                 std::cout << std::endl;
-                std::cout << std::endl;
+            }
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
 
-                for (float w = 3.0f; w <= 6.0f; w += 0.25f) {
-                    std::cout << w;
+        if (!g.enabled_) {
+            for (auto& position : scenario.portfolio) {
+                if (position.allocation > 0) {
+                    std::cout << position.allocation << "% " << position.asset << " ";
+                }
+            }
+        }
 
-                    scenario.wr = w;
+        for (size_t f = 1; f <= 24; ++f) {
+            scenario.withdraw_frequency = f;
 
-                    g.add_legend(std::to_string(w));
-                    std::map<float, float> g_results;
+            auto results = swr::simulation(scenario);
 
-                    for (size_t f = 1; f <= 24; ++f) {
-                        scenario.withdraw_frequency = f;
+            if (results.message.size()) {
+                std::cout << results.message << std::endl;
+            }
 
-                        auto results = swr::simulation(scenario);
+            if (results.error) {
+                return 1;
+            }
 
-                        if (results.message.size()) {
-                            std::cout << results.message << std::endl;
-                        }
+            std::cout << ";" << results.success_rate;
+        }
 
-                        if (results.error) {
-                            return 1;
-                        }
+        std::cout << std::endl;
+        std::cout << std::endl;
 
-                        if (g.enabled_) {
-                            g_results[f] = results.success_rate;
-                        } else {
-                            std::cout << ";" << results.success_rate;
-                        }
-                    }
+        for (float w = 3.0f; w <= 6.0f; w += 0.25f) {
+            std::cout << w;
 
-                    if (g.enabled_) {
-                        g.add_data(g_results);
-                    } else {
-                        std::cout << std::endl;
-                    }
+            scenario.wr = w;
+
+            g.add_legend(std::to_string(w));
+            std::map<float, float> g_results;
+
+            for (size_t f = 1; f <= 24; ++f) {
+                scenario.withdraw_frequency = f;
+
+                auto results = swr::simulation(scenario);
+
+                if (results.message.size()) {
+                    std::cout << results.message << std::endl;
+                }
+
+                if (results.error) {
+                    return 1;
+                }
+
+                if (g.enabled_) {
+                    g_results[f] = results.success_rate;
+                } else {
+                    std::cout << ";" << results.success_rate;
                 }
             }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            if (g.enabled_) {
+                g.add_data(g_results);
+            } else {
+                std::cout << std::endl;
+            }
+        }
+    }
 
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
+              << std::endl;
 
     return 0;
 }
 
-int frequency_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 6) {
-                std::cout << "Error: Not enough arguments for the 'frequency' command." << std::endl;
-                print_frequency_help();
-                return 1;
-            }
+int frequency_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 6) {
+        std::cout << "Error: Not enough arguments for the 'frequency' command." << std::endl;
+        print_frequency_help();
+        return 1;
+    }
 
-            size_t start_year  = atoi(args[1].c_str());
-            size_t end_year    = atoi(args[2].c_str());
-            size_t years       = atoi(args[3].c_str());
-            size_t frequency   = atoi(args[4].c_str());
-            size_t monthly_buy = atoi(args[5].c_str());
+    size_t start_year  = atoi(args[1].c_str());
+    size_t end_year    = atoi(args[2].c_str());
+    size_t years       = atoi(args[3].c_str());
+    size_t frequency   = atoi(args[4].c_str());
+    size_t monthly_buy = atoi(args[5].c_str());
 
-            auto portfolio = swr::parse_portfolio("us_stocks:100;", false);
-            swr::normalize_portfolio(portfolio);
+    auto portfolio = swr::parse_portfolio("us_stocks:100;", false);
+    swr::normalize_portfolio(portfolio);
 
-            auto values    = swr::load_values(portfolio);
+    auto values = swr::load_values(portfolio);
 
-            const auto months = years * 12;
+    const auto months = years * 12;
 
-            std::vector<swr::data>::const_iterator returns;
+    std::vector<swr::data>::const_iterator returns;
 
-            float total = 0;
-            float max = 0;
-            size_t simulations = 0;
+    float  total       = 0;
+    float  max         = 0;
+    size_t simulations = 0;
 
-            for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
-                for (size_t current_month = 1; current_month <= 12; ++current_month) {
-                    size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
-                    size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
+    for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
+            size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
 
-                    size_t months = 0;
+            size_t months = 0;
 
-                    returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
+            returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
 
-                    float net_worth = 0;
+            float net_worth = 0;
 
-                    for (size_t y = current_year; y <= end_year; ++y) {
-                        for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
-                            // Adjust the portfolio with the returns
-                            net_worth *= returns->value;
-                            ++returns;
+            for (size_t y = current_year; y <= end_year; ++y) {
+                for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                    // Adjust the portfolio with the returns
+                    net_worth *= returns->value;
+                    ++returns;
 
-                            if (months % frequency == frequency - 1) {
-                                net_worth += frequency * monthly_buy;
-                            }
-                        }
-                    }
-
-                    total += net_worth;
-                    ++simulations;
-
-                    max = std::max(net_worth, max);
-                }
-            }
-
-            std::array<float, 6> worst_results;
-            std::array<float, 6> best_results;
-            worst_results.fill(0.0f);
-            best_results.fill(0.0f);
-
-            for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
-                for (size_t current_month = 1; current_month <= 12; ++current_month) {
-                    size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
-                    size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
-
-                    std::array<float, 6> results;
-
-                    for (size_t freq = 1; freq <= 6; ++freq) {
-                        size_t months = 0;
-
-                        returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
-
-                        float net_worth = 0;
-
-                        for (size_t y = current_year; y <= end_year; ++y) {
-                            for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
-                                // Adjust the portfolio with the returns
-                                net_worth *= returns->value;
-                                ++returns;
-
-                                if (months % freq == freq - 1) {
-                                    net_worth += freq * monthly_buy;
-                                }
-                            }
-                        }
-
-                        results[freq - 1] = net_worth;
-                    }
-
-                    for (size_t f = 1; f < 6; ++f) {
-                        worst_results[f] = std::max(worst_results[f], results[0] - results[f]);
-                        best_results[f] = std::min(best_results[f], results[0] - results[f]);
+                    if (months % frequency == frequency - 1) {
+                        net_worth += frequency * monthly_buy;
                     }
                 }
             }
 
-            std::cout << "Average: " << std::fixed << total / simulations << std::endl;
-            std::cout << "Max: " << std::fixed << max << std::endl;
-            std::cout << "Simulations: " << simulations << std::endl;
+            total += net_worth;
+            ++simulations;
 
-            for (size_t f = 1; f < 6; ++f) {
-                std::cout << "Worst case " << f+1 << " : " << worst_results[f] << std::endl;
+            max = std::max(net_worth, max);
+        }
+    }
+
+    std::array<float, 6> worst_results;
+    std::array<float, 6> best_results;
+    worst_results.fill(0.0f);
+    best_results.fill(0.0f);
+
+    for (size_t current_year = start_year; current_year <= end_year - years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
+            size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
+
+            std::array<float, 6> results;
+
+            for (size_t freq = 1; freq <= 6; ++freq) {
+                size_t months = 0;
+
+                returns = swr::get_start(values[0], current_year, (current_month % 12) + 1);
+
+                float net_worth = 0;
+
+                for (size_t y = current_year; y <= end_year; ++y) {
+                    for (size_t m = (y == current_year ? current_month : 1); m <= (y == end_year ? end_month : 12); ++m, ++months) {
+                        // Adjust the portfolio with the returns
+                        net_worth *= returns->value;
+                        ++returns;
+
+                        if (months % freq == freq - 1) {
+                            net_worth += freq * monthly_buy;
+                        }
+                    }
+                }
+
+                results[freq - 1] = net_worth;
             }
 
             for (size_t f = 1; f < 6; ++f) {
-                std::cout << "Best case " << f+1 << " : " << best_results[f] << std::endl;
+                worst_results[f] = std::max(worst_results[f], results[0] - results[f]);
+                best_results[f]  = std::min(best_results[f], results[0] - results[f]);
             }
+        }
+    }
 
+    std::cout << "Average: " << std::fixed << total / simulations << std::endl;
+    std::cout << "Max: " << std::fixed << max << std::endl;
+    std::cout << "Simulations: " << simulations << std::endl;
+
+    for (size_t f = 1; f < 6; ++f) {
+        std::cout << "Worst case " << f + 1 << " : " << worst_results[f] << std::endl;
+    }
+
+    for (size_t f = 1; f < 6; ++f) {
+        std::cout << "Best case " << f + 1 << " : " << best_results[f] << std::endl;
+    }
 
     return 0;
 }
 
-int analysis_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 2) {
-                std::cout << "Not enough arguments for analysis" << std::endl;
-                return 1;
+int analysis_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Not enough arguments for analysis" << std::endl;
+        return 1;
+    }
+
+    size_t start_year = atoi(args[1].c_str());
+    size_t end_year   = atoi(args[2].c_str());
+
+    auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;gold:10;", false);
+
+    auto values            = swr::load_values(portfolio);
+    auto ch_inflation_data = swr::load_inflation(values, "ch_inflation");
+    auto us_inflation_data = swr::load_inflation(values, "us_inflation");
+
+    Graph yearly_inflation_graph(true, "Yearly Inflation");
+    Graph yearly_stocks_graph(true, "Yearly Stock Returns");
+    Graph gold_graph(true, "Historical Gold Price");
+
+    yearly_inflation_graph.xtitle_ = "Years";
+    yearly_stocks_graph.xtitle_    = "Years";
+    gold_graph.xtitle_             = "Years";
+
+    auto to_returns_graph = [start_year, end_year](auto& graph, const auto& data, std::string_view title) {
+        std::map<float, float> yearly_results;
+        for (auto& value : data) {
+            if (value.year < start_year || value.year > end_year) {
+                continue;
+            }
+            if (value.month == 1) {
+                yearly_results[value.year] = 1.0f;
+            }
+            yearly_results[value.year] *= value.value;
+            if (value.month == 12) {
+                yearly_results[value.year] = 100.0f * (yearly_results[value.year] - 1.0f);
+            }
+        }
+        graph.add_legend(title);
+        graph.add_data(yearly_results);
+    };
+
+    auto to_price_graph = [start_year, end_year](auto& graph, const auto& data, std::string_view title) {
+        std::map<float, float> yearly_results;
+        for (auto& value : data) {
+            if (value.year < start_year || value.year > end_year) {
+                continue;
             }
 
-            size_t start_year = atoi(args[1].c_str());
-            size_t end_year   = atoi(args[2].c_str());
+            if (yearly_results.empty()) {
+                yearly_results[value.year] = 100.0f;
+            } else if (value.month == 1) {
+                yearly_results[value.year] = yearly_results[value.year - 1];
+            }
+            yearly_results[value.year] *= value.value;
+        }
+        graph.add_legend(title);
+        graph.add_data(yearly_results);
+    };
 
-            auto portfolio = swr::parse_portfolio("ch_stocks:10;us_stocks:50;us_bonds:50;gold:10;", false);
+    to_returns_graph(yearly_inflation_graph, ch_inflation_data, "Inflation CH");
+    to_returns_graph(yearly_inflation_graph, us_inflation_data, "Inflation US");
 
-            auto values         = swr::load_values(portfolio);
-            auto ch_inflation_data = swr::load_inflation(values, "ch_inflation");
-            auto us_inflation_data = swr::load_inflation(values, "us_inflation");
+    to_returns_graph(yearly_stocks_graph, values[0], "CH Stocks");
+    to_returns_graph(yearly_stocks_graph, values[1], "US Stocks");
+    to_price_graph(gold_graph, values[3], "Gold");
 
-            Graph yearly_inflation_graph(true, "Yearly Inflation");
-            Graph yearly_stocks_graph(true, "Yearly Stock Returns");
-            Graph gold_graph(true, "Historical Gold Price");
+    auto analyzer = [&](auto& v, const std::string& name) {
+        float average = 0.0f;
 
-            yearly_inflation_graph.xtitle_ = "Years";
-            yearly_stocks_graph.xtitle_ = "Years";
-            gold_graph.xtitle_ = "Years";
+        float       worst_month = 1.0f;
+        std::string worst_month_str;
 
-            auto to_returns_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
-                std::map<float, float> yearly_results;
-                for (auto & value : data) {
-                    if (value.year < start_year || value.year > end_year) {
-                        continue;
-                    }
-                    if (value.month == 1) {
-                        yearly_results[value.year] = 1.0f;
-                    }
-                    yearly_results[value.year] *= value.value;
-                    if (value.month == 12) {
-                        yearly_results[value.year] = 100.0f * (yearly_results[value.year] - 1.0f);
-                    }
-                }
-                graph.add_legend(title);
-                graph.add_data(yearly_results);
-            };
+        float       best_month = 0.0f;
+        std::string best_month_str;
 
-            auto to_price_graph = [start_year, end_year](auto & graph, const auto & data, std::string_view title) {
-                std::map<float, float> yearly_results;
-                for (auto & value : data) {
-                    if (value.year < start_year || value.year > end_year) {
-                        continue;
-                    }
+        size_t negative = 0;
+        size_t total    = 0;
 
-                    if (yearly_results.empty()) {
-                        yearly_results[value.year] = 100.0f;
-                    } else if (value.month == 1) {
-                        yearly_results[value.year] = yearly_results[value.year - 1];
-                    }
-                    yearly_results[value.year] *= value.value;
-                }
-                graph.add_legend(title);
-                graph.add_data(yearly_results);
-            };
-
-            to_returns_graph(yearly_inflation_graph, ch_inflation_data, "Inflation CH");
-            to_returns_graph(yearly_inflation_graph, us_inflation_data, "Inflation US");
-
-            to_returns_graph(yearly_stocks_graph, values[0], "CH Stocks");
-            to_returns_graph(yearly_stocks_graph, values[1], "US Stocks");
-            to_price_graph(gold_graph, values[3], "Gold");
-
-            auto analyzer = [&](auto & v, const std::string & name) {
-                float average = 0.0f;
-
-                float worst_month = 1.0f;
-                std::string worst_month_str;
-
-                float best_month = 0.0f;
-                std::string best_month_str;
-
-                size_t negative = 0;
-                size_t total = 0;
-
-                for (auto value : v) {
-                    if (value.year >= start_year && value.year <= end_year) {
-                        if (value.value < worst_month) {
-                            worst_month = value.value;
-                            worst_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
-                        }
-
-                        if (value.value > best_month) {
-                            best_month = value.value;
-                            best_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
-                        }
-
-                        ++total;
-
-                        if (value.value < 1.0f) {
-                            ++negative;
-                        }
-
-                        average += value.value;
-                    }
+        for (auto value : v) {
+            if (value.year >= start_year && value.year <= end_year) {
+                if (value.value < worst_month) {
+                    worst_month     = value.value;
+                    worst_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
                 }
 
-                std::cout << name << " average returns: +" << 100.0f * ((average / total) - 1.0f) << "%" << std::endl;
-                std::cout << name << " best returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
-                std::cout << name << " worst returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
-                std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
-            };
+                if (value.value > best_month) {
+                    best_month     = value.value;
+                    best_month_str = std::to_string(value.year) + "." + std::to_string(value.month);
+                }
 
-            analyzer(values[0], "CH Stocks");
-            analyzer(values[1], "US Stocks");
-            analyzer(values[2], "US Bonds");
-            analyzer(us_inflation_data, "US Inflation");
-            analyzer(ch_inflation_data, "CH Inflation");
+                ++total;
 
-            yearly_inflation_graph.flush();
-            std::cout << "\n";
-            yearly_stocks_graph.flush();
-            std::cout << "\n";
-            gold_graph.flush();
-            std::cout << "\n";
+                if (value.value < 1.0f) {
+                    ++negative;
+                }
 
+                average += value.value;
+            }
+        }
+
+        std::cout << name << " average returns: +" << 100.0f * ((average / total) - 1.0f) << "%" << std::endl;
+        std::cout << name << " best returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
+        std::cout << name << " worst returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
+        std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
+    };
+
+    analyzer(values[0], "CH Stocks");
+    analyzer(values[1], "US Stocks");
+    analyzer(values[2], "US Bonds");
+    analyzer(us_inflation_data, "US Inflation");
+    analyzer(ch_inflation_data, "CH Inflation");
+
+    yearly_inflation_graph.flush();
+    std::cout << "\n";
+    yearly_stocks_graph.flush();
+    std::cout << "\n";
+    gold_graph.flush();
+    std::cout << "\n";
 
     return 0;
 }
 
 int allocation_scenario() {
-            Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
-            g_us.title_ = "US Portfolio Allocation Annualized Returns";
-            g_us.xtitle_ = "Portfolio";
+    Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
+    g_us.title_  = "US Portfolio Allocation Annualized Returns";
+    g_us.xtitle_ = "Portfolio";
 
-            Graph g_ch(true, "Annualized Yearly Returns (%)", "bar-graph");
-            g_ch.title_ = "CH Portfolio Allocation Annualized Returns";
-            g_ch.xtitle_ = "Portfolio";
+    Graph g_ch(true, "Annualized Yearly Returns (%)", "bar-graph");
+    g_ch.title_  = "CH Portfolio Allocation Annualized Returns";
+    g_ch.xtitle_ = "Portfolio";
 
-            Graph gv_us(true, "Volatility", "bar-graph");
-            gv_us.title_ = "US Portfolio Volatility";
-            gv_us.xtitle_ = "Portfolio";
+    Graph gv_us(true, "Volatility", "bar-graph");
+    gv_us.title_  = "US Portfolio Volatility";
+    gv_us.xtitle_ = "Portfolio";
 
-            Graph gv_ch(true, "Volatility", "bar-graph");
-            gv_ch.title_ = "CH Portfolio Volatility";
-            gv_ch.xtitle_ = "Portfolio";
+    Graph gv_ch(true, "Volatility", "bar-graph");
+    gv_ch.title_  = "CH Portfolio Volatility";
+    gv_ch.xtitle_ = "Portfolio";
 
-            constexpr bool geometric = true;
+    constexpr bool geometric = true;
 
-            auto analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
-                auto portfolio = swr::parse_portfolio(portfolio_view, false);
-                auto values         = swr::load_values(portfolio);
+    auto analyzer = [](Graph& g, std::string_view name, std::string_view portfolio_view) {
+        auto portfolio = swr::parse_portfolio(portfolio_view, false);
+        auto values    = swr::load_values(portfolio);
 
-                float ar_average = 0.0f;
-                float geo_average = 1.0f;
-                float temp = 1.0f;
-                size_t c = 0;
+        float  ar_average  = 0.0f;
+        float  geo_average = 1.0f;
+        float  temp        = 1.0f;
+        size_t c           = 0;
 
-                for(size_t i = 0; i < values[0].size(); ++i) {
-                    if (values[0][i].month == 1) {
-                        temp = 1.0f;
-                    }
+        for (size_t i = 0; i < values[0].size(); ++i) {
+            if (values[0][i].month == 1) {
+                temp = 1.0f;
+            }
 
-                    float compound = 0.0f;
-                    for(size_t p = 0; p < portfolio.size(); ++p) {
-                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
-                    }
-                    temp *= compound;
+            float compound = 0.0f;
+            for (size_t p = 0; p < portfolio.size(); ++p) {
+                compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+            }
+            temp *= compound;
 
-                    if (values[0][i].month == 12) {
-                        ar_average += temp - 1.0f;
-                        geo_average *= temp;
-                        ++c;
-                    }
-                }
+            if (values[0][i].month == 12) {
+                ar_average += temp - 1.0f;
+                geo_average *= temp;
+                ++c;
+            }
+        }
 
-                std::map<float, float> average_returns;
-                if (geometric) {
-                    average_returns[1.0f] = 100.0f * (std::pow(geo_average, 1.0f / c) - 1.0f);
-                } else {
-                    average_returns[1.0f] = 100.0f * (ar_average / c);
-                }
+        std::map<float, float> average_returns;
+        if (geometric) {
+            average_returns[1.0f] = 100.0f * (std::pow(geo_average, 1.0f / c) - 1.0f);
+        } else {
+            average_returns[1.0f] = 100.0f * (ar_average / c);
+        }
 
-                g.add_legend(name);
-                g.add_data(average_returns);
-            };
+        g.add_legend(name);
+        g.add_data(average_returns);
+    };
 
-            auto v_analyzer = [](Graph & g, std::string_view name, std::string_view portfolio_view) {
-                auto portfolio = swr::parse_portfolio(portfolio_view, false);
-                auto values         = swr::load_values(portfolio);
+    auto v_analyzer = [](Graph& g, std::string_view name, std::string_view portfolio_view) {
+        auto portfolio = swr::parse_portfolio(portfolio_view, false);
+        auto values    = swr::load_values(portfolio);
 
-                float mean = 0.0f;
-                float diff = 0.0f;
+        float mean = 0.0f;
+        float diff = 0.0f;
 
-                for (size_t i = 0; i < values[0].size(); ++i) {
-                    float compound = 0.0f;
-                    for (size_t p = 0; p < portfolio.size(); ++p) {
-                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
-                    }
-                    mean += compound - 1.0f;
-                }
+        for (size_t i = 0; i < values[0].size(); ++i) {
+            float compound = 0.0f;
+            for (size_t p = 0; p < portfolio.size(); ++p) {
+                compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+            }
+            mean += compound - 1.0f;
+        }
 
-                mean = mean / values[0].size();
+        mean = mean / values[0].size();
 
-                for(size_t i = 0; i < values[0].size(); ++i) {
-                    float compound = 0.0f;
-                    for(size_t p = 0; p < portfolio.size(); ++p) {
-                        compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
-                    }
-                    diff += (compound - 1.0f - mean) * (compound - 1.0f - mean);
-                }
+        for (size_t i = 0; i < values[0].size(); ++i) {
+            float compound = 0.0f;
+            for (size_t p = 0; p < portfolio.size(); ++p) {
+                compound += (portfolio[p].allocation / 100.0f) * values[p][i].value;
+            }
+            diff += (compound - 1.0f - mean) * (compound - 1.0f - mean);
+        }
 
-                std::map<float, float> volatility;
-                volatility[1.0f] = std::sqrt(100.0f * diff / values[0].size());
+        std::map<float, float> volatility;
+        volatility[1.0f] = std::sqrt(100.0f * diff / values[0].size());
 
-                g.add_legend(name);
-                g.add_data(volatility);
-            };
+        g.add_legend(name);
+        g.add_data(volatility);
+    };
 
-            analyzer(g_us, "100/0", "us_stocks:100;us_bonds:0;");
-            analyzer(g_us, "90/10", "us_stocks:90;us_bonds:10;");
-            analyzer(g_us, "80/20", "us_stocks:80;us_bonds:20;");
-            analyzer(g_us, "70/30", "us_stocks:70;us_bonds:30;");
-            analyzer(g_us, "60/40", "us_stocks:60;us_bonds:40;");
-            analyzer(g_us, "50/50", "us_stocks:50;us_bonds:50;");
-            analyzer(g_us, "40/60", "us_stocks:40;us_bonds:60;");
-            analyzer(g_us, "30/70", "us_stocks:30;us_bonds:70;");
-            analyzer(g_us, "20/80", "us_stocks:20;us_bonds:80;");
-            analyzer(g_us, "10/90", "us_stocks:10;us_bonds:90;");
-            analyzer(g_us, "0/100", "us_stocks:0;us_bonds:100;");
+    analyzer(g_us, "100/0", "us_stocks:100;us_bonds:0;");
+    analyzer(g_us, "90/10", "us_stocks:90;us_bonds:10;");
+    analyzer(g_us, "80/20", "us_stocks:80;us_bonds:20;");
+    analyzer(g_us, "70/30", "us_stocks:70;us_bonds:30;");
+    analyzer(g_us, "60/40", "us_stocks:60;us_bonds:40;");
+    analyzer(g_us, "50/50", "us_stocks:50;us_bonds:50;");
+    analyzer(g_us, "40/60", "us_stocks:40;us_bonds:60;");
+    analyzer(g_us, "30/70", "us_stocks:30;us_bonds:70;");
+    analyzer(g_us, "20/80", "us_stocks:20;us_bonds:80;");
+    analyzer(g_us, "10/90", "us_stocks:10;us_bonds:90;");
+    analyzer(g_us, "0/100", "us_stocks:0;us_bonds:100;");
 
-            analyzer(g_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
-            analyzer(g_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
-            analyzer(g_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
-            analyzer(g_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
-            analyzer(g_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
-            analyzer(g_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
-            analyzer(g_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
-            analyzer(g_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
-            analyzer(g_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
-            analyzer(g_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
-            analyzer(g_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
+    analyzer(g_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
+    analyzer(g_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
+    analyzer(g_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
+    analyzer(g_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
+    analyzer(g_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
+    analyzer(g_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
+    analyzer(g_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
+    analyzer(g_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
+    analyzer(g_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
+    analyzer(g_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
+    analyzer(g_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
 
-            v_analyzer(gv_us, "100/0", "us_stocks:100;us_bonds:0;");
-            v_analyzer(gv_us, "90/10", "us_stocks:90;us_bonds:10;");
-            v_analyzer(gv_us, "80/20", "us_stocks:80;us_bonds:20;");
-            v_analyzer(gv_us, "70/30", "us_stocks:70;us_bonds:30;");
-            v_analyzer(gv_us, "60/40", "us_stocks:60;us_bonds:40;");
-            v_analyzer(gv_us, "50/50", "us_stocks:50;us_bonds:50;");
-            v_analyzer(gv_us, "40/60", "us_stocks:40;us_bonds:60;");
-            v_analyzer(gv_us, "30/70", "us_stocks:30;us_bonds:70;");
-            v_analyzer(gv_us, "20/80", "us_stocks:20;us_bonds:80;");
-            v_analyzer(gv_us, "10/90", "us_stocks:10;us_bonds:90;");
-            v_analyzer(gv_us, "0/100", "us_stocks:0;us_bonds:100;");
+    v_analyzer(gv_us, "100/0", "us_stocks:100;us_bonds:0;");
+    v_analyzer(gv_us, "90/10", "us_stocks:90;us_bonds:10;");
+    v_analyzer(gv_us, "80/20", "us_stocks:80;us_bonds:20;");
+    v_analyzer(gv_us, "70/30", "us_stocks:70;us_bonds:30;");
+    v_analyzer(gv_us, "60/40", "us_stocks:60;us_bonds:40;");
+    v_analyzer(gv_us, "50/50", "us_stocks:50;us_bonds:50;");
+    v_analyzer(gv_us, "40/60", "us_stocks:40;us_bonds:60;");
+    v_analyzer(gv_us, "30/70", "us_stocks:30;us_bonds:70;");
+    v_analyzer(gv_us, "20/80", "us_stocks:20;us_bonds:80;");
+    v_analyzer(gv_us, "10/90", "us_stocks:10;us_bonds:90;");
+    v_analyzer(gv_us, "0/100", "us_stocks:0;us_bonds:100;");
 
-            v_analyzer(gv_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
-            v_analyzer(gv_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
-            v_analyzer(gv_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
-            v_analyzer(gv_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
-            v_analyzer(gv_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
-            v_analyzer(gv_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
-            v_analyzer(gv_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
-            v_analyzer(gv_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
-            v_analyzer(gv_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
-            v_analyzer(gv_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
-            v_analyzer(gv_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
+    v_analyzer(gv_ch, "100/0", "ch_stocks:100;ch_bonds:0;");
+    v_analyzer(gv_ch, "90/10", "ch_stocks:90;ch_bonds:10;");
+    v_analyzer(gv_ch, "80/20", "ch_stocks:80;ch_bonds:20;");
+    v_analyzer(gv_ch, "70/30", "ch_stocks:70;ch_bonds:30;");
+    v_analyzer(gv_ch, "60/40", "ch_stocks:60;ch_bonds:40;");
+    v_analyzer(gv_ch, "50/50", "ch_stocks:50;ch_bonds:50;");
+    v_analyzer(gv_ch, "40/60", "ch_stocks:40;ch_bonds:60;");
+    v_analyzer(gv_ch, "30/70", "ch_stocks:30;ch_bonds:70;");
+    v_analyzer(gv_ch, "20/80", "ch_stocks:20;ch_bonds:80;");
+    v_analyzer(gv_ch, "10/90", "ch_stocks:10;ch_bonds:90;");
+    v_analyzer(gv_ch, "0/100", "ch_stocks:0;ch_bonds:100;");
 
-            g_us.flush();
-            std::cout << "\n";
+    g_us.flush();
+    std::cout << "\n";
 
-            g_ch.flush();
-            std::cout << "\n";
+    g_ch.flush();
+    std::cout << "\n";
 
-            gv_us.flush();
-            std::cout << "\n";
+    gv_us.flush();
+    std::cout << "\n";
 
-            gv_ch.flush();
-            std::cout << "\n";
-
+    gv_ch.flush();
+    std::cout << "\n";
 
     return 0;
 }
 
-int term_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 2) {
-                std::cout << "Not enough arguments for term" << std::endl;
-                return 1;
-            }
-
-            const size_t min = atoi(args[1].c_str());
-            const size_t max   = atoi(args[2].c_str());
-
-            Graph average_graph(true, "Average Returns (%)");
-            Graph worst_graph(true, "Worst Returns (%)");
-            Graph worst5_graph(true, "98th Percentile Worst Returns (%)");
-            Graph best_graph(true, "Best Returns (%)");
-            Graph chance_graph(true, "Likelihood of positive returns (%)");
-
-            average_graph.xtitle_ = "Months";
-            worst_graph.xtitle_ = "Months";
-            worst5_graph.xtitle_ = "Months";
-            best_graph.xtitle_ = "Months";
-            chance_graph.xtitle_ = "Months";
-
-            auto compute_multiple = [&](std::string_view asset) {
-                average_graph.add_legend(asset_to_string(asset));
-                best_graph.add_legend(asset_to_string(asset));
-                worst_graph.add_legend(asset_to_string(asset));
-                worst5_graph.add_legend(asset_to_string(asset));
-                chance_graph.add_legend(asset_to_string(asset));
-
-                std::map<float, float> average_results;
-                std::map<float, float> best_results;
-                std::map<float, float> worst_results;
-                std::map<float, float> worst5_results;
-                std::map<float, float> chance_results;
-
-                auto compute = [&](size_t term, std::string_view asset) {
-                    auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;", false);
-                    auto values    = swr::load_values(portfolio);
-
-                    auto start = values[0].begin();
-                    auto end   = values[0].end();
-
-                    float  total = 0.0f;
-
-                    std::vector<float> results;
-                    results.reserve(1024);
-
-                    while (true) {
-                        auto it = start;
-
-                        float total_returns = 1.0f;
-
-                        for (size_t i = 0; i < term; ++i) {
-                            total_returns *= it->value;
-                            ++it;
-
-                            if (it == end) {
-                                break;
-                            }
-                        }
-
-                        if (it == end) {
-                            break;
-                        }
-
-                        results.push_back(total_returns);
-                        total += total_returns;
-
-                        ++start;
-                    }
-
-                    std::sort(results.begin(), results.end());
-
-                    size_t negative_returns = 0;
-                    for (size_t i = 0; i < results.size() ; ++i) {
-                        if (results[i] >= 1.0f) {
-                            negative_returns = i;
-                            break;
-                        }
-                    }
-
-                    best_results[term] = 100.0f * (results.back() - 1.0f);
-                    worst_results[term] = 100.0f * (results.front() - 1.0f);
-                    worst5_results[term] = 100.0f * (results[0.02f * results.size()] - 1.0f);
-                    average_results[term] = 100.0f * (total / results.size() - 1.0f);
-                    chance_results[term] = 100.0f * (1.0f - float(negative_returns) / results.size());
-                };
-
-                for (size_t i = min; i <= max; ++i) {
-                    compute(i, asset);
-                }
-
-                average_graph.add_data(average_results);
-                best_graph.add_data(best_results);
-                worst_graph.add_data(worst_results);
-                worst5_graph.add_data(worst5_results);
-                chance_graph.add_data(chance_results);
-            };
-
-            compute_multiple("us_stocks");
-            compute_multiple("us_bonds");
-            compute_multiple("ex_us_stocks");
-            compute_multiple("ch_stocks");
-            compute_multiple("ch_bonds");
-            compute_multiple("gold");
-
-            average_graph.flush();
-            std::cout << "\n";
-            worst_graph.flush();
-            std::cout << "\n";
-            worst5_graph.flush();
-            std::cout << "\n";
-            chance_graph.flush();
-            std::cout << "\n";
-            best_graph.flush();
-            std::cout << "\n";
-
-
-    return 0;
-}
-
-int glidepath_scenario(std::string_view command, const std::vector<std::string> & args) {
-            std::cout << "\n";
-            swr::scenario scenario;
-
-            const bool graph = command == "glidepath_graph" || command == "reverse_glidepath_graph";
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            float start_wr = 3.0f;
-            if (args.size() > 7) {
-                start_wr = atof(args[7].c_str());
-            }
-
-            float end_wr   = 6.0f;
-            if (args.size() > 8) {
-                end_wr = atof(args[8].c_str());
-            }
-
-            float add_wr   = 0.1f;
-            if (args.size() > 9) {
-                add_wr = atof(args[9].c_str());
-            }
-
-            swr::normalize_portfolio(scenario.portfolio);
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            std::stringstream failsafe_ss;
-
-            auto success_only = [&](Graph & g, auto title) {
-                if (g.enabled_) {
-                    multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
-                }
-            };
-
-            auto failsafe_and_success = [&](Graph & g, auto title) {
-                success_only(g, title);
-                failsafe_swr(title, scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
-            };
-
-            if (command == "glidepath" || command == "glidepath_graph") {
-                Graph g_80_100(graph);
-                g_80_100.title_ = std::format("Equity Glidepaths - 80 - 100\% stocks - {} Years", scenario.years);
-
-                Graph g_60_100(graph);
-                g_60_100.title_ = std::format("Equity Glidepaths - 60 - 100\% stocks - {} Years", scenario.years);
-
-                Graph g_60_80(graph);
-                g_60_80.title_ = std::format("Equity Glidepaths - 60 - 80\% stocks - {} Years", scenario.years);
-
-                Graph g_40_80(graph);
-                g_40_80.title_ = std::format("Equity Glidepaths - 40 - 80\% stocks - {} Years", scenario.years);
-
-                Graph g_40_100(graph);
-                g_40_100.title_ = std::format("Equity Glidepaths - 40 - 100\% stocks - {} Years", scenario.years);
-
-                scenario.glidepath = false;
-                scenario.portfolio[0].allocation = 40;
-                scenario.portfolio[1].allocation = 60;
-                failsafe_and_success(g_40_80, "Static 40%");
-                success_only(g_40_100, "Static 40%");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 80.0f;
-
-                scenario.gp_pass = 0.2;
-                failsafe_and_success(g_40_80, "40%-80% +0.2");
-
-                scenario.gp_pass = 0.3;
-                failsafe_and_success(g_40_80, "40%-80% +0.3");
-
-                scenario.gp_pass = 0.4;
-                failsafe_and_success(g_40_80, "40%-80% +0.4");
-
-                scenario.gp_pass = 0.5;
-                failsafe_and_success(g_40_80, "40%-80% +0.5");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 100.0f;
-
-                scenario.gp_pass = 0.2;
-                failsafe_and_success(g_40_100, "40%-100% 0.2");
-
-                scenario.gp_pass = 0.3;
-                failsafe_and_success(g_40_100, "40%-100% +0.3");
-
-                scenario.gp_pass = 0.4;
-                failsafe_and_success(g_40_100, "40%-100% +0.4");
-
-                scenario.gp_pass = 0.5;
-                failsafe_and_success(g_40_100, "40%-100% +0.5");
-
-                scenario.glidepath = false;
-                scenario.portfolio[0].allocation = 60;
-                scenario.portfolio[1].allocation = 40;
-                failsafe_and_success(g_60_100, "Static 60%");
-                success_only(g_60_80, "Static 60%");
-                success_only(g_40_100, "Static 60%");
-                success_only(g_40_80, "Static 60%");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 80.0f;
-
-                scenario.gp_pass = 0.2;
-                failsafe_and_success(g_60_80, "60%-80% +0.2");
-
-                scenario.gp_pass = 0.3;
-                failsafe_and_success(g_60_80, "60%-80% +0.3");
-
-                scenario.gp_pass = 0.4;
-                failsafe_and_success(g_60_80, "60%-80% +0.4");
-
-                scenario.gp_pass = 0.5;
-                failsafe_and_success(g_60_80, "60%-80% +0.5");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 100.0f;
-
-                scenario.gp_pass = 0.2;
-                failsafe_and_success(g_60_100, "60%-100% +0.2");
-
-                scenario.gp_pass = 0.3;
-                failsafe_and_success(g_60_100, "60%-100% +0.3");
-
-                scenario.gp_pass = 0.4;
-                failsafe_and_success(g_60_100, "60%-100% +0.4");
-
-                scenario.gp_pass = 0.5;
-                failsafe_and_success(g_60_100, "60%-100% +0.5");
-
-                scenario.glidepath = false;
-                scenario.portfolio[0].allocation = 80;
-                scenario.portfolio[1].allocation = 20;
-                failsafe_and_success(g_80_100, "Static 80%");
-                success_only(g_60_100, "Static 80%");
-                success_only(g_60_80, "Static 80%");
-                success_only(g_40_80, "Static 80%");
-                success_only(g_40_100, "Static 80%");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 100.0f;
-
-                scenario.gp_pass = 0.2;
-                failsafe_and_success(g_80_100, "80%-100% +0.2");
-
-                scenario.gp_pass = 0.3;
-                failsafe_and_success(g_80_100, "80%-100% +0.3");
-
-                scenario.gp_pass = 0.4;
-                failsafe_and_success(g_80_100, "80%-100% +0.4");
-
-                scenario.gp_pass = 0.5;
-                failsafe_and_success(g_80_100, "80%-100% +0.5");
-
-                scenario.glidepath = false;
-                scenario.portfolio[0].allocation = 100;
-                scenario.portfolio[1].allocation = 0;
-                failsafe_and_success(g_80_100, "Static 100%");
-                success_only(g_60_100, "Static 100%");
-                success_only(g_40_100, "Static 100%");
-            } else {
-                Graph r_g(graph);
-                r_g.title_ = std::format("Reverse Equity Glidepaths - 100 - 80\% stocks - {} Years", scenario.years);
-
-                scenario.glidepath = false;
-                scenario.portfolio[0].allocation = 80;
-                scenario.portfolio[1].allocation = 20;
-                failsafe_and_success(r_g, "Static 80%");
-
-                scenario.portfolio[0].allocation = 100;
-                scenario.portfolio[1].allocation = 0;
-                failsafe_and_success(r_g, "Static 100%");
-
-                scenario.glidepath = true;
-                scenario.gp_goal = 80.0f;
-
-                scenario.gp_pass = -0.2;
-                failsafe_and_success(r_g, "100%-80% -0.2");
-
-                scenario.gp_pass = -0.3;
-                failsafe_and_success(r_g, "100%-80% -0.3");
-
-                scenario.gp_pass = -0.4;
-                failsafe_and_success(r_g, "100%-80% -0.4");
-
-                scenario.gp_pass = -0.5;
-                failsafe_and_success(r_g, "100%-80% -0.5");
-            }
-
-            std::cout << std::endl;
-            std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
-            std::cout << failsafe_ss.str();
-
-
-    return 0;
-}
-
-int failsafe_scenario(std::string_view command, const std::vector<std::string> & args) {
-            const bool graph = command == "failsafe_graph";
-
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            float portfolio_add = 10;
-            if (args.size() > 7){
-                portfolio_add = atof(args[7].c_str());
-            }
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            Graph g(graph, "Failsafe SWR (%)");
-            g.title_ = std::format("Failsafe Withdrawal Rates - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-            g.xtitle_ = "Stocks Allocation (%)";
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
-
-                std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
-
-                if (g.enabled_) {
-                    std::map<float, float> results;
-
-                    for (size_t i = 0; i <= 100; i += portfolio_add) {
-                        scenario.portfolio[0].allocation = float(i);
-                        scenario.portfolio[1].allocation = float(100 - i);
-
-                        failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
-                        results[i] = failsafe_swr_one(scenario, 6.0f, 0.0f, 0.01f, 0.0f);
-                    }
-
-                    g.add_legend("Failsafe SWR");
-                    g.add_data(results);
-                } else {
-                    for (size_t i = 0; i <= 100; i += portfolio_add) {
-                        scenario.portfolio[0].allocation = float(i);
-                        scenario.portfolio[1].allocation = float(100 - i);
-
-                        failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
-                    }
-                }
-            } else {
-                std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
-                swr::normalize_portfolio(scenario.portfolio);
-                failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
-            }
-
-
-    return 0;
-}
-
-int data_graph_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 4) {
-                std::cout << "Not enough arguments for data_graph" << std::endl;
-                return 1;
-            }
-
-            size_t start_year = atoi(args[1].c_str());
-            size_t end_year   = atoi(args[2].c_str());
-            auto portfolio  = swr::parse_portfolio(args[3], false);
-            auto values     = swr::load_values(portfolio);
-
-            Graph graph(true);
-
-            for (size_t i = 0; i < portfolio.size(); ++i) {
-                graph.add_legend(asset_to_string_percent(portfolio[i].asset));
-
-                std::map<float, float> results;
-                float acc_value = 1;
-
-                for (auto& value : values[i]) {
-                    if (value.year >= start_year) {
-                        if (value.month == 12) {
-                            results[value.year] = acc_value;
-                        }
-                        acc_value *= value.value;
-                    }
-                    if (value.year > end_year) {
+int term_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Not enough arguments for term" << std::endl;
+        return 1;
+    }
+
+    const size_t min = atoi(args[1].c_str());
+    const size_t max = atoi(args[2].c_str());
+
+    Graph average_graph(true, "Average Returns (%)");
+    Graph worst_graph(true, "Worst Returns (%)");
+    Graph worst5_graph(true, "98th Percentile Worst Returns (%)");
+    Graph best_graph(true, "Best Returns (%)");
+    Graph chance_graph(true, "Likelihood of positive returns (%)");
+
+    average_graph.xtitle_ = "Months";
+    worst_graph.xtitle_   = "Months";
+    worst5_graph.xtitle_  = "Months";
+    best_graph.xtitle_    = "Months";
+    chance_graph.xtitle_  = "Months";
+
+    auto compute_multiple = [&](std::string_view asset) {
+        average_graph.add_legend(asset_to_string(asset));
+        best_graph.add_legend(asset_to_string(asset));
+        worst_graph.add_legend(asset_to_string(asset));
+        worst5_graph.add_legend(asset_to_string(asset));
+        chance_graph.add_legend(asset_to_string(asset));
+
+        std::map<float, float> average_results;
+        std::map<float, float> best_results;
+        std::map<float, float> worst_results;
+        std::map<float, float> worst5_results;
+        std::map<float, float> chance_results;
+
+        auto compute = [&](size_t term, std::string_view asset) {
+            auto portfolio = swr::parse_portfolio(std::string(asset) + ":100;", false);
+            auto values    = swr::load_values(portfolio);
+
+            auto start = values[0].begin();
+            auto end   = values[0].end();
+
+            float total = 0.0f;
+
+            std::vector<float> results;
+            results.reserve(1024);
+
+            while (true) {
+                auto it = start;
+
+                float total_returns = 1.0f;
+
+                for (size_t i = 0; i < term; ++i) {
+                    total_returns *= it->value;
+                    ++it;
+
+                    if (it == end) {
                         break;
                     }
                 }
 
-                graph.add_data(results);
+                if (it == end) {
+                    break;
+                }
+
+                results.push_back(total_returns);
+                total += total_returns;
+
+                ++start;
             }
 
+            std::sort(results.begin(), results.end());
+
+            size_t negative_returns = 0;
+            for (size_t i = 0; i < results.size(); ++i) {
+                if (results[i] >= 1.0f) {
+                    negative_returns = i;
+                    break;
+                }
+            }
+
+            best_results[term]    = 100.0f * (results.back() - 1.0f);
+            worst_results[term]   = 100.0f * (results.front() - 1.0f);
+            worst5_results[term]  = 100.0f * (results[0.02f * results.size()] - 1.0f);
+            average_results[term] = 100.0f * (total / results.size() - 1.0f);
+            chance_results[term]  = 100.0f * (1.0f - float(negative_returns) / results.size());
+        };
+
+        for (size_t i = min; i <= max; ++i) {
+            compute(i, asset);
+        }
+
+        average_graph.add_data(average_results);
+        best_graph.add_data(best_results);
+        worst_graph.add_data(worst_results);
+        worst5_graph.add_data(worst5_results);
+        chance_graph.add_data(chance_results);
+    };
+
+    compute_multiple("us_stocks");
+    compute_multiple("us_bonds");
+    compute_multiple("ex_us_stocks");
+    compute_multiple("ch_stocks");
+    compute_multiple("ch_bonds");
+    compute_multiple("gold");
+
+    average_graph.flush();
+    std::cout << "\n";
+    worst_graph.flush();
+    std::cout << "\n";
+    worst5_graph.flush();
+    std::cout << "\n";
+    chance_graph.flush();
+    std::cout << "\n";
+    best_graph.flush();
+    std::cout << "\n";
 
     return 0;
 }
 
-int trinity_success_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for trinity_sheets" << std::endl;
-                return 1;
-            }
+int glidepath_scenario(std::string_view command, const std::vector<std::string>& args) {
+    std::cout << "\n";
+    swr::scenario scenario;
 
-            const bool graph = command == "trinity_success_graph";
+    const bool graph = command == "glidepath_graph" || command == "reverse_glidepath_graph";
 
-            swr::scenario scenario;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
+    float start_wr = 3.0f;
+    if (args.size() > 7) {
+        start_wr = atof(args[7].c_str());
+    }
 
-            float portfolio_add = 25;
-            if (args.size() > 7){
-                portfolio_add = atof(args[7].c_str());
-            }
+    float end_wr = 6.0f;
+    if (args.size() > 8) {
+        end_wr = atof(args[8].c_str());
+    }
 
-            float start_wr = 3.0f;
-            if (args.size() > 8) {
-                start_wr = atof(args[8].c_str());
-            }
+    float add_wr = 0.1f;
+    if (args.size() > 9) {
+        add_wr = atof(args[9].c_str());
+    }
 
-            float end_wr   = 6.0f;
-            if (args.size() > 9) {
-                end_wr = atof(args[9].c_str());
-            }
+    swr::normalize_portfolio(scenario.portfolio);
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            float add_wr   = 0.1f;
-            if (args.size() > 10) {
-                add_wr = atof(args[10].c_str());
-            }
+    prepare_exchange_rates(scenario, "usd");
 
-            if (args.size() > 11) {
-                scenario.fees = atof(args[11].c_str()) / 100.0f;
-            }
+    std::stringstream failsafe_ss;
 
-            if (args.size() > 12) {
-                scenario.final_threshold = atof(args[12].c_str()) / 100.0f;
-            }
+    auto success_only = [&](Graph& g, auto title) {
+        if (g.enabled_) {
+            multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
+        }
+    };
 
-            if (args.size() > 13) {
-                scenario.final_inflation = args[13] == "true";
-            }
+    auto failsafe_and_success = [&](Graph& g, auto title) {
+        success_only(g, title);
+        failsafe_swr(title, scenario, 6.0f, 0.0f, 0.01f, failsafe_ss);
+    };
 
-            configure_withdrawal_method(scenario, args, 14);
+    if (command == "glidepath" || command == "glidepath_graph") {
+        Graph g_80_100(graph);
+        g_80_100.title_ = std::format("Equity Glidepaths - 80 - 100\% stocks - {} Years", scenario.years);
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+        Graph g_60_100(graph);
+        g_60_100.title_ = std::format("Equity Glidepaths - 60 - 100\% stocks - {} Years", scenario.years);
 
-            if (args.size() > 15) {
-                std::string country = args[15];
+        Graph g_60_80(graph);
+        g_60_80.title_ = std::format("Equity Glidepaths - 60 - 80\% stocks - {} Years", scenario.years);
 
-                if (country == "switzerland") {
-                    auto exchange_data = swr::load_exchange("usd_chf");
+        Graph g_40_80(graph);
+        g_40_80.title_ = std::format("Equity Glidepaths - 40 - 80\% stocks - {} Years", scenario.years);
 
-                    scenario.exchange_rates.resize(scenario.values.size());
+        Graph g_40_100(graph);
+        g_40_100.title_ = std::format("Equity Glidepaths - 40 - 100\% stocks - {} Years", scenario.years);
 
-                    for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-                        scenario.exchange_rates[i] = exchange_data;
-                        if (scenario.portfolio[i].asset == "us_stocks") {
-                            scenario.exchange_rates[i] = exchange_data;
-                        } else {
-                            scenario.exchange_rates[i] = exchange_data;
+        scenario.glidepath               = false;
+        scenario.portfolio[0].allocation = 40;
+        scenario.portfolio[1].allocation = 60;
+        failsafe_and_success(g_40_80, "Static 40%");
+        success_only(g_40_100, "Static 40%");
 
-                            for (auto& v : scenario.exchange_rates[i]) {
-                                v.value = 1;
-                            }
-                        }
-                    }
-                } else {
-                    std::cout << "No support for country: " << country << std::endl;
-                    return 1;
-                }
-            } else {
-                prepare_exchange_rates(scenario, "usd");
-            }
+        scenario.glidepath = true;
+        scenario.gp_goal   = 80.0f;
 
-            Graph g(graph);
-            g.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-            g.set_extra("\"legend_position\": \"bottom_left\",");
+        scenario.gp_pass = 0.2;
+        failsafe_and_success(g_40_80, "40%-80% +0.2");
 
-            if (!graph) {
-                std::cout << "Portfolio";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
+        scenario.gp_pass = 0.3;
+        failsafe_and_success(g_40_80, "40%-80% +0.3");
 
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
+        scenario.gp_pass = 0.4;
+        failsafe_and_success(g_40_80, "40%-80% +0.4");
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
+        scenario.gp_pass = 0.5;
+        failsafe_and_success(g_40_80, "40%-80% +0.5");
 
-                    if (graph) {
-                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
-                if (graph) {
-                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                }
-            }
+        scenario.glidepath = true;
+        scenario.gp_goal   = 100.0f;
 
+        scenario.gp_pass = 0.2;
+        failsafe_and_success(g_40_100, "40%-100% 0.2");
 
-    return 0;
-}
+        scenario.gp_pass = 0.3;
+        failsafe_and_success(g_40_100, "40%-100% +0.3");
 
-int trinity_cash_graphs_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 4) {
-                std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
-                return 1;
-            }
+        scenario.gp_pass = 0.4;
+        failsafe_and_success(g_40_100, "40%-100% +0.4");
 
-            swr::scenario base_scenario;
+        scenario.gp_pass = 0.5;
+        failsafe_and_success(g_40_100, "40%-100% +0.5");
 
-            base_scenario.years      = atoi(args[1].c_str());
-            base_scenario.start_year = atoi(args[2].c_str());
-            base_scenario.end_year   = atoi(args[3].c_str());
+        scenario.glidepath               = false;
+        scenario.portfolio[0].allocation = 60;
+        scenario.portfolio[1].allocation = 40;
+        failsafe_and_success(g_60_100, "Static 60%");
+        success_only(g_60_80, "Static 60%");
+        success_only(g_40_100, "Static 60%");
+        success_only(g_40_80, "Static 60%");
 
-            float portfolio_add = 25;
-            if (args.size() > 4){
-                portfolio_add = atof(args[4].c_str());
-            }
+        scenario.glidepath = true;
+        scenario.gp_goal   = 80.0f;
 
-            float start_wr = 3.0f;
-            if (args.size() > 5) {
-                start_wr = atof(args[5].c_str());
-            }
+        scenario.gp_pass = 0.2;
+        failsafe_and_success(g_60_80, "60%-80% +0.2");
 
-            float end_wr   = 6.0f;
-            if (args.size() > 6) {
-                end_wr = atof(args[6].c_str());
-            }
+        scenario.gp_pass = 0.3;
+        failsafe_and_success(g_60_80, "60%-80% +0.3");
 
-            float add_wr   = 0.1f;
-            if (args.size() > 7) {
-                add_wr = atof(args[7].c_str());
-            }
+        scenario.gp_pass = 0.4;
+        failsafe_and_success(g_60_80, "60%-80% +0.4");
 
-            base_scenario.fees = 0.1f / 100.0f;
-            base_scenario.rebalance  = swr::parse_rebalance("yearly");
-            base_scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+        scenario.gp_pass = 0.5;
+        failsafe_and_success(g_60_80, "60%-80% +0.5");
 
-            Graph success_graph(true);
-            success_graph.title_ = std::format("Trinity Study with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
-            success_graph.set_extra("\"legend_position\": \"bottom_left\",");
+        scenario.glidepath = true;
+        scenario.gp_goal   = 100.0f;
 
-            Graph tv_graph(true, "Average Terminal Value (USD)", "bar-graph");
-            tv_graph.title_ = std::format("Terminal values with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
-            tv_graph.set_extra("\"legend_position\": \"right\",");
+        scenario.gp_pass = 0.2;
+        failsafe_and_success(g_60_100, "60%-100% +0.2");
 
-            Graph duration_graph(true, "Worst Duration (months)", "line-graph");
-            duration_graph.title_ = std::format("Worst duration with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
-            duration_graph.set_extra("\"legend_position\": \"right\",");
+        scenario.gp_pass = 0.3;
+        failsafe_and_success(g_60_100, "60%-100% +0.3");
 
-            Graph quality_graph(true, "Quality (%)", "line-graph");
-            quality_graph.title_ = std::format("Quality with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
-            quality_graph.set_extra("\"legend_position\": \"right\",");
+        scenario.gp_pass = 0.4;
+        failsafe_and_success(g_60_100, "60%-100% +0.4");
 
-            {
-                auto scenario_bonds = base_scenario;
-                scenario_bonds.portfolio  = swr::parse_portfolio("us_bonds:0;us_stocks:0;", true);
-                scenario_bonds.values         = swr::load_values(scenario_bonds.portfolio);
-                scenario_bonds.inflation_data = swr::load_inflation(scenario_bonds.values, "us_inflation");
-                prepare_exchange_rates(scenario_bonds, "usd");
+        scenario.gp_pass = 0.5;
+        failsafe_and_success(g_60_100, "60%-100% +0.5");
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario_bonds.portfolio[1].allocation = float(i);
-                    scenario_bonds.portfolio[0].allocation = float(100 - i);
+        scenario.glidepath               = false;
+        scenario.portfolio[0].allocation = 80;
+        scenario.portfolio[1].allocation = 20;
+        failsafe_and_success(g_80_100, "Static 80%");
+        success_only(g_60_100, "Static 80%");
+        success_only(g_60_80, "Static 80%");
+        success_only(g_40_80, "Static 80%");
+        success_only(g_40_100, "Static 80%");
 
-                    multiple_wr_success_graph(success_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
-                    multiple_wr_avg_tv_graph(tv_graph, scenario_bonds, start_wr, end_wr, add_wr);
-                    multiple_wr_duration_graph(duration_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
-                    multiple_wr_quality_graph(quality_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
-                }
-            }
+        scenario.glidepath = true;
+        scenario.gp_goal   = 100.0f;
 
-            {
-                auto scenario_cash = base_scenario;
-                scenario_cash.portfolio  = swr::parse_portfolio("cash:0;us_stocks:0;", true);
-                scenario_cash.values         = swr::load_values(scenario_cash.portfolio);
-                scenario_cash.inflation_data = swr::load_inflation(scenario_cash.values, "us_inflation");
-                prepare_exchange_rates(scenario_cash, "usd");
+        scenario.gp_pass = 0.2;
+        failsafe_and_success(g_80_100, "80%-100% +0.2");
 
-                for (size_t i = 0; i <= 100 - portfolio_add; i += portfolio_add) {
-                    scenario_cash.portfolio[1].allocation = float(i);
-                    scenario_cash.portfolio[0].allocation = float(100 - i);
+        scenario.gp_pass = 0.3;
+        failsafe_and_success(g_80_100, "80%-100% +0.3");
 
-                    multiple_wr_success_graph(success_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
-                    multiple_wr_avg_tv_graph(tv_graph, scenario_cash, start_wr, end_wr, add_wr);
-                    multiple_wr_duration_graph(duration_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
-                    multiple_wr_quality_graph(quality_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
-                }
-            }
+        scenario.gp_pass = 0.4;
+        failsafe_and_success(g_80_100, "80%-100% +0.4");
 
+        scenario.gp_pass = 0.5;
+        failsafe_and_success(g_80_100, "80%-100% +0.5");
+
+        scenario.glidepath               = false;
+        scenario.portfolio[0].allocation = 100;
+        scenario.portfolio[1].allocation = 0;
+        failsafe_and_success(g_80_100, "Static 100%");
+        success_only(g_60_100, "Static 100%");
+        success_only(g_40_100, "Static 100%");
+    } else {
+        Graph r_g(graph);
+        r_g.title_ = std::format("Reverse Equity Glidepaths - 100 - 80\% stocks - {} Years", scenario.years);
+
+        scenario.glidepath               = false;
+        scenario.portfolio[0].allocation = 80;
+        scenario.portfolio[1].allocation = 20;
+        failsafe_and_success(r_g, "Static 80%");
+
+        scenario.portfolio[0].allocation = 100;
+        scenario.portfolio[1].allocation = 0;
+        failsafe_and_success(r_g, "Static 100%");
+
+        scenario.glidepath = true;
+        scenario.gp_goal   = 80.0f;
+
+        scenario.gp_pass = -0.2;
+        failsafe_and_success(r_g, "100%-80% -0.2");
+
+        scenario.gp_pass = -0.3;
+        failsafe_and_success(r_g, "100%-80% -0.3");
+
+        scenario.gp_pass = -0.4;
+        failsafe_and_success(r_g, "100%-80% -0.4");
+
+        scenario.gp_pass = -0.5;
+        failsafe_and_success(r_g, "100%-80% -0.5");
+    }
+
+    std::cout << std::endl;
+    std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
+    std::cout << failsafe_ss.str();
 
     return 0;
 }
 
-int trinity_duration_scenario(std::string_view command, const std::vector<std::string> & args) {
-            bool graph = command == "trinity_duration_graph";
+int failsafe_scenario(std::string_view command, const std::vector<std::string>& args) {
+    const bool graph = command == "failsafe_graph";
 
-            swr::scenario scenario;
+    swr::scenario scenario;
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            configure_withdrawal_method(scenario, args, 7);
+    float portfolio_add = 10;
+    if (args.size() > 7) {
+        portfolio_add = atof(args[7].c_str());
+    }
 
-            if (args.size() > 8) {
-                scenario.fees = atof(args[8].c_str()) / 100.0f;
-            }
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 5.0f;
-            const float add_wr   = 0.1f;
+    prepare_exchange_rates(scenario, "usd");
 
-            const float portfolio_add = 20;
+    Graph g(graph, "Failsafe SWR (%)");
+    g.title_  = std::format("Failsafe Withdrawal Rates - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.xtitle_ = "Stocks Allocation (%)";
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
 
-            prepare_exchange_rates(scenario, "usd");
+        std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
 
-            if (!graph) {
-                std::cout << "Portfolio";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
+        if (g.enabled_) {
+            std::map<float, float> results;
 
-            if (scenario.portfolio.size() != 2) {
-                std::cout << "trinity_duration needs 2 assets in the portfolio" << std::endl;
-                return 1;
-            }
-
-            {
-                Graph g(graph, "Worst Duration (months)");
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_duration_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-            }
-
-            std::cout << std::endl;
-            std::cout << std::endl;
-
-            {
-                Graph g(graph);
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-            }
-
-
-    return 0;
-}
-
-int trinity_tv_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for trinity_sheets" << std::endl;
-                return 1;
-            }
-
-            const bool graph = command == "trinity_tv_graph";
-
-            Graph g(graph, "Value (USD)", "bar-graph");
-
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            configure_withdrawal_method(scenario, args, 7);
-
-            if (args.size() > 8) {
-                scenario.fees = atof(args[8].c_str()) / 100.0f;
-            }
-
-            const float start_wr = 3.0f;
-            const float end_wr   = 5.0f;
-            const float add_wr   = 0.25f;
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            if (!graph) {
-                std::cout << "Withdrawal Rate";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
-
-            swr::normalize_portfolio(scenario.portfolio);
-
-            if (graph) {
-                multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
-            } else {
-                multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
-            }
-
-
-    return 0;
-}
-
-int trinity_spending_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for trinity_sheets" << std::endl;
-                return 1;
-            }
-
-            const bool graph = command == "trinity_spending_graph";
-
-            Graph g1(graph, "Average Spending (USD)", "bar-graph");
-            Graph g2(graph, "Spending Trends Years", "bar-graph");
-
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            configure_withdrawal_method(scenario, args, 7);
-
-            if (args.size() > 8) {
-                scenario.fees = atof(args[8].c_str()) / 100.0f;
-            }
-
-            const float start_wr = 4.0f;
-            const float end_wr   = 6.0f;
-            const float add_wr   = 0.1f;
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            if (!graph) {
-                std::cout << "Withdrawal Rate";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
-
-            swr::normalize_portfolio(scenario.portfolio);
-
-            if (graph) {
-                multiple_wr_spending_graph(g1, scenario, start_wr, end_wr, add_wr);
-                multiple_wr_spending_trend_graph(g2, scenario, start_wr, end_wr, add_wr);
-
-                std::cout << "\n";
-                g1.flush();
-                std::cout << "\n";
-                g2.flush();
-            } else {
-                multiple_wr_spending_sheets(scenario, start_wr, end_wr, add_wr);
-            }
-
-
-    return 0;
-}
-
-int social_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 11) {
-                std::cout << "Not enough arguments for social_sheets" << std::endl;
-                return 1;
-            }
-
-            const bool graph = command == "social_graph";
-
-            swr::scenario scenario;
-
-            scenario.fees = 0.001;
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                std::cout << "The Portfolio must be fixed" << std::endl;
-                return 1;
-            }
-
-            float start_wr = atof(args[7].c_str());
-            float end_wr   = atof(args[8].c_str());
-            float add_wr   = atof(args[9].c_str());
-
-            scenario.social_security = true;
-            scenario.social_delay = atoi(args[10].c_str());
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            Graph g(graph);
-
-            if (!graph) {
-                std::cout << "Coverage";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
-
-            swr::normalize_portfolio(scenario.portfolio);
-
-            auto run = [&](const std::string_view title, float coverage) {
-                scenario.social_coverage = coverage;
-                if (graph) {
-                    multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
-                }
-            };
-
-            run("0%", 0.00f);
-            run("5%", 0.05f);
-            run("10%", 0.10f);
-            run("20%", 0.20f);
-            run("30%", 0.30f);
-            run("40%", 0.40f);
-            run("50%", 0.50f);
-
-
-    return 0;
-}
-
-int social_pf_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 12) {
-                std::cout << "Not enough arguments for social_pf_sheets" << std::endl;
-                return 1;
-            }
-
-            const bool graph = command == "social_pf_graph";
-
-            swr::scenario scenario;
-
-            scenario.fees = 0.001;
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-
-            if (total_allocation(scenario.portfolio) != 0.0f) {
-                std::cout << "The Portfolio must be open" << std::endl;
-                return 1;
-            }
-
-            float start_wr = atof(args[7].c_str());
-            float end_wr   = atof(args[8].c_str());
-            float add_wr   = atof(args[9].c_str());
-
-            scenario.social_security = true;
-            scenario.social_delay = atoi(args[10].c_str());
-            auto base_coverage = atof(args[11].c_str()) / 100.0f;
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            Graph g(graph);
-
-            if (!graph) {
-                std::cout << "Portfolio";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
-
-            for (size_t i = 0; i <= 100; i += 20) {
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
                 scenario.portfolio[0].allocation = float(i);
                 scenario.portfolio[1].allocation = float(100 - i);
 
-                scenario.social_coverage = 0.0f;
-                if (graph) {
-                    multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " - 0%", false, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets(portfolio_to_string(scenario, false) + " - 0%", scenario, start_wr, end_wr, add_wr);
-                }
-                scenario.social_coverage = base_coverage;
-                if (graph) {
-                    multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " -" + args[11] + "%", false, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets(portfolio_to_string(scenario, false) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
-                }
+                failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+                results[i] = failsafe_swr_one(scenario, 6.0f, 0.0f, 0.01f, 0.0f);
             }
 
+            g.add_legend("Failsafe SWR");
+            g.add_data(results);
+        } else {
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = float(i);
+                scenario.portfolio[1].allocation = float(100 - i);
+
+                failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+            }
+        }
+    } else {
+        std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
+        swr::normalize_portfolio(scenario.portfolio);
+        failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
+    }
 
     return 0;
 }
 
-int current_wr_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for current_wr" << std::endl;
-                return 1;
-            }
+int data_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 4) {
+        std::cout << "Not enough arguments for data_graph" << std::endl;
+        return 1;
+    }
 
-            const bool graph = command == "current_wr_graph";
+    size_t start_year = atoi(args[1].c_str());
+    size_t end_year   = atoi(args[2].c_str());
+    auto   portfolio  = swr::parse_portfolio(args[3], false);
+    auto   values     = swr::load_values(portfolio);
 
-            swr::scenario scenario;
+    Graph graph(true);
 
-            scenario.wmethod     = swr::WithdrawalMethod::CURRENT;
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-            scenario.fees       = 0.001; // TER = 0.1%
+    for (size_t i = 0; i < portfolio.size(); ++i) {
+        graph.add_legend(asset_to_string_percent(portfolio[i].asset));
 
-            float portfolio_add = 25;
+        std::map<float, float> results;
+        float                  acc_value = 1;
 
-            float start_wr = 3.0f;
-            float end_wr   = 6.0f;
-            float add_wr   = 0.1f;
-
-            if (args.size() > 7){
-                portfolio_add = atof(args[7].c_str());
-            }
-
-            if (args.size() > 8) {
-                start_wr = atof(args[8].c_str());
-            }
-
-            if (args.size() > 9) {
-                end_wr = atof(args[9].c_str());
-            }
-
-            if (args.size() > 10) {
-                add_wr = atof(args[10].c_str());
-            }
-
-            if (args.size() > 11) {
-                scenario.minimum = atoi(args[11].c_str()) / 100.0f;
-            }
-
-            if (args.size() > 12 && args[12] == "standard") {
-                scenario.wmethod = swr::WithdrawalMethod::STANDARD;
-            }
-
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            if (!graph) {
-                std::cout << "Portfolio";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
+        for (auto& value : values[i]) {
+            if (value.year >= start_year) {
+                if (value.month == 12) {
+                    results[value.year] = acc_value;
                 }
-                std::cout << "\n";
+                acc_value *= value.value;
             }
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                Graph success_graph(graph);
-                Graph withdrawn_graph(graph, "Money withdrawn per year");
-                Graph duration_graph(graph, "Worst Duration (months)");
-
-                if (scenario.minimum == 0.0f) {
-                    duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ = std::format("Withdraw from current portfolio - {} Years", scenario.years);
-                } else {
-                    duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ = std::format("Withdraw from current portfolio (Min: {}%) - {} Years", args[11], scenario.years);
-                }
-
-                success_graph.set_extra("\"legend_position\": \"bottom_left\",");
-                withdrawn_graph.set_extra("\"legend_position\": \"bottom_right\",");
-                duration_graph.set_extra("\"legend_position\": \"bottom_left\",");
-
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_success_graph(success_graph, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-
-                std::cout << '\n';
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_withdrawn_graph(withdrawn_graph, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_withdrawn_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-
-                std::cout << '\n';
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (graph) {
-                        multiple_wr_duration_graph(duration_graph, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-                }
-            } else {
-                Graph g(graph);
-                swr::normalize_portfolio(scenario.portfolio);
-
-                if (graph) {
-                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                }
+            if (value.year > end_year) {
+                break;
             }
-            std::cout << "\n";
+        }
 
-
+        graph.add_data(results);
+    }
 
     return 0;
 }
 
-int rebalance_scenario(std::string_view command, const std::vector<std::string> & args) {
+int trinity_success_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        return 1;
+    }
 
-            if (args.size() < 6) {
-                std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
-                return 1;
-            }
+    const bool graph = command == "trinity_success_graph";
 
-            const bool graph = command == "rebalance_graph";
+    swr::scenario scenario;
 
-            swr::scenario scenario;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio    = swr::parse_portfolio(args[4], false);
-            auto inflation        = args[5];
+    float portfolio_add = 25;
+    if (args.size() > 7) {
+        portfolio_add = atof(args[7].c_str());
+    }
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 6.0f;
-            const float add_wr   = 0.1f;
+    float start_wr = 3.0f;
+    if (args.size() > 8) {
+        start_wr = atof(args[8].c_str());
+    }
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    float end_wr = 6.0f;
+    if (args.size() > 9) {
+        end_wr = atof(args[9].c_str());
+    }
 
-            prepare_exchange_rates(scenario, "usd");
+    float add_wr = 0.1f;
+    if (args.size() > 10) {
+        add_wr = atof(args[10].c_str());
+    }
 
-            Graph g(graph);
-            g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance method";
-            g.set_extra("\"legend_position\": \"bottom_left\",");
+    if (args.size() > 11) {
+        scenario.fees = atof(args[11].c_str()) / 100.0f;
+    }
 
-            if (!graph) {
-                std::cout << "Rebalance";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
+    if (args.size() > 12) {
+        scenario.final_threshold = atof(args[12].c_str()) / 100.0f;
+    }
+
+    if (args.size() > 13) {
+        scenario.final_inflation = args[13] == "true";
+    }
+
+    configure_withdrawal_method(scenario, args, 14);
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    if (args.size() > 15) {
+        std::string country = args[15];
+
+        if (country == "switzerland") {
+            auto exchange_data = swr::load_exchange("usd_chf");
+
+            scenario.exchange_rates.resize(scenario.values.size());
+
+            for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+                scenario.exchange_rates[i] = exchange_data;
+                if (scenario.portfolio[i].asset == "us_stocks") {
+                    scenario.exchange_rates[i] = exchange_data;
+                } else {
+                    scenario.exchange_rates[i] = exchange_data;
+
+                    for (auto& v : scenario.exchange_rates[i]) {
+                        v.value = 1;
+                    }
                 }
-                std::cout << "\n";
             }
+        } else {
+            std::cout << "No support for country: " << country << std::endl;
+            return 1;
+        }
+    } else {
+        prepare_exchange_rates(scenario, "usd");
+    }
 
-            auto start = std::chrono::high_resolution_clock::now();
+    Graph g(graph);
+    g.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.set_extra("\"legend_position\": \"bottom_left\",");
 
-            swr::normalize_portfolio(scenario.portfolio);
+    if (!graph) {
+        std::cout << "Portfolio";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
 
             if (graph) {
-                scenario.rebalance = swr::Rebalancing::NONE;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
-
-                scenario.rebalance = swr::Rebalancing::MONTHLY;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
-
-                scenario.rebalance = swr::Rebalancing::YEARLY;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+                multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
             } else {
-                scenario.rebalance = swr::Rebalancing::NONE;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.rebalance = swr::Rebalancing::MONTHLY;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.rebalance = swr::Rebalancing::YEARLY;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s) \n\n";
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+        if (graph) {
+            multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+        }
+    }
 
     return 0;
 }
 
-int threshold_rebalance_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 6) {
-                std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
-                return 1;
-            }
+int trinity_cash_graphs_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 4) {
+        std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
+        return 1;
+    }
 
-            const bool graph = command == "threshold_rebalance_graph";
+    swr::scenario base_scenario;
 
-            swr::scenario scenario;
+    base_scenario.years      = atoi(args[1].c_str());
+    base_scenario.start_year = atoi(args[2].c_str());
+    base_scenario.end_year   = atoi(args[3].c_str());
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], false);
-            auto inflation      = args[5];
+    float portfolio_add = 25;
+    if (args.size() > 4) {
+        portfolio_add = atof(args[4].c_str());
+    }
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 6.0f;
-            const float add_wr   = 0.1f;
+    float start_wr = 3.0f;
+    if (args.size() > 5) {
+        start_wr = atof(args[5].c_str());
+    }
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    float end_wr = 6.0f;
+    if (args.size() > 6) {
+        end_wr = atof(args[6].c_str());
+    }
 
-            prepare_exchange_rates(scenario, "usd");
+    float add_wr = 0.1f;
+    if (args.size() > 7) {
+        add_wr = atof(args[7].c_str());
+    }
 
-            Graph g(graph);
-            g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance threshold";
-            g.set_extra("\"legend_position\": \"bottom_left\",");
+    base_scenario.fees      = 0.1f / 100.0f;
+    base_scenario.rebalance = swr::parse_rebalance("yearly");
+    base_scenario.wmethod   = swr::WithdrawalMethod::STANDARD;
 
-            if (!graph) {
-                std::cout << "Rebalance";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
+    Graph success_graph(true);
+    success_graph.title_ = std::format("Trinity Study with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+    success_graph.set_extra("\"legend_position\": \"bottom_left\",");
 
-            auto start = std::chrono::high_resolution_clock::now();
+    Graph tv_graph(true, "Average Terminal Value (USD)", "bar-graph");
+    tv_graph.title_ = std::format("Terminal values with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+    tv_graph.set_extra("\"legend_position\": \"right\",");
 
-            swr::normalize_portfolio(scenario.portfolio);
+    Graph duration_graph(true, "Worst Duration (months)", "line-graph");
+    duration_graph.title_ = std::format("Worst duration with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+    duration_graph.set_extra("\"legend_position\": \"right\",");
 
-            scenario.rebalance = swr::Rebalancing::THRESHOLD;
+    Graph quality_graph(true, "Quality (%)", "line-graph");
+    quality_graph.title_ = std::format("Quality with Cash - {} Years - {}-{}", base_scenario.years, base_scenario.start_year, base_scenario.end_year);
+    quality_graph.set_extra("\"legend_position\": \"right\",");
 
-            if(graph) {
-                scenario.threshold = 0.01;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+    {
+        auto scenario_bonds           = base_scenario;
+        scenario_bonds.portfolio      = swr::parse_portfolio("us_bonds:0;us_stocks:0;", true);
+        scenario_bonds.values         = swr::load_values(scenario_bonds.portfolio);
+        scenario_bonds.inflation_data = swr::load_inflation(scenario_bonds.values, "us_inflation");
+        prepare_exchange_rates(scenario_bonds, "usd");
 
-                scenario.threshold = 0.02;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario_bonds.portfolio[1].allocation = float(i);
+            scenario_bonds.portfolio[0].allocation = float(100 - i);
 
-                scenario.threshold = 0.05;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+            multiple_wr_success_graph(success_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+            multiple_wr_avg_tv_graph(tv_graph, scenario_bonds, start_wr, end_wr, add_wr);
+            multiple_wr_duration_graph(duration_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+            multiple_wr_quality_graph(quality_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
+        }
+    }
 
-                scenario.threshold = 0.10;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+    {
+        auto scenario_cash           = base_scenario;
+        scenario_cash.portfolio      = swr::parse_portfolio("cash:0;us_stocks:0;", true);
+        scenario_cash.values         = swr::load_values(scenario_cash.portfolio);
+        scenario_cash.inflation_data = swr::load_inflation(scenario_cash.values, "us_inflation");
+        prepare_exchange_rates(scenario_cash, "usd");
 
-                scenario.threshold = 0.25;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+        for (size_t i = 0; i <= 100 - portfolio_add; i += portfolio_add) {
+            scenario_cash.portfolio[1].allocation = float(i);
+            scenario_cash.portfolio[0].allocation = float(100 - i);
 
-                scenario.threshold = 0.50;
-                multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
-            } else {
-                scenario.threshold = 0.01;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.threshold = 0.02;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.threshold = 0.05;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.threshold = 0.10;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.threshold = 0.25;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-
-                scenario.threshold = 0.50;
-                multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
-            }
-
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-
-            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
-
+            multiple_wr_success_graph(success_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
+            multiple_wr_avg_tv_graph(tv_graph, scenario_cash, start_wr, end_wr, add_wr);
+            multiple_wr_duration_graph(duration_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
+            multiple_wr_quality_graph(quality_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
+        }
+    }
 
     return 0;
 }
 
-int trinity_low_yield_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 8) {
-                std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
-                return 1;
-            }
+int trinity_duration_scenario(std::string_view command, const std::vector<std::string>& args) {
+    bool graph = command == "trinity_duration_graph";
 
-            const bool graph = command == "trinity_low_yield_graph";
+    swr::scenario scenario;
 
-            swr::scenario scenario;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-            float yield_adjust  = atof(args[7].c_str());
+    configure_withdrawal_method(scenario, args, 7);
 
-            const float start_wr = 3.0f;
-            const float end_wr   = 5.0f;
-            const float add_wr   = 0.1f;
+    if (args.size() > 8) {
+        scenario.fees = atof(args[8].c_str()) / 100.0f;
+    }
 
-            const float portfolio_add = 10;
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    const float portfolio_add = 20;
 
-            auto real_scenario = scenario;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            Graph g(graph);
-            Graph gp(graph && yield_adjust < 1.0f);
+    prepare_exchange_rates(scenario, "usd");
 
-            g.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
-            gp.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
+    if (!graph) {
+        std::cout << "Portfolio";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
 
-            if (args[7] == "1.0") {
-                g.title_ = "Success Rates with Historical Yields";
+    if (scenario.portfolio.size() != 2) {
+        std::cout << "trinity_duration needs 2 assets in the portfolio" << std::endl;
+        return 1;
+    }
+
+    {
+        Graph g(graph, "Worst Duration (months)");
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            if (graph) {
+                multiple_wr_duration_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
             } else {
-                g.title_ = std::format("Success Rates with {}% of the Historical Yields", static_cast<uint32_t>(yield_adjust * 100));
-                gp.title_ = std::format("Success Rates with {}% of the Historical Yields - Portfolios", static_cast<uint32_t>(yield_adjust * 100));
+                multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
             }
+        }
+    }
 
-            if (!graph) {
-                std::cout << "Portfolio";
-                for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-                    std::cout << ";" << wr << "%";
-                }
-                std::cout << "\n";
-            }
+    std::cout << std::endl;
+    std::cout << std::endl;
 
-            if (yield_adjust < 1.0f) { 
-                for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
-                    if (scenario.portfolio[i].asset == "us_bonds") {
-                        for (auto & value : scenario.values[i]) {
-                            // We must adjust only the part above 1.0f
-                            value.value = 1.0f + (value.value - 1.0f) * yield_adjust;
-                        }
+    {
+        Graph g(graph);
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
 
-                        break;
-                    }
-                }
-            }
-
-            prepare_exchange_rates(scenario, "usd");
-            prepare_exchange_rates(real_scenario, "usd");
-
-            auto start = std::chrono::high_resolution_clock::now();
-
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
-
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
-
-                    real_scenario.portfolio[0].allocation = float(i);
-                    real_scenario.portfolio[1].allocation = float(100 - i);
-
-                    if (g.enabled_) {
-                        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                    } else {
-                        multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                    }
-
-                    if (gp.enabled_) {
-                        if (i == 60 || i == 40) {
-                            multiple_wr_success_graph(gp, std::format("{} ({}%)", portfolio_to_string(scenario, true), static_cast<uint32_t>(yield_adjust * 100)), true, scenario, start_wr, end_wr, add_wr);
-                            multiple_wr_success_graph(gp, std::format("{} ({}%)", portfolio_to_string(scenario, true), 100), true, real_scenario, start_wr, end_wr, add_wr);
-                        }
-                    }
-                }
-
+            if (graph) {
+                multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
             } else {
-                swr::normalize_portfolio(scenario.portfolio);
-
-                if (g.enabled_) {
-                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                } else {
-                    multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
-                }
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
+        }
+    }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    return 0;
+}
 
-            std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
+int trinity_tv_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "trinity_tv_graph";
+
+    Graph g(graph, "Value (USD)", "bar-graph");
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    configure_withdrawal_method(scenario, args, 7);
+
+    if (args.size() > 8) {
+        scenario.fees = atof(args[8].c_str()) / 100.0f;
+    }
+
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.25f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
+
+    if (!graph) {
+        std::cout << "Withdrawal Rate";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    if (graph) {
+        multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
+    } else {
+        multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+    }
+
+    return 0;
+}
+
+int trinity_spending_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "trinity_spending_graph";
+
+    Graph g1(graph, "Average Spending (USD)", "bar-graph");
+    Graph g2(graph, "Spending Trends Years", "bar-graph");
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    configure_withdrawal_method(scenario, args, 7);
+
+    if (args.size() > 8) {
+        scenario.fees = atof(args[8].c_str()) / 100.0f;
+    }
+
+    const float start_wr = 4.0f;
+    const float end_wr   = 6.0f;
+    const float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
+
+    if (!graph) {
+        std::cout << "Withdrawal Rate";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    if (graph) {
+        multiple_wr_spending_graph(g1, scenario, start_wr, end_wr, add_wr);
+        multiple_wr_spending_trend_graph(g2, scenario, start_wr, end_wr, add_wr);
+
+        std::cout << "\n";
+        g1.flush();
+        std::cout << "\n";
+        g2.flush();
+    } else {
+        multiple_wr_spending_sheets(scenario, start_wr, end_wr, add_wr);
+    }
+
+    return 0;
+}
+
+int social_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 11) {
+        std::cout << "Not enough arguments for social_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "social_graph";
+
+    swr::scenario scenario;
+
+    scenario.fees       = 0.001;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        std::cout << "The Portfolio must be fixed" << std::endl;
+        return 1;
+    }
+
+    float start_wr = atof(args[7].c_str());
+    float end_wr   = atof(args[8].c_str());
+    float add_wr   = atof(args[9].c_str());
+
+    scenario.social_security = true;
+    scenario.social_delay    = atoi(args[10].c_str());
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    Graph g(graph);
+
+    if (!graph) {
+        std::cout << "Coverage";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    auto run = [&](const std::string_view title, float coverage) {
+        scenario.social_coverage = coverage;
+        if (graph) {
+            multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets(title, scenario, start_wr, end_wr, add_wr);
+        }
+    };
+
+    run("0%", 0.00f);
+    run("5%", 0.05f);
+    run("10%", 0.10f);
+    run("20%", 0.20f);
+    run("30%", 0.30f);
+    run("40%", 0.40f);
+    run("50%", 0.50f);
+
+    return 0;
+}
+
+int social_pf_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 12) {
+        std::cout << "Not enough arguments for social_pf_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "social_pf_graph";
+
+    swr::scenario scenario;
+
+    scenario.fees       = 0.001;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    if (total_allocation(scenario.portfolio) != 0.0f) {
+        std::cout << "The Portfolio must be open" << std::endl;
+        return 1;
+    }
+
+    float start_wr = atof(args[7].c_str());
+    float end_wr   = atof(args[8].c_str());
+    float add_wr   = atof(args[9].c_str());
+
+    scenario.social_security = true;
+    scenario.social_delay    = atoi(args[10].c_str());
+    auto base_coverage       = atof(args[11].c_str()) / 100.0f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    Graph g(graph);
+
+    if (!graph) {
+        std::cout << "Portfolio";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    for (size_t i = 0; i <= 100; i += 20) {
+        scenario.portfolio[0].allocation = float(i);
+        scenario.portfolio[1].allocation = float(100 - i);
+
+        scenario.social_coverage = 0.0f;
+        if (graph) {
+            multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " - 0%", false, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets(portfolio_to_string(scenario, false) + " - 0%", scenario, start_wr, end_wr, add_wr);
+        }
+        scenario.social_coverage = base_coverage;
+        if (graph) {
+            multiple_wr_success_graph(g, portfolio_to_string(scenario, false) + " -" + args[11] + "%", false, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets(portfolio_to_string(scenario, false) + +" - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
+        }
+    }
+
+    return 0;
+}
+
+int current_wr_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for current_wr" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "current_wr_graph";
+
+    swr::scenario scenario;
+
+    scenario.wmethod    = swr::WithdrawalMethod::CURRENT;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+    scenario.fees       = 0.001; // TER = 0.1%
+
+    float portfolio_add = 25;
+
+    float start_wr = 3.0f;
+    float end_wr   = 6.0f;
+    float add_wr   = 0.1f;
+
+    if (args.size() > 7) {
+        portfolio_add = atof(args[7].c_str());
+    }
+
+    if (args.size() > 8) {
+        start_wr = atof(args[8].c_str());
+    }
+
+    if (args.size() > 9) {
+        end_wr = atof(args[9].c_str());
+    }
+
+    if (args.size() > 10) {
+        add_wr = atof(args[10].c_str());
+    }
+
+    if (args.size() > 11) {
+        scenario.minimum = atoi(args[11].c_str()) / 100.0f;
+    }
+
+    if (args.size() > 12 && args[12] == "standard") {
+        scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+    }
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
+
+    if (!graph) {
+        std::cout << "Portfolio";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        Graph success_graph(graph);
+        Graph withdrawn_graph(graph, "Money withdrawn per year");
+        Graph duration_graph(graph, "Worst Duration (months)");
+
+        if (scenario.minimum == 0.0f) {
+            duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ = std::format("Withdraw from current portfolio - {} Years", scenario.years);
+        } else {
+            duration_graph.title_ = withdrawn_graph.title_ = success_graph.title_ =
+                    std::format("Withdraw from current portfolio (Min: {}%) - {} Years", args[11], scenario.years);
+        }
+
+        success_graph.set_extra("\"legend_position\": \"bottom_left\",");
+        withdrawn_graph.set_extra("\"legend_position\": \"bottom_right\",");
+        duration_graph.set_extra("\"legend_position\": \"bottom_left\",");
+
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            if (graph) {
+                multiple_wr_success_graph(success_graph, "", true, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+            }
+        }
+
+        std::cout << '\n';
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            if (graph) {
+                multiple_wr_withdrawn_graph(withdrawn_graph, "", true, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_withdrawn_sheets("", scenario, start_wr, end_wr, add_wr);
+            }
+        }
+
+        std::cout << '\n';
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            if (graph) {
+                multiple_wr_duration_graph(duration_graph, "", true, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+            }
+        }
+    } else {
+        Graph g(graph);
+        swr::normalize_portfolio(scenario.portfolio);
+
+        if (graph) {
+            multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+        }
+    }
+    std::cout << "\n";
+
+    return 0;
+}
+
+int rebalance_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 6) {
+        std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "rebalance_graph";
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+
+    const float start_wr = 3.0f;
+    const float end_wr   = 6.0f;
+    const float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
+
+    Graph g(graph);
+    g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance method";
+    g.set_extra("\"legend_position\": \"bottom_left\",");
+
+    if (!graph) {
+        std::cout << "Rebalance";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    if (graph) {
+        scenario.rebalance = swr::Rebalancing::NONE;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.rebalance = swr::Rebalancing::MONTHLY;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.rebalance = swr::Rebalancing::YEARLY;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+    } else {
+        scenario.rebalance = swr::Rebalancing::NONE;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.rebalance = swr::Rebalancing::MONTHLY;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.rebalance = swr::Rebalancing::YEARLY;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s) \n\n";
+
+    return 0;
+}
+
+int threshold_rebalance_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 6) {
+        std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "threshold_rebalance_graph";
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+
+    const float start_wr = 3.0f;
+    const float end_wr   = 6.0f;
+    const float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
+
+    Graph g(graph);
+    g.title_ = portfolio_to_blog_string(scenario, false) + " - " + std::to_string(scenario.years) + " Years - Rebalance threshold";
+    g.set_extra("\"legend_position\": \"bottom_left\",");
+
+    if (!graph) {
+        std::cout << "Rebalance";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    scenario.rebalance = swr::Rebalancing::THRESHOLD;
+
+    if (graph) {
+        scenario.threshold = 0.01;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.02;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.05;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.10;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.25;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.50;
+        multiple_rebalance_graph(g, scenario, start_wr, end_wr, add_wr);
+    } else {
+        scenario.threshold = 0.01;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.02;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.05;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.10;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.25;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+
+        scenario.threshold = 0.50;
+        multiple_rebalance_sheets(scenario, start_wr, end_wr, add_wr);
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n\n";
+
+    return 0;
+}
+
+int trinity_low_yield_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 8) {
+        std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
+        return 1;
+    }
+
+    const bool graph = command == "trinity_low_yield_graph";
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+    float yield_adjust  = atof(args[7].c_str());
+
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
+
+    const float portfolio_add = 10;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    auto real_scenario = scenario;
+
+    Graph g(graph);
+    Graph gp(graph && yield_adjust < 1.0f);
+
+    g.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
+    gp.set_extra("\"ymax\": 100, \"legend_position\": \"bottom_left\",");
+
+    if (args[7] == "1.0") {
+        g.title_ = "Success Rates with Historical Yields";
+    } else {
+        g.title_  = std::format("Success Rates with {}% of the Historical Yields", static_cast<uint32_t>(yield_adjust * 100));
+        gp.title_ = std::format("Success Rates with {}% of the Historical Yields - Portfolios", static_cast<uint32_t>(yield_adjust * 100));
+    }
+
+    if (!graph) {
+        std::cout << "Portfolio";
+        for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
+            std::cout << ";" << wr << "%";
+        }
+        std::cout << "\n";
+    }
+
+    if (yield_adjust < 1.0f) {
+        for (size_t i = 0; i < scenario.portfolio.size(); ++i) {
+            if (scenario.portfolio[i].asset == "us_bonds") {
+                for (auto& value : scenario.values[i]) {
+                    // We must adjust only the part above 1.0f
+                    value.value = 1.0f + (value.value - 1.0f) * yield_adjust;
+                }
+
+                break;
+            }
+        }
+    }
+
+    prepare_exchange_rates(scenario, "usd");
+    prepare_exchange_rates(real_scenario, "usd");
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
+
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
+
+            real_scenario.portfolio[0].allocation = float(i);
+            real_scenario.portfolio[1].allocation = float(100 - i);
+
+            if (g.enabled_) {
+                multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+            } else {
+                multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+            }
 
             if (gp.enabled_) {
-                g.flush();
-                std::cout << "\n\n";
+                if (i == 60 || i == 40) {
+                    multiple_wr_success_graph(gp,
+                                              std::format("{} ({}%)", portfolio_to_string(scenario, true), static_cast<uint32_t>(yield_adjust * 100)),
+                                              true,
+                                              scenario,
+                                              start_wr,
+                                              end_wr,
+                                              add_wr);
+                    multiple_wr_success_graph(
+                            gp, std::format("{} ({}%)", portfolio_to_string(scenario, true), 100), true, real_scenario, start_wr, end_wr, add_wr);
+                }
             }
+        }
 
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+
+        if (g.enabled_) {
+            multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+        } else {
+            multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+        }
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n\n";
+
+    if (gp.enabled_) {
+        g.flush();
+        std::cout << "\n\n";
+    }
 
     return 0;
 }
 
-int flexibility_graph_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 12) {
-                std::cout << "Not enough arguments for flexibility_graph" << std::endl;
-                return 1;
-            }
+int flexibility_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 12) {
+        std::cout << "Not enough arguments for flexibility_graph" << std::endl;
+        return 1;
+    }
 
-            swr::scenario scenario;
+    swr::scenario scenario;
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-            scenario.flexibility = swr::Flexibility::NONE;
+    scenario.years       = atoi(args[1].c_str());
+    scenario.start_year  = atoi(args[2].c_str());
+    scenario.end_year    = atoi(args[3].c_str());
+    scenario.portfolio   = swr::parse_portfolio(args[4], true);
+    auto inflation       = args[5];
+    scenario.rebalance   = swr::parse_rebalance(args[6]);
+    scenario.flexibility = swr::Flexibility::NONE;
 
-            if (args[7] == "market") {
-                scenario.flexibility = swr::Flexibility::MARKET;
-            } else if (args[7] == "portfolio") {
-                scenario.flexibility = swr::Flexibility::PORTFOLIO;
-            } else {
-                std::cout << "Invalid flexibility parameter" << std::endl;
-                return 1;
-            }
+    if (args[7] == "market") {
+        scenario.flexibility = swr::Flexibility::MARKET;
+    } else if (args[7] == "portfolio") {
+        scenario.flexibility = swr::Flexibility::PORTFOLIO;
+    } else {
+        std::cout << "Invalid flexibility parameter" << std::endl;
+        return 1;
+    }
 
-            scenario.flexibility_threshold_1 = atof(args[8].c_str()) / 100.0f;
-            scenario.flexibility_change_1    = atof(args[9].c_str()) / 100.0f;
-            scenario.flexibility_threshold_2 = atof(args[10].c_str()) / 100.0f;
-            scenario.flexibility_change_2    = atof(args[11].c_str()) / 100.0f;
+    scenario.flexibility_threshold_1 = atof(args[8].c_str()) / 100.0f;
+    scenario.flexibility_change_1    = atof(args[9].c_str()) / 100.0f;
+    scenario.flexibility_threshold_2 = atof(args[10].c_str()) / 100.0f;
+    scenario.flexibility_change_2    = atof(args[11].c_str()) / 100.0f;
 
-            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            prepare_exchange_rates(scenario, "usd");
+    prepare_exchange_rates(scenario, "usd");
 
-            const float portfolio_add = 20;
-            const float start_wr = 3.0f;
-            const float end_wr   = 6.0f;
-            const float add_wr   = 0.1f;
+    const float portfolio_add = 20;
+    const float start_wr      = 3.0f;
+    const float end_wr        = 6.0f;
+    const float add_wr        = 0.1f;
 
-            Graph g(true);
+    Graph g(true);
 
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
 
-                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                    scenario.portfolio[0].allocation = float(i);
-                    scenario.portfolio[1].allocation = float(100 - i);
+        for (size_t i = 0; i <= 100; i += portfolio_add) {
+            scenario.portfolio[0].allocation = float(i);
+            scenario.portfolio[1].allocation = float(100 - i);
 
-                    multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-                }
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
-                multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-            }
-
-
-    return 0;
-}
-
-int flexibility_auto_graph_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 8) {
-                std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
-                return 1;
-            }
-
-            swr::scenario scenario;
-
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
-            auto flexibility = swr::Flexibility::NONE;
-
-            if (args[7] == "market") {
-                flexibility = swr::Flexibility::MARKET;
-            } else if (args[7] == "portfolio") {
-                flexibility = swr::Flexibility::PORTFOLIO;
-            } else {
-                std::cout << "Invalid flexibility parameter" << std::endl;
-                return 1;
-            }
-
-            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
-
-            prepare_exchange_rates(scenario, "usd");
-
-            const float success_start_wr = 3.5f;
-            const float success_end_wr   = 5.5f;
-            const float withdrawn_start_wr = 3.5f;
-            const float withdrawn_end_wr   = 4.5f;
-            const float errors_start_wr = 3.5f;
-            const float errors_end_wr   = 5.5f;
-
-            const float add_wr   = 0.1f;
-
-            Graph successGraph(true);
-            Graph withdrawnGraph(true, "Withdrawn per year (CHF)");
-            Graph errorsGraph(true, "Error Rate (%)");
-
-            swr::normalize_portfolio(scenario.portfolio);
-
-            scenario.flexibility = swr::Flexibility::NONE;
-            const auto base_results = multiple_wr_success_graph_save(successGraph, "Zero", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "Zero", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-
-            scenario.flexibility = flexibility;
-
-            scenario.flexibility_threshold_1 = 0.90f;
-            scenario.flexibility_change_1    = 0.95f;
-            scenario.flexibility_threshold_2 = 0.80f;
-            scenario.flexibility_change_2    = 0.90f;
-
-            multiple_wr_success_graph(successGraph, "90/5 80/10", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "90/5 80/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "90/5 80/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            scenario.flexibility_threshold_1 = 0.90f;
-            scenario.flexibility_change_1    = 0.90f;
-            scenario.flexibility_threshold_2 = 0.80f;
-            scenario.flexibility_change_2    = 0.80f;
-
-            multiple_wr_success_graph(successGraph, "90/10 80/20", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "90/10 80/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "90/10 80/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            scenario.flexibility_threshold_1 = 0.95f;
-            scenario.flexibility_change_1    = 0.95f;
-            scenario.flexibility_threshold_2 = 0.90f;
-            scenario.flexibility_change_2    = 0.90f;
-
-            multiple_wr_success_graph(successGraph, "95/5 90/10", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "95/5 90/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "95/5 90/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            scenario.flexibility_threshold_1 = 0.95f;
-            scenario.flexibility_change_1    = 0.90f;
-            scenario.flexibility_threshold_2 = 0.90f;
-            scenario.flexibility_change_2    = 0.80f;
-
-            multiple_wr_success_graph(successGraph, "95/10 90/20", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "95/10 90/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "95/10 90/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            scenario.flexibility = flexibility;
-
-            scenario.flexibility_threshold_1 = 0.80f;
-            scenario.flexibility_change_1    = 0.95f;
-            scenario.flexibility_threshold_2 = 0.60f;
-            scenario.flexibility_change_2    = 0.90f;
-
-            multiple_wr_success_graph(successGraph, "80/5 60/10", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "80/5 60/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "80/5 60/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            scenario.flexibility_threshold_1 = 0.80f;
-            scenario.flexibility_change_1    = 0.90f;
-            scenario.flexibility_threshold_2 = 0.60f;
-            scenario.flexibility_change_2    = 0.80f;
-
-            multiple_wr_success_graph(successGraph, "80/10 60/20", true, scenario, success_start_wr, success_end_wr, add_wr);
-            multiple_wr_withdrawn_graph(withdrawnGraph, "80/10 60/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
-            multiple_wr_errors_graph(errorsGraph, "80/10 60/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
-
-            successGraph.flush();
-            std::cout << "\n\n";
-
-            withdrawnGraph.flush();
-            std::cout << "\n\n";
-
-            errorsGraph.flush();
-            std::cout << "\n\n";
-
+            multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+        multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+    }
 
     return 0;
 }
 
-int selection_graph_scenario(const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for selection_graph" << std::endl;
-                return 1;
-            }
+int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 8) {
+        std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
+        return 1;
+    }
 
-            swr::scenario scenario;
+    swr::scenario scenario;
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+    auto flexibility    = swr::Flexibility::NONE;
 
-            std::string test = args[6];
-            if (args[6] == "none") {
-                scenario.rebalance  = swr::parse_rebalance(args[6]);
-            } else if (args[6] != "auto" && args[6] != "gp"){
-                std::cout << "Invalid arguments for selection_graph" << std::endl;
-                return 1;
-            }
+    if (args[7] == "market") {
+        flexibility = swr::Flexibility::MARKET;
+    } else if (args[7] == "portfolio") {
+        flexibility = swr::Flexibility::PORTFOLIO;
+    } else {
+        std::cout << "Invalid flexibility parameter" << std::endl;
+        return 1;
+    }
 
-            std::cout << "Portfolio: \n";
+    scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            for (auto & position : scenario.portfolio) {
-                std::cout << " " << position.asset << ": " << position.allocation << "%\n";
-            }
+    prepare_exchange_rates(scenario, "usd");
 
-            if (!prepare_exchange_rates(scenario, "usd")) {
-                std::cout << "Error with exchange rates" << std::endl;
-                return 1;
-            }
+    const float success_start_wr   = 3.5f;
+    const float success_end_wr     = 5.5f;
+    const float withdrawn_start_wr = 3.5f;
+    const float withdrawn_end_wr   = 4.5f;
+    const float errors_start_wr    = 3.5f;
+    const float errors_end_wr      = 5.5f;
 
-            swr::normalize_portfolio(scenario.portfolio);
+    const float add_wr = 0.1f;
 
-            const float success_start_wr = 3.5f;
-            const float success_end_wr   = 5.5f;
-            const float add_wr   = 0.1f;
+    Graph successGraph(true);
+    Graph withdrawnGraph(true, "Withdrawn per year (CHF)");
+    Graph errorsGraph(true, "Error Rate (%)");
 
-            Graph success_graph(true);
+    swr::normalize_portfolio(scenario.portfolio);
 
-            if (test == "none") {
-                success_graph.title_ = std::format("Sell stocks or bonds - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+    scenario.flexibility    = swr::Flexibility::NONE;
+    const auto base_results = multiple_wr_success_graph_save(successGraph, "Zero", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "Zero", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
 
-                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
-                multiple_wr_success_graph(success_graph, "Alloc", true, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility = flexibility;
 
-                scenario.wselection = swr::WithdrawalSelection::BONDS;
-                multiple_wr_success_graph(success_graph, "Bonds", true, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility_threshold_1 = 0.90f;
+    scenario.flexibility_change_1    = 0.95f;
+    scenario.flexibility_threshold_2 = 0.80f;
+    scenario.flexibility_change_2    = 0.90f;
 
-                scenario.wselection = swr::WithdrawalSelection::STOCKS;
-                multiple_wr_success_graph(success_graph, "Stocks", true, scenario, success_start_wr, success_end_wr, add_wr);
-            } else if (test == "auto"){
-                success_graph.title_ = std::format("Rebalance or not - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+    multiple_wr_success_graph(successGraph, "90/5 80/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "90/5 80/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "90/5 80/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.rebalance = swr::Rebalancing::NONE;
-                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
-                multiple_wr_success_graph(success_graph, "Alloc/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility_threshold_1 = 0.90f;
+    scenario.flexibility_change_1    = 0.90f;
+    scenario.flexibility_threshold_2 = 0.80f;
+    scenario.flexibility_change_2    = 0.80f;
 
-                scenario.rebalance = swr::Rebalancing::YEARLY;
-                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
-                multiple_wr_success_graph(success_graph, "Alloc/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_success_graph(successGraph, "90/10 80/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "90/10 80/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "90/10 80/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.rebalance = swr::Rebalancing::NONE;
-                scenario.wselection = swr::WithdrawalSelection::BONDS;
-                multiple_wr_success_graph(success_graph, "Bonds/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility_threshold_1 = 0.95f;
+    scenario.flexibility_change_1    = 0.95f;
+    scenario.flexibility_threshold_2 = 0.90f;
+    scenario.flexibility_change_2    = 0.90f;
 
-                scenario.rebalance = swr::Rebalancing::YEARLY;
-                scenario.wselection = swr::WithdrawalSelection::BONDS;
-                multiple_wr_success_graph(success_graph, "Bonds/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_success_graph(successGraph, "95/5 90/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "95/5 90/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "95/5 90/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.rebalance = swr::Rebalancing::NONE;
-                scenario.wselection = swr::WithdrawalSelection::STOCKS;
-                multiple_wr_success_graph(success_graph, "Stocks/None", true, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility_threshold_1 = 0.95f;
+    scenario.flexibility_change_1    = 0.90f;
+    scenario.flexibility_threshold_2 = 0.90f;
+    scenario.flexibility_change_2    = 0.80f;
 
-                scenario.rebalance = swr::Rebalancing::YEARLY;
-                scenario.wselection = swr::WithdrawalSelection::STOCKS;
-                multiple_wr_success_graph(success_graph, "Stocks/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
-            } else if (test == "gp") {
-                success_graph.title_ = std::format("Which glidepath - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
+    multiple_wr_success_graph(successGraph, "95/10 90/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "95/10 90/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "95/10 90/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.rebalance  = swr::parse_rebalance("none");
+    scenario.flexibility = flexibility;
 
-                scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
-                multiple_wr_success_graph(success_graph, "Alloc", false, scenario, success_start_wr, success_end_wr, add_wr);
+    scenario.flexibility_threshold_1 = 0.80f;
+    scenario.flexibility_change_1    = 0.95f;
+    scenario.flexibility_threshold_2 = 0.60f;
+    scenario.flexibility_change_2    = 0.90f;
 
-                scenario.wselection = swr::WithdrawalSelection::BONDS;
-                multiple_wr_success_graph(success_graph, "Bonds", false, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_success_graph(successGraph, "80/5 60/10", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "80/5 60/10", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "80/5 60/10", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.glidepath = true;
-                scenario.gp_goal = 100.0f;
+    scenario.flexibility_threshold_1 = 0.80f;
+    scenario.flexibility_change_1    = 0.90f;
+    scenario.flexibility_threshold_2 = 0.60f;
+    scenario.flexibility_change_2    = 0.80f;
 
-                scenario.gp_pass = 0.2;
-                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.2", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_success_graph(successGraph, "80/10 60/20", true, scenario, success_start_wr, success_end_wr, add_wr);
+    multiple_wr_withdrawn_graph(withdrawnGraph, "80/10 60/20", true, scenario, withdrawn_start_wr, withdrawn_end_wr, add_wr);
+    multiple_wr_errors_graph(errorsGraph, "80/10 60/20", true, scenario, errors_start_wr, errors_end_wr, add_wr, base_results);
 
-                scenario.gp_pass = 0.3;
-                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.3", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+    successGraph.flush();
+    std::cout << "\n\n";
 
-                scenario.gp_pass = 0.4;
-                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.4", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+    withdrawnGraph.flush();
+    std::cout << "\n\n";
 
-                scenario.gp_pass = 0.5;
-                multiple_wr_success_graph(success_graph, std::format("{}%-100% +0.5", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
-
-            }
-
-            success_graph.flush();
-            std::cout << "\n\n";
-
+    errorsGraph.flush();
+    std::cout << "\n\n";
 
     return 0;
 }
 
-int trinity_cash_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
-            if (args.size() < 7) {
-                std::cout << "Not enough arguments for trinity_cash" << std::endl;
-                return 1;
-            }
+int selection_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for selection_graph" << std::endl;
+        return 1;
+    }
 
-            const bool graph = command == "trinity_cash_graph";
+    swr::scenario scenario;
 
-            swr::scenario scenario;
+    scenario.years          = atoi(args[1].c_str());
+    scenario.start_year     = atoi(args[2].c_str());
+    scenario.end_year       = atoi(args[3].c_str());
+    scenario.portfolio      = swr::parse_portfolio(args[4], true);
+    auto inflation          = args[5];
+    scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-            scenario.years      = atoi(args[1].c_str());
-            scenario.start_year = atoi(args[2].c_str());
-            scenario.end_year   = atoi(args[3].c_str());
-            scenario.portfolio  = swr::parse_portfolio(args[4], true);
-            auto inflation      = args[5];
-            scenario.rebalance  = swr::parse_rebalance(args[6]);
+    std::string test = args[6];
+    if (args[6] == "none") {
+        scenario.rebalance = swr::parse_rebalance(args[6]);
+    } else if (args[6] != "auto" && args[6] != "gp") {
+        std::cout << "Invalid arguments for selection_graph" << std::endl;
+        return 1;
+    }
 
-            float portfolio_add = 25;
-            if (args.size() > 7){
-                portfolio_add = atof(args[7].c_str());
-            }
+    std::cout << "Portfolio: \n";
 
-            float wr = 4.0f;
-            if (args.size() > 8){
-                wr = atof(args[8].c_str());
-            }
+    for (auto& position : scenario.portfolio) {
+        std::cout << " " << position.asset << ": " << position.allocation << "%\n";
+    }
 
-            scenario.cash_simple = true;
-            if (args.size() > 9){
-                scenario.cash_simple = args[9] == "true";
-            }
+    if (!prepare_exchange_rates(scenario, "usd")) {
+        std::cout << "Error with exchange rates" << std::endl;
+        return 1;
+    }
 
-            bool compare = false;
-            if (args.size() > 10){
-                compare = args[10] == "true";
-            }
+    swr::normalize_portfolio(scenario.portfolio);
 
-            scenario.values         = swr::load_values(scenario.portfolio);
-            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+    const float success_start_wr = 3.5f;
+    const float success_end_wr   = 5.5f;
+    const float add_wr           = 0.1f;
 
-            prepare_exchange_rates(scenario, "usd");
+    Graph success_graph(true);
 
-            Graph success_graph(graph);
-            success_graph.xtitle_ = "Months of cash";
-            if (compare) {
-                success_graph.title_ = std::format("Cash Cushion vs Lower WR - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-            } else if (scenario.cash_simple) {
-                success_graph.title_ = std::format("Simple Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-            } else {
-                success_graph.title_ = std::format("Smart Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-            }
+    if (test == "none") {
+        success_graph.title_ =
+                std::format("Sell stocks or bonds - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
 
-            auto start = std::chrono::high_resolution_clock::now();
+        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+        multiple_wr_success_graph(success_graph, "Alloc", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-            if (total_allocation(scenario.portfolio) == 0.0f) {
-                if (scenario.portfolio.size() != 2) {
-                    std::cout << "Portfolio allocation cannot be zero!" << std::endl;
-                    return 1;
-                }
+        scenario.wselection = swr::WithdrawalSelection::BONDS;
+        multiple_wr_success_graph(success_graph, "Bonds", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                if (!graph) {
-                    std::cout << "Portfolio";
+        scenario.wselection = swr::WithdrawalSelection::STOCKS;
+        multiple_wr_success_graph(success_graph, "Stocks", true, scenario, success_start_wr, success_end_wr, add_wr);
+    } else if (test == "auto") {
+        success_graph.title_ =
+                std::format("Rebalance or not - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
 
-                    for (size_t i = 0; i <= 100; i += portfolio_add) {
-                        scenario.portfolio[0].allocation = float(i);
-                        scenario.portfolio[1].allocation = float(100 - i);
+        scenario.rebalance  = swr::Rebalancing::NONE;
+        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+        multiple_wr_success_graph(success_graph, "Alloc/None", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                        std::cout << ";";
+        scenario.rebalance  = swr::Rebalancing::YEARLY;
+        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+        multiple_wr_success_graph(success_graph, "Alloc/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                        for (auto& position : scenario.portfolio) {
-                            if (position.allocation > 0) {
-                                std::cout << position.allocation << "% " << position.asset << " ";
-                            }
-                        }
-                    }
+        scenario.rebalance  = swr::Rebalancing::NONE;
+        scenario.wselection = swr::WithdrawalSelection::BONDS;
+        multiple_wr_success_graph(success_graph, "Bonds/None", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                    if (compare) {
-                        for (size_t i = 0; i <= 100; i += portfolio_add) {
-                            scenario.portfolio[0].allocation = float(i);
-                            scenario.portfolio[1].allocation = float(100 - i);
+        scenario.rebalance  = swr::Rebalancing::YEARLY;
+        scenario.wselection = swr::WithdrawalSelection::BONDS;
+        multiple_wr_success_graph(success_graph, "Bonds/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                            std::cout << ";";
+        scenario.rebalance  = swr::Rebalancing::NONE;
+        scenario.wselection = swr::WithdrawalSelection::STOCKS;
+        multiple_wr_success_graph(success_graph, "Stocks/None", true, scenario, success_start_wr, success_end_wr, add_wr);
 
-                            for (auto& position : scenario.portfolio) {
-                                if (position.allocation > 0) {
-                                    std::cout << position.allocation << "% " << position.asset << " ";
-                                }
-                            }
-                        }
-                    }
+        scenario.rebalance  = swr::Rebalancing::YEARLY;
+        scenario.wselection = swr::WithdrawalSelection::STOCKS;
+        multiple_wr_success_graph(success_graph, "Stocks/Yearly", true, scenario, success_start_wr, success_end_wr, add_wr);
+    } else if (test == "gp") {
+        success_graph.title_ =
+                std::format("Which glidepath - {} Years - {}-{}", scenario.years, scenario.portfolio[0].allocation, scenario.portfolio[1].allocation);
 
-                    std::cout << "\n";
-                }
+        scenario.rebalance = swr::parse_rebalance("none");
 
-                const float withdrawal = (wr / 100.0f) * scenario.initial_value;
+        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+        multiple_wr_success_graph(success_graph, "Alloc", false, scenario, success_start_wr, success_end_wr, add_wr);
 
-                std::array<std::vector<swr::results>, 61> all_results;
-                std::array<std::vector<swr::results>, 61> all_compare_results;
+        scenario.wselection = swr::WithdrawalSelection::BONDS;
+        multiple_wr_success_graph(success_graph, "Bonds", false, scenario, success_start_wr, success_end_wr, add_wr);
 
-                cpp::default_thread_pool pool(std::thread::hardware_concurrency());
+        scenario.glidepath = true;
+        scenario.gp_goal   = 100.0f;
 
-                for (size_t M = 0; M <= 60; ++M) {
-                    pool.do_task(
-                            [&](size_t m) {
-                                auto my_scenario = scenario;
+        scenario.gp_pass = 0.2;
+        multiple_wr_success_graph(
+                success_graph, std::format("{}%-100% +0.2", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
 
-                                my_scenario.wr           = wr;
-                                my_scenario.initial_cash = m * ((scenario.initial_value * (my_scenario.wr / 100.0f)) / 12);
+        scenario.gp_pass = 0.3;
+        multiple_wr_success_graph(
+                success_graph, std::format("{}%-100% +0.3", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
 
-                                for (size_t i = 0; i <= 100; i += portfolio_add) {
-                                    my_scenario.portfolio[0].allocation = float(i);
-                                    my_scenario.portfolio[1].allocation = float(100 - i);
+        scenario.gp_pass = 0.4;
+        multiple_wr_success_graph(
+                success_graph, std::format("{}%-100% +0.4", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
 
-                                    all_results[m].push_back(swr::simulation(my_scenario));
-                                }
+        scenario.gp_pass = 0.5;
+        multiple_wr_success_graph(
+                success_graph, std::format("{}%-100% +0.5", scenario.portfolio[0].allocation), false, scenario, success_start_wr, success_end_wr, add_wr);
+    }
 
-                                if (compare) {
-                                    float total              = scenario.initial_value + m * (withdrawal / 12.0f);
-                                    my_scenario.wr           = 100.0f * (withdrawal / total);
-                                    my_scenario.initial_cash = 0;
+    success_graph.flush();
+    std::cout << "\n\n";
 
-                                    for (size_t i = 0; i <= 100; i += portfolio_add) {
-                                        my_scenario.portfolio[0].allocation = float(i);
-                                        my_scenario.portfolio[1].allocation = float(100 - i);
+    return 0;
+}
 
-                                        all_compare_results[m].push_back(swr::simulation(my_scenario));
-                                    }
-                                }
-                            },
-                            M);
-                }
+int trinity_cash_graph_scenario(std::string_view command, const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for trinity_cash" << std::endl;
+        return 1;
+    }
 
-                pool.wait();
+    const bool graph = command == "trinity_cash_graph";
 
-                if (graph) {
-                    for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
-                        auto my_scenario = scenario;
+    swr::scenario scenario;
 
-                        my_scenario.portfolio[0].allocation = float(i);
-                        my_scenario.portfolio[1].allocation = float(100 - i);
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-                        if (compare) {
-                            success_graph.add_legend(portfolio_to_string(my_scenario, true) + " CC");
-                        } else {
-                            success_graph.add_legend(portfolio_to_string(my_scenario, true));
-                        }
+    float portfolio_add = 25;
+    if (args.size() > 7) {
+        portfolio_add = atof(args[7].c_str());
+    }
 
-                        std::map<float, float> results;
+    float wr = 4.0f;
+    if (args.size() > 8) {
+        wr = atof(args[8].c_str());
+    }
 
-                        for (size_t m = 0; m <= 60; ++m) {
-                            results[m] = all_results.at(m).at(j).success_rate;
-                        }
+    scenario.cash_simple = true;
+    if (args.size() > 9) {
+        scenario.cash_simple = args[9] == "true";
+    }
 
-                        success_graph.add_data(results);
-                    }
+    bool compare = false;
+    if (args.size() > 10) {
+        compare = args[10] == "true";
+    }
 
-                    if (compare) {
-                        for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
-                            auto my_scenario = scenario;
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-                            my_scenario.portfolio[0].allocation = float(i);
-                            my_scenario.portfolio[1].allocation = float(100 - i);
+    prepare_exchange_rates(scenario, "usd");
 
-                            success_graph.add_legend(portfolio_to_string(my_scenario, true) + " WR");
+    Graph success_graph(graph);
+    success_graph.xtitle_ = "Months of cash";
+    if (compare) {
+        success_graph.title_ = std::format("Cash Cushion vs Lower WR - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else if (scenario.cash_simple) {
+        success_graph.title_ = std::format("Simple Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else {
+        success_graph.title_ = std::format("Smart Cash Cushion - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    }
 
-                            std::map<float, float> results;
+    auto start = std::chrono::high_resolution_clock::now();
 
-                            for (size_t m = 0; m <= 60; ++m) {
-                                results[m] = all_compare_results.at(m).at(j).success_rate;
-                            }
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            return 1;
+        }
 
-                            success_graph.add_data(results);
-                        }
-                    }
-                } else {
-                    for (size_t m = 0; m <= 60; ++m) {
-                        std::cout << m;
+        if (!graph) {
+            std::cout << "Portfolio";
 
-                        for (auto& results : all_results[m]) {
-                            std::cout << ';' << results.success_rate;
-                        }
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = float(i);
+                scenario.portfolio[1].allocation = float(100 - i);
 
-                        if (compare) {
-                            for (auto& results : all_compare_results[m]) {
-                                std::cout << ';' << results.success_rate;
-                            }
-                        }
-
-                        std::cout << "\n";
-                    }
-                }
-
-            } else {
-                swr::normalize_portfolio(scenario.portfolio);
-
-                std::cout << "Portfolio; ";
+                std::cout << ";";
 
                 for (auto& position : scenario.portfolio) {
                     if (position.allocation > 0) {
                         std::cout << position.allocation << "% " << position.asset << " ";
                     }
                 }
+            }
 
-                std::cout << "\n";
+            if (compare) {
+                for (size_t i = 0; i <= 100; i += portfolio_add) {
+                    scenario.portfolio[0].allocation = float(i);
+                    scenario.portfolio[1].allocation = float(100 - i);
 
-                for (size_t m = 0; m <= 60; ++m) {
-                    scenario.initial_cash = m * ((scenario.initial_value * (scenario.wr / 100.0f)) / 12);
-                    auto results = swr::simulation(scenario);
-                    std::cout << m << ';' << results.success_rate;
-                    std::cout << "\n";
+                    std::cout << ";";
+
+                    for (auto& position : scenario.portfolio) {
+                        if (position.allocation > 0) {
+                            std::cout << position.allocation << "% " << position.asset << " ";
+                        }
+                    }
                 }
             }
 
-            auto end = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+            std::cout << "\n";
+        }
 
-            std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
-                      << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+        const float withdrawal = (wr / 100.0f) * scenario.initial_value;
 
+        std::array<std::vector<swr::results>, 61> all_results;
+        std::array<std::vector<swr::results>, 61> all_compare_results;
+
+        cpp::default_thread_pool pool(std::thread::hardware_concurrency());
+
+        for (size_t M = 0; M <= 60; ++M) {
+            pool.do_task(
+                    [&](size_t m) {
+                        auto my_scenario = scenario;
+
+                        my_scenario.wr           = wr;
+                        my_scenario.initial_cash = m * ((scenario.initial_value * (my_scenario.wr / 100.0f)) / 12);
+
+                        for (size_t i = 0; i <= 100; i += portfolio_add) {
+                            my_scenario.portfolio[0].allocation = float(i);
+                            my_scenario.portfolio[1].allocation = float(100 - i);
+
+                            all_results[m].push_back(swr::simulation(my_scenario));
+                        }
+
+                        if (compare) {
+                            float total              = scenario.initial_value + m * (withdrawal / 12.0f);
+                            my_scenario.wr           = 100.0f * (withdrawal / total);
+                            my_scenario.initial_cash = 0;
+
+                            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                                my_scenario.portfolio[0].allocation = float(i);
+                                my_scenario.portfolio[1].allocation = float(100 - i);
+
+                                all_compare_results[m].push_back(swr::simulation(my_scenario));
+                            }
+                        }
+                    },
+                    M);
+        }
+
+        pool.wait();
+
+        if (graph) {
+            for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
+                auto my_scenario = scenario;
+
+                my_scenario.portfolio[0].allocation = float(i);
+                my_scenario.portfolio[1].allocation = float(100 - i);
+
+                if (compare) {
+                    success_graph.add_legend(portfolio_to_string(my_scenario, true) + " CC");
+                } else {
+                    success_graph.add_legend(portfolio_to_string(my_scenario, true));
+                }
+
+                std::map<float, float> results;
+
+                for (size_t m = 0; m <= 60; ++m) {
+                    results[m] = all_results.at(m).at(j).success_rate;
+                }
+
+                success_graph.add_data(results);
+            }
+
+            if (compare) {
+                for (size_t i = 0, j = 0; i <= 100; i += portfolio_add, j++) {
+                    auto my_scenario = scenario;
+
+                    my_scenario.portfolio[0].allocation = float(i);
+                    my_scenario.portfolio[1].allocation = float(100 - i);
+
+                    success_graph.add_legend(portfolio_to_string(my_scenario, true) + " WR");
+
+                    std::map<float, float> results;
+
+                    for (size_t m = 0; m <= 60; ++m) {
+                        results[m] = all_compare_results.at(m).at(j).success_rate;
+                    }
+
+                    success_graph.add_data(results);
+                }
+            }
+        } else {
+            for (size_t m = 0; m <= 60; ++m) {
+                std::cout << m;
+
+                for (auto& results : all_results[m]) {
+                    std::cout << ';' << results.success_rate;
+                }
+
+                if (compare) {
+                    for (auto& results : all_compare_results[m]) {
+                        std::cout << ';' << results.success_rate;
+                    }
+                }
+
+                std::cout << "\n";
+            }
+        }
+
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+
+        std::cout << "Portfolio; ";
+
+        for (auto& position : scenario.portfolio) {
+            if (position.allocation > 0) {
+                std::cout << position.allocation << "% " << position.asset << " ";
+            }
+        }
+
+        std::cout << "\n";
+
+        for (size_t m = 0; m <= 60; ++m) {
+            scenario.initial_cash = m * ((scenario.initial_value * (scenario.wr / 100.0f)) / 12);
+            auto results          = swr::simulation(scenario);
+            std::cout << m << ';' << results.success_rate;
+            std::cout << "\n";
+        }
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
+              << std::endl;
 
     return 0;
 }
@@ -4033,7 +4021,7 @@ int main(int argc, const char* argv[]) {
         print_general_help();
         return 1;
     } else {
-        const auto & command = args[0];
+        const auto& command = args[0];
 
         if (command == "fixed") {
             return fixed_scenario(args);
@@ -4071,7 +4059,7 @@ int main(int argc, const char* argv[]) {
             return social_scenario(command, args);
         } else if (command == "social_pf_sheets" || command == "social_pf_graph") {
             return social_pf_scenario(command, args);
-        } else if (command == "current_wr"|| command == "current_wr_graph") {
+        } else if (command == "current_wr" || command == "current_wr_graph") {
             return current_wr_scenario(command, args);
         } else if (command == "rebalance_sheets" || command == "rebalance_graph") {
             return rebalance_scenario(command, args);
@@ -4094,7 +4082,7 @@ int main(int argc, const char* argv[]) {
             }
 
             std::string listen = args[1];
-            auto port          = atoi(args[2].c_str());
+            auto        port   = atoi(args[2].c_str());
 
             httplib::Server server;
 
