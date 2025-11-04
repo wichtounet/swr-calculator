@@ -3749,25 +3749,24 @@ int times_graph_scenario(const std::vector<std::string>& args) {
         return 1;
     }
 
-    std::map<int64_t, float> data;
-
-    size_t i = 0;
+    std::vector<std::pair<int64_t, float>> raw_data;
+    size_t                                 i = 0;
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            if (res.terminal_values[i] > 2.0f * res.tv_average) {
-                if (current_year < 1970) {
-                    int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
-                    data[timestamp]   = res.terminal_values[i];
-                    std::cout << current_year << ":" << current_month << "=" << timestamp;
-                } else {
-                    int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
-                    data[timestamp]   = res.terminal_values[i];
-
-                    std::cout << current_year << ":" << current_month << "=" << timestamp << std::endl;
-                }
-            }
-            ++i;
+            const auto    tv        = res.terminal_values[i++];
+            const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
+            raw_data.emplace_back(timestamp, tv);
         }
+    }
+
+    std::ranges::sort(raw_data, [](auto left, auto right) { return left.second > right.second; });
+    raw_data.resize(raw_data.size() * 0.15);
+    std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
+
+    std::map<int64_t, float> data;
+
+    for (auto [time, tv] : raw_data) {
+        data[time] = tv;
     }
 
     // TODO Turn that into a bar-graph
