@@ -1320,17 +1320,8 @@ void print_frequency_help() {
               << std::endl;
 }
 
-int main(int argc, const char* argv[]) {
-    auto args = parse_args(argc, argv);
+int fixed_scenario(const std::vector<std::string> & args) {
 
-    if (args.empty()) {
-        std::cout << "Error: Not enough arguments." << std::endl;
-        print_general_help();
-        return 1;
-    } else {
-        const auto & command = args[0];
-
-        if (command == "fixed") {
             if (args.size() < 7) {
                 std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
                 print_fixed_help();
@@ -1426,7 +1417,11 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-        } else if (command == "swr") {
+
+            return 0;
+}
+
+int single_swr_scenario(const std::vector<std::string> & args) {
             if (args.size() < 6) {
                 std::cout << "Error: Not enough arguments for the 'swr' command." << std::endl;
                 print_swr_help();
@@ -1493,7 +1488,11 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-        } else if (command == "multiple_wr") {
+
+            return 0;
+}
+
+int multiple_swr_scenario(const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Error: Not enough arguments for the 'multiple_wr' command." << std::endl;
                 print_multiple_wr_help();
@@ -1541,7 +1540,11 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-        } else if (command == "withdraw_frequency" || command == "withdraw_frequency_graph") {
+
+            return 0;
+}
+
+int withdraw_frequency_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
                 print_withdraw_frequency_help();
@@ -1720,7 +1723,11 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
-        } else if (command == "frequency") {
+
+    return 0;
+}
+
+int frequency_scenario(const std::vector<std::string> & args) {
             if (args.size() < 6) {
                 std::cout << "Error: Not enough arguments for the 'frequency' command." << std::endl;
                 print_frequency_help();
@@ -1830,7 +1837,10 @@ int main(int argc, const char* argv[]) {
             }
 
 
-        } else if (command == "analysis") {
+    return 0;
+}
+
+int analysis_scenario(const std::vector<std::string> & args) {
             if (args.size() < 2) {
                 std::cout << "Not enough arguments for analysis" << std::endl;
                 return 1;
@@ -1948,7 +1958,12 @@ int main(int argc, const char* argv[]) {
             std::cout << "\n";
             gold_graph.flush();
             std::cout << "\n";
-        } else if (command == "allocation") {
+
+
+    return 0;
+}
+
+int allocation_scenario(const std::vector<std::string> & args) {
             Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
             g_us.title_ = "US Portfolio Allocation Annualized Returns";
             g_us.xtitle_ = "Portfolio";
@@ -2096,7 +2111,12 @@ int main(int argc, const char* argv[]) {
 
             gv_ch.flush();
             std::cout << "\n";
-        } else if (command == "term") {
+
+
+    return 0;
+}
+
+int term_scenario(const std::vector<std::string> & args) {
             if (args.size() < 2) {
                 std::cout << "Not enough arguments for term" << std::endl;
                 return 1;
@@ -2211,7 +2231,12 @@ int main(int argc, const char* argv[]) {
             std::cout << "\n";
             best_graph.flush();
             std::cout << "\n";
-        } else if (command == "glidepath" || command == "glidepath_graph" || command == "reverse_glidepath" || command == "reverse_glidepath_graph") {
+
+
+    return 0;
+}
+
+int glidepath_scenario(std::string_view command, const std::vector<std::string> & args) {
             std::cout << "\n";
             swr::scenario scenario;
 
@@ -2412,7 +2437,12 @@ int main(int argc, const char* argv[]) {
             std::cout << std::endl;
             std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
             std::cout << failsafe_ss.str();
-        } else if (command == "failsafe" || command == "failsafe_graph") {
+
+
+    return 0;
+}
+
+int failsafe_scenario(std::string_view command, const std::vector<std::string> & args) {
             const bool graph = command == "failsafe_graph";
 
             swr::scenario scenario;
@@ -2472,7 +2502,12 @@ int main(int argc, const char* argv[]) {
                 swr::normalize_portfolio(scenario.portfolio);
                 failsafe_swr("", scenario, 6.0f, 0.0f, 0.01f, std::cout);
             }
-        } else if (command == "data_graph") {
+
+
+    return 0;
+}
+
+int data_graph_scenario(const std::vector<std::string> & args) {
             if (args.size() < 4) {
                 std::cout << "Not enough arguments for data_graph" << std::endl;
                 return 1;
@@ -2505,7 +2540,12 @@ int main(int argc, const char* argv[]) {
 
                 graph.add_data(results);
             }
-        } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
+
+
+    return 0;
+}
+
+int trinity_success_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
                 return 1;
@@ -2623,7 +2663,12 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             }
-        } else if (command == "trinity_cash_graphs") {
+
+
+    return 0;
+}
+
+int trinity_cash_graphs_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 4) {
                 std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
                 return 1;
@@ -2710,7 +2755,12 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_quality_graph(quality_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
                 }
             }
-        } else if (command == "trinity_duration_sheets" || command == "trinity_duration_graph") {
+
+
+    return 0;
+}
+
+int trinity_duration_scenario(std::string_view command, const std::vector<std::string> & args) {
             bool graph = command == "trinity_duration_graph";
 
             swr::scenario scenario;
@@ -2782,7 +2832,12 @@ int main(int argc, const char* argv[]) {
                     }
                 }
             }
-        } else if (command == "trinity_tv_sheets" || command == "trinity_tv_graph") {
+
+
+    return 0;
+}
+
+int trinity_tv_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
                 return 1;
@@ -2831,7 +2886,12 @@ int main(int argc, const char* argv[]) {
             } else {
                 multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
             }
-        } else if (command == "trinity_spending_sheets" || command == "trinity_spending_graph") {
+
+
+    return 0;
+}
+
+int trinity_spending_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_sheets" << std::endl;
                 return 1;
@@ -2887,7 +2947,12 @@ int main(int argc, const char* argv[]) {
             } else {
                 multiple_wr_spending_sheets(scenario, start_wr, end_wr, add_wr);
             }
-        } else if (command == "social_sheets" || command == "social_graph") {
+
+
+    return 0;
+}
+
+int social_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 11) {
                 std::cout << "Not enough arguments for social_sheets" << std::endl;
                 return 1;
@@ -2948,7 +3013,12 @@ int main(int argc, const char* argv[]) {
             run("30%", 0.30f);
             run("40%", 0.40f);
             run("50%", 0.50f);
-        } else if (command == "social_pf_sheets" || command == "social_pf_graph") {
+
+
+    return 0;
+}
+
+int social_pf_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 12) {
                 std::cout << "Not enough arguments for social_pf_sheets" << std::endl;
                 return 1;
@@ -3009,7 +3079,12 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_sheets(portfolio_to_string(scenario, false) + + " - " + args[11] + "%", scenario, start_wr, end_wr, add_wr);
                 }
             }
-        } else if (command == "current_wr"|| command == "current_wr_graph") {
+
+
+    return 0;
+}
+
+int current_wr_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for current_wr" << std::endl;
                 return 1;
@@ -3137,9 +3212,15 @@ int main(int argc, const char* argv[]) {
                     multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
                 }
             }
-
             std::cout << "\n";
-        } else if (command == "rebalance_sheets" || command == "rebalance_graph") {
+
+
+
+    return 0;
+}
+
+int rebalance_scenario(std::string_view command, const std::vector<std::string> & args) {
+
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
                 return 1;
@@ -3205,7 +3286,11 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s) \n\n";
-        } else if (command == "threshold_rebalance_sheets" || command == "threshold_rebalance_graph") {
+
+    return 0;
+}
+
+int threshold_rebalance_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 6) {
                 std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
                 return 1;
@@ -3291,7 +3376,12 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "\nComputed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)\n\n";
-        } else if (command == "trinity_low_yield_sheets" || command == "trinity_low_yield_graph") {
+
+
+    return 0;
+}
+
+int trinity_low_yield_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 8) {
                 std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
                 return 1;
@@ -3406,7 +3496,12 @@ int main(int argc, const char* argv[]) {
                 g.flush();
                 std::cout << "\n\n";
             }
-        } else if (command == "flexibility_graph") {
+
+
+    return 0;
+}
+
+int flexibility_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 12) {
                 std::cout << "Not enough arguments for flexibility_graph" << std::endl;
                 return 1;
@@ -3465,7 +3560,12 @@ int main(int argc, const char* argv[]) {
                 swr::normalize_portfolio(scenario.portfolio);
                 multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
             }
-        } else if (command == "flexibility_auto_graph") {
+
+
+    return 0;
+}
+
+int flexibility_auto_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 8) {
                 std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
                 return 1;
@@ -3581,7 +3681,12 @@ int main(int argc, const char* argv[]) {
 
             errorsGraph.flush();
             std::cout << "\n\n";
-        } else if (command == "selection_graph") {
+
+
+    return 0;
+}
+
+int selection_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for selection_graph" << std::endl;
                 return 1;
@@ -3692,7 +3797,12 @@ int main(int argc, const char* argv[]) {
 
             success_graph.flush();
             std::cout << "\n\n";
-        } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
+
+
+    return 0;
+}
+
+int trinity_cash_graph_scenario(std::string_view command, const std::vector<std::string> & args) {
             if (args.size() < 7) {
                 std::cout << "Not enough arguments for trinity_cash" << std::endl;
                 return 1;
@@ -3910,6 +4020,73 @@ int main(int argc, const char* argv[]) {
 
             std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms ("
                       << 1000 * (swr::simulations_ran() / duration) << "/s)" << std::endl;
+
+
+    return 0;
+}
+
+int main(int argc, const char* argv[]) {
+    auto args = parse_args(argc, argv);
+
+    if (args.empty()) {
+        std::cout << "Error: Not enough arguments." << std::endl;
+        print_general_help();
+        return 1;
+    } else {
+        const auto & command = args[0];
+
+        if (command == "fixed") {
+            return fixed_scenario(args);
+        } else if (command == "swr") {
+            return single_swr_scenario(args);
+        } else if (command == "multiple_wr") {
+            return multiple_swr_scenario(args);
+        } else if (command == "withdraw_frequency" || command == "withdraw_frequency_graph") {
+            return withdraw_frequency_scenario(command, args);
+        } else if (command == "frequency") {
+            return frequency_scenario(args);
+        } else if (command == "analysis") {
+            return analysis_scenario(args);
+        } else if (command == "allocation") {
+            return allocation_scenario(args);
+        } else if (command == "term") {
+            return term_scenario(args);
+        } else if (command == "glidepath" || command == "glidepath_graph" || command == "reverse_glidepath" || command == "reverse_glidepath_graph") {
+            return glidepath_scenario(command, args);
+        } else if (command == "failsafe" || command == "failsafe_graph") {
+            return failsafe_scenario(command, args);
+        } else if (command == "data_graph") {
+            return data_graph_scenario(args);
+        } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
+            return trinity_success_scenario(command, args);
+        } else if (command == "trinity_cash_graphs") {
+            return trinity_cash_graphs_scenario(command, args);
+        } else if (command == "trinity_duration_sheets" || command == "trinity_duration_graph") {
+            return trinity_duration_scenario(command, args);
+        } else if (command == "trinity_tv_sheets" || command == "trinity_tv_graph") {
+            return trinity_tv_scenario(command, args);
+        } else if (command == "trinity_spending_sheets" || command == "trinity_spending_graph") {
+            return trinity_spending_scenario(command, args);
+        } else if (command == "social_sheets" || command == "social_graph") {
+            return social_scenario(command, args);
+        } else if (command == "social_pf_sheets" || command == "social_pf_graph") {
+            return social_pf_scenario(command, args);
+        } else if (command == "current_wr"|| command == "current_wr_graph") {
+            return current_wr_scenario(command, args);
+        } else if (command == "rebalance_sheets" || command == "rebalance_graph") {
+            return rebalance_scenario(command, args);
+        } else if (command == "threshold_rebalance_sheets" || command == "threshold_rebalance_graph") {
+            return threshold_rebalance_scenario(command, args);
+        } else if (command == "trinity_low_yield_sheets" || command == "trinity_low_yield_graph") {
+            return trinity_low_yield_scenario(command, args);
+        } else if (command == "flexibility_graph") {
+            return flexibility_graph_scenario(command, args);
+        } else if (command == "flexibility_auto_graph") {
+            return flexibility_auto_graph_scenario(command, args);
+        } else if (command == "selection_graph") {
+            return selection_graph_scenario(command, args);
+        } else if (command == "trinity_cash" || command == "trinity_cash_graph") {
+            return trinity_cash_graph_scenario(command, args);
         } else if (command == "server") {
             if (args.size() < 3) {
                 std::cout << "Not enough arguments for server" << std::endl;
