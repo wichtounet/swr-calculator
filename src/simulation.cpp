@@ -28,7 +28,7 @@ constexpr const float monthly_rebalancing_cost   = 0.005;
 constexpr const float yearly_rebalancing_cost    = 0.01;
 constexpr const float threshold_rebalancing_cost = 0.01;
 
-bool valid_year(const swr::data_vector & data, size_t year) {
+bool valid_year(const swr::data_vector& data, size_t year) {
     return year >= data.front().year && year <= data.back().year;
 }
 
@@ -42,7 +42,7 @@ auto current_value(const std::array<float, N>& current_values) {
 }
 
 template <size_t N>
-bool glidepath(swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool glidepath(swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values) {
     if (scenario.glidepath) {
         // Check if we have already reached the target
         if (scenario.portfolio[0].allocation_ == scenario.gp_goal) {
@@ -86,7 +86,7 @@ bool glidepath(swr::scenario & scenario, swr::context & context, std::array<floa
 }
 
 template <size_t N>
-bool monthly_rebalance(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool monthly_rebalance(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values) {
     // Nothing to rebalance if we have a single asset
     if constexpr (N == 1) {
         return true;
@@ -149,7 +149,7 @@ bool monthly_rebalance(const swr::scenario & scenario, swr::context & context, s
 }
 
 template <size_t N>
-bool yearly_rebalance(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool yearly_rebalance(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values) {
     // Nothing to rebalance if we have a single asset
     if constexpr (N == 1) {
         return true;
@@ -178,7 +178,7 @@ bool yearly_rebalance(const swr::scenario & scenario, swr::context & context, st
 }
 
 template <size_t N>
-bool pay_fees(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values) {
+bool pay_fees(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values) {
     // Simulate TER
     if (scenario.fees > 0.0f) {
         for (size_t i = 0; i < N; ++i) {
@@ -195,7 +195,7 @@ bool pay_fees(const swr::scenario & scenario, swr::context & context, std::array
 }
 
 template <size_t N>
-bool withdraw(const swr::scenario & scenario, swr::context & context, std::array<float, N> & current_values, const std::array<float, N> & market_values) {
+bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values, const std::array<float, N>& market_values) {
     if ((context.months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
@@ -245,7 +245,7 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
             // Compute the withdrawal for the year
 
             if (context.months == 1) {
-                context.vanguard_withdrawal = total_value * (scenario.wr / 100.0f);
+                context.vanguard_withdrawal  = total_value * (scenario.wr / 100.0f);
                 context.last_year_withdrawal = context.vanguard_withdrawal;
             } else if ((context.months - 1) % 12 == 0) {
                 context.last_year_withdrawal = context.vanguard_withdrawal;
@@ -301,29 +301,26 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
         }
 
         switch (scenario.wselection) {
-            case swr::WithdrawalSelection::ALLOCATION:
-            {
-                for (auto& value : current_values) {
-                    value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
-                }
-                break;
+        case swr::WithdrawalSelection::ALLOCATION: {
+            for (auto& value : current_values) {
+                value = std::max(0.0f, value - (value / total_value) * withdrawal_amount);
             }
-
-            case swr::WithdrawalSelection::STOCKS:
-                [[fallthrough]];
-            case swr::WithdrawalSelection::BONDS:
-            {
-                if (current_values[context.withdraw_index] > withdrawal_amount) {
-                    current_values[context.withdraw_index] -= withdrawal_amount;
-                } else {
-                    const auto leftover = withdrawal_amount - current_values[context.withdraw_index];
-                    const auto other_index = context.withdraw_index == 1 ? 0 : 1;
-                    current_values[context.withdraw_index] = 0;
-                    current_values[other_index] = std::max(0.0f, current_values[other_index] - leftover);
-                }
-            }
+            break;
         }
 
+        case swr::WithdrawalSelection::STOCKS:
+            [[fallthrough]];
+        case swr::WithdrawalSelection::BONDS: {
+            if (current_values[context.withdraw_index] > withdrawal_amount) {
+                current_values[context.withdraw_index] -= withdrawal_amount;
+            } else {
+                const auto leftover                    = withdrawal_amount - current_values[context.withdraw_index];
+                const auto other_index                 = context.withdraw_index == 1 ? 0 : 1;
+                current_values[context.withdraw_index] = 0;
+                current_values[other_index]            = std::max(0.0f, current_values[other_index] - leftover);
+            }
+        }
+        }
 
         // Check for failure after the withdrawal
         if (scenario.is_failure(context, current_value(current_values))) {
@@ -338,10 +335,10 @@ bool withdraw(const swr::scenario & scenario, swr::context & context, std::array
 }
 
 template <size_t N>
-swr::results swr_simulation(swr::scenario & scenario) {
-    auto & inflation_data = scenario.inflation_data;
-    auto & values = scenario.values;
-    auto & exchange_rates = scenario.exchange_rates;
+swr::results swr_simulation(swr::scenario& scenario) {
+    auto& inflation_data = scenario.inflation_data;
+    auto& values         = scenario.values;
+    auto& exchange_rates = scenario.exchange_rates;
 
     // The final results
     swr::results res;
@@ -352,7 +349,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     if (scenario.exchange_set.empty() || exchange_rates.empty()) {
         res.message = "Invalid scenario (no exchange rates)";
-        res.error = true;
+        res.error   = true;
         return res;
     }
 
@@ -360,13 +357,13 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     if (scenario.start_year >= scenario.end_year) {
         res.message = "The end year must be higher than the start year";
-        res.error = true;
+        res.error   = true;
         return res;
     }
 
     if (!scenario.years) {
         res.message = "The number of years must be at least 1";
-        res.error = true;
+        res.error   = true;
         return res;
     }
 
@@ -398,23 +395,23 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     if (inflation_data.front().year > scenario.start_year) {
         scenario.start_year = inflation_data.front().year;
-        changed    = true;
+        changed             = true;
     }
 
     if (inflation_data.back().year < scenario.end_year) {
         scenario.end_year = inflation_data.back().year;
-        changed  = true;
+        changed           = true;
     }
 
     for (auto& v : values) {
         if (v.front().year > scenario.start_year) {
             scenario.start_year = v.front().year;
-            changed    = true;
+            changed             = true;
         }
 
         if (v.back().year < scenario.end_year) {
             scenario.end_year = v.back().year;
-            changed  = true;
+            changed           = true;
         }
     }
 
@@ -438,13 +435,11 @@ swr::results swr_simulation(swr::scenario & scenario) {
         // It's possible that the change is invalid
         if (scenario.end_year == scenario.start_year) {
             res.message = "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
-            res.error = true;
+            res.error   = true;
             return res;
         } else {
             std::stringstream ss;
-            ss << "The period has been changed to "
-               << scenario.start_year << ":" << scenario.end_year
-               << " based on the available data. ";
+            ss << "The period has been changed to " << scenario.start_year << ":" << scenario.end_year << " based on the available data. ";
             res.message = ss.str();
         }
     }
@@ -453,49 +448,49 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     if (scenario.portfolio.empty()) {
         res.message = "Cannot work with an empty portfolio";
-        res.error = true;
+        res.error   = true;
         return res;
     }
 
     if (scenario.social_security) {
         if (scenario.initial_cash > 0.0f) {
             res.message = "Social security and cash is not implemented";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (scenario.wmethod != swr::WithdrawalMethod::STANDARD) {
             res.message = "Social security is only implemented for standard withdrawal method";
-            res.error = true;
+            res.error   = true;
             return res;
         }
     }
 
     if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD && scenario.withdraw_frequency != 1) {
         res.message = "Vanguard dynamic spending is only implemented with monthly withdrawals";
-        res.error = true;
+        res.error   = true;
         return res;
     }
 
     size_t withdraw_index = 0;
     if (scenario.wselection != swr::WithdrawalSelection::ALLOCATION) {
-        auto & portfolio = scenario.portfolio;
+        auto& portfolio = scenario.portfolio;
 
         if (portfolio.size() != 2) {
             res.message = "This withdrawal selection method only works with two assets";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (portfolio[0].asset != "us_stocks" && portfolio[0].asset != "us_bonds") {
             res.message = "This withdrawal selection method only works with bonds and stocks";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (portfolio[1].asset != "us_stocks" && portfolio[1].asset != "us_bonds") {
             res.message = "This withdrawal selection method only works with bonds and stocks";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
@@ -503,36 +498,35 @@ swr::results swr_simulation(swr::scenario & scenario) {
             withdraw_index = portfolio[0].asset == "us_bonds" ? 0 : 1;
         } else if (scenario.wselection == swr::WithdrawalSelection::STOCKS) {
             withdraw_index = portfolio[0].asset == "us_stocks" ? 0 : 1;
-        } 
+        }
     }
 
     if (scenario.end_year - scenario.start_year < scenario.years) {
         std::stringstream ss;
         ss << "The period is too short for a " << scenario.years << " years simulation. "
-           << "The number of years has been reduced to "
-           << (scenario.end_year - scenario.start_year);
+           << "The number of years has been reduced to " << (scenario.end_year - scenario.start_year);
         res.message += ss.str();
 
         scenario.years = scenario.end_year - scenario.start_year;
     }
 
-    if (scenario.glidepath){
-        auto & portfolio = scenario.portfolio;
+    if (scenario.glidepath) {
+        auto& portfolio = scenario.portfolio;
         if (portfolio[0].asset != "us_stocks") {
             res.message = "The first assert must be us_stocks for glidepath";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (scenario.rebalance != swr::Rebalancing::NONE && scenario.rebalance != swr::Rebalancing::MONTHLY) {
             res.message = "Invalid rebalancing method for glidepath";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (scenario.gp_pass == 0.0f) {
             res.message = std::format("Invalid pass ({}) for glidepath", scenario.gp_pass);
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
@@ -541,7 +535,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             std::cout << scenario.gp_goal << std::endl;
             std::cout << portfolio[0].allocation << std::endl;
             res.message = "Invalid goal/pass (1) for glidepath";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
@@ -550,7 +544,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             std::cout << scenario.gp_goal << std::endl;
             std::cout << portfolio[0].allocation << std::endl;
             res.message = "Invalid goal/pass (2) for glidepath";
-            res.error = true;
+            res.error   = true;
             return res;
         }
     }
@@ -558,25 +552,25 @@ swr::results swr_simulation(swr::scenario & scenario) {
     if (scenario.flexibility != swr::Flexibility::NONE) {
         if (scenario.wmethod != swr::WithdrawalMethod::STANDARD) {
             res.message = "Invalid withdrawal method for flexibility";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (scenario.initial_cash > 0.0f) {
             res.message = "Cannot use cash with flexibility";
-            res.error = true;
+            res.error   = true;
             return res;
         }
 
         if (scenario.flexibility_threshold_1 <= scenario.flexibility_threshold_2) {
             res.message = "The first threshold must be higher than the second";
-            res.error = true;
+            res.error   = true;
             return res;
         }
     }
 
     // More validation of data (should not happen but would fail silently otherwise)
-    
+
     bool valid = true;
     for (size_t i = 0; i < N; ++i) {
         valid &= swr::is_start_valid(values[i], scenario.start_year, 1);
@@ -596,7 +590,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
     std::array<swr::data_vector::const_iterator, N> start_exchanges;
 
     for (size_t i = 0; i < N; ++i) {
-        start_returns[i] = swr::get_start(values[i], scenario.start_year, 1);
+        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
         start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
     }
 
@@ -604,7 +598,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
     // 3. Do the actual simulation
 
-    std::vector<std::vector<float>> spending;
+    std::vector<std::vector<float>>                 spending;
     std::array<swr::data_vector::const_iterator, N> returns;
     std::array<swr::data_vector::const_iterator, N> exchanges;
 
@@ -615,8 +609,8 @@ swr::results swr_simulation(swr::scenario & scenario) {
             spending.emplace_back();
 
             swr::context context;
-            context.months = 1;
-            context.total_months = scenario.years * 12;
+            context.months         = 1;
+            context.total_months   = scenario.years * 12;
             context.withdraw_index = withdraw_index;
 
             // The amount of money withdrawn per year (STANDARD method)
@@ -635,7 +629,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             const size_t end_month = 1 + ((current_month - 1) + (context.total_months - 1) % 12) % 12;
 
             // Reset the allocation for the context
-            for (auto & asset : scenario.portfolio) {
+            for (auto& asset : scenario.portfolio) {
                 asset.allocation_ = asset.allocation;
             }
 
@@ -653,7 +647,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
             auto inflation = start_inflation++;
 
             float total_withdrawn = 0.0f;
-            bool failure = false;
+            bool  failure         = false;
 
             auto step = [&](auto result) {
                 if (!failure && !result()) {
@@ -664,7 +658,7 @@ swr::results swr_simulation(swr::scenario & scenario) {
 
             for (size_t y = current_year; y <= end_year; ++y) {
                 context.year_start_value = current_value(current_values);
-                context.year_withdrawn = 0.0f;
+                context.year_withdrawn   = 0.0f;
 
                 size_t m = 0;
                 for (m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
@@ -727,10 +721,10 @@ swr::results swr_simulation(swr::scenario & scenario) {
                     }
 
                     if (!res.highest_eff_wr_year || eff_wr > res.highest_eff_wr) {
-                        res.highest_eff_wr_start_year = current_year;
+                        res.highest_eff_wr_start_year  = current_year;
                         res.highest_eff_wr_start_month = current_month;
-                        res.highest_eff_wr_year       = y;
-                        res.highest_eff_wr            = eff_wr;
+                        res.highest_eff_wr_year        = y;
+                        res.highest_eff_wr             = eff_wr;
                     }
 
                     break;
@@ -792,12 +786,12 @@ swr::results swr_simulation(swr::scenario & scenario) {
             // After each starting point, we check if we should timeout
 
             if (scenario.timeout_msecs) {
-                auto stop_tp = chr::high_resolution_clock::now();
+                auto stop_tp  = chr::high_resolution_clock::now();
                 auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
 
                 if (size_t(duration) > scenario.timeout_msecs) {
                     res.message = "The computation took too long";
-                    res.error = true;
+                    res.error   = true;
                     std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
                     return res;
                 }
@@ -833,70 +827,70 @@ swr::Rebalancing swr::parse_rebalance(const std::string& str) {
     }
 }
 
-std::ostream & swr::operator<<(std::ostream& out, const Rebalancing & rebalance){
+std::ostream& swr::operator<<(std::ostream& out, const Rebalancing& rebalance) {
     switch (rebalance) {
-        case Rebalancing::NONE:
-            return out << "none";
-        case Rebalancing::MONTHLY:
-            return out << "monthly";
-        case Rebalancing::YEARLY:
-            return out << "yearly";
-        case Rebalancing::THRESHOLD:
-            return out << "threshold";
+    case Rebalancing::NONE:
+        return out << "none";
+    case Rebalancing::MONTHLY:
+        return out << "monthly";
+    case Rebalancing::YEARLY:
+        return out << "yearly";
+    case Rebalancing::THRESHOLD:
+        return out << "threshold";
     }
 
     return out << "Unknown rebalancing";
 }
 
-std::ostream & swr::operator<<(std::ostream& out, const WithdrawalMethod & wmethod){
+std::ostream& swr::operator<<(std::ostream& out, const WithdrawalMethod& wmethod) {
     switch (wmethod) {
-        case WithdrawalMethod::STANDARD:
-            return out << "standard";
-        case WithdrawalMethod::CURRENT:
-            return out << "current";
-        case WithdrawalMethod::VANGUARD:
-            return out << "vanguard";
+    case WithdrawalMethod::STANDARD:
+        return out << "standard";
+    case WithdrawalMethod::CURRENT:
+        return out << "current";
+    case WithdrawalMethod::VANGUARD:
+        return out << "vanguard";
     }
 
     return out << "Unknown withdrawal method";
 }
 
-std::ostream & swr::operator<<(std::ostream& out, const WithdrawalSelection & wselection){
+std::ostream& swr::operator<<(std::ostream& out, const WithdrawalSelection& wselection) {
     switch (wselection) {
-        case swr::WithdrawalSelection::ALLOCATION:
-            return out << "allocatio";
-        case swr::WithdrawalSelection::STOCKS:
-            return out << "stocks";
-        case swr::WithdrawalSelection::BONDS:
-            return out << "bonds";
+    case swr::WithdrawalSelection::ALLOCATION:
+        return out << "allocatio";
+    case swr::WithdrawalSelection::STOCKS:
+        return out << "stocks";
+    case swr::WithdrawalSelection::BONDS:
+        return out << "bonds";
     }
 
     return out << "Unknown withdrawal method";
 }
 
-swr::results swr::simulation(scenario & scenario) {
+swr::results swr::simulation(scenario& scenario) {
     const size_t number_of_assets = scenario.portfolio.size();
 
     switch (number_of_assets) {
     case 1:
-            return swr_simulation<1>(scenario);
+        return swr_simulation<1>(scenario);
     case 2:
-            return swr_simulation<2>(scenario);
+        return swr_simulation<2>(scenario);
     case 3:
-            return swr_simulation<3>(scenario);
+        return swr_simulation<3>(scenario);
     case 4:
-            return swr_simulation<4>(scenario);
+        return swr_simulation<4>(scenario);
     case 5:
-            return swr_simulation<5>(scenario);
+        return swr_simulation<5>(scenario);
     default:
-            swr::results res;
-            res.message = "The number of assets is too high";
-            res.error   = true;
-            return res;
+        swr::results res;
+        res.message = "The number of assets is too high";
+        res.error   = true;
+        return res;
     }
 }
 
-void swr::results::compute_terminal_values(std::vector<float> & terminal_values) {
+void swr::results::compute_terminal_values(std::vector<float>& terminal_values) {
     std::ranges::sort(terminal_values);
 
     tv_median  = terminal_values[terminal_values.size() / 2 + 1];
@@ -905,7 +899,7 @@ void swr::results::compute_terminal_values(std::vector<float> & terminal_values)
     tv_average = std::accumulate(terminal_values.begin(), terminal_values.end(), 0.0f) / terminal_values.size();
 }
 
-void swr::results::compute_spending(std::vector<std::vector<float>> & yearly_spending, size_t years) {
+void swr::results::compute_spending(std::vector<std::vector<float>>& yearly_spending, size_t years) {
     if (yearly_spending.empty()) {
         spending_median  = 0;
         spending_minimum = 0;
@@ -916,15 +910,15 @@ void swr::results::compute_spending(std::vector<std::vector<float>> & yearly_spe
 
     std::vector<float> spending;
 
-    for (auto & yearly : yearly_spending) {
+    for (auto& yearly : yearly_spending) {
         spending.push_back(std::accumulate(yearly.begin(), yearly.end(), 0.0f));
 
         for (size_t y = 1; y < yearly.size(); ++y) {
-            if (yearly[y] >= 1.5f * yearly[0]){
+            if (yearly[y] >= 1.5f * yearly[0]) {
                 ++years_large_spending;
             }
 
-            if (yearly[y] <= 0.5f * yearly[0]){
+            if (yearly[y] <= 0.5f * yearly[0]) {
                 ++years_small_spending;
             }
 
@@ -950,17 +944,15 @@ size_t swr::simulations_ran() {
     return simulations;
 }
 
-std::ostream & swr::operator<<(std::ostream& out, const scenario & scenario) {
+std::ostream& swr::operator<<(std::ostream& out, const scenario& scenario) {
     out << "{"
-        << "portfolio=" << scenario.portfolio
-        << " inflation=" << scenario.inflation_data.name
-        << " exchange_set=" << std::ranges::count(scenario.exchange_set, true)
-        << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << "," << scenario.threshold << "}"
-        << " init=" << scenario.initial_value
-        << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
+        << "portfolio=" << scenario.portfolio << " inflation=" << scenario.inflation_data.name
+        << " exchange_set=" << std::ranges::count(scenario.exchange_set, true) << " wr=" << scenario.wr << " rebalance={" << scenario.rebalance << ","
+        << scenario.threshold << "}"
+        << " init=" << scenario.initial_value << " years={" << scenario.years << "," << scenario.start_year << "," << scenario.end_year << "}"
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.wselection << "," << scenario.minimum << "}"
-        << " fees=" << scenario.fees
-        << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << ',' << scenario.social_amount << "}"
+        << " fees=" << scenario.fees << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << ','
+        << scenario.social_amount << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
         << " fin={" << scenario.final_inflation << "," << scenario.final_threshold << "}"
         << " cash={" << scenario.cash_simple << "," << scenario.initial_cash << "}"
