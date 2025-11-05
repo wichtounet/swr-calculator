@@ -3760,7 +3760,25 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     }
 
     std::ranges::sort(raw_data, [](auto left, auto right) { return left.second > right.second; });
-    raw_data.resize(raw_data.size() * 0.15);
+    raw_data.resize(raw_data.size() * 0.10);
+
+    std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
+
+    auto first_timestamp = raw_data.front().first;
+    auto last_timestamp  = raw_data.back().first;
+
+    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
+
+            if (timestamp > first_timestamp && timestamp < last_timestamp) {
+                if (std::ranges::find_if(raw_data, [timestamp](auto value) { return value.first == timestamp; }) == raw_data.end()) {
+                    raw_data.emplace_back(timestamp, 0);
+                }
+            }
+        }
+    }
+
     std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
 
     std::map<int64_t, float> data;
@@ -3768,8 +3786,6 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     for (auto [time, tv] : raw_data) {
         data[time] = tv;
     }
-
-    // TODO Turn that into a bar-graph
 
     TimeGraph graph(true, "Terminal Value (USD)", "line-graph");
     graph.add_data(data);
