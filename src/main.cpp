@@ -2575,15 +2575,16 @@ int data_graph_scenario(const std::vector<std::string>& args) {
 }
 
 int data_time_graph_scenario(const std::vector<std::string>& args) {
-    if (args.size() < 4) {
+    if (args.size() < 5) {
         std::cout << "Not enough arguments for data_time_graph" << std::endl;
         return 1;
     }
 
-    size_t start_year = atoi(args[1].c_str());
-    size_t end_year   = atoi(args[2].c_str());
-    auto   portfolio  = swr::parse_portfolio(args[3], false);
-    auto   values     = swr::load_values(portfolio);
+    size_t     start_year = atoi(args[1].c_str());
+    size_t     end_year   = atoi(args[2].c_str());
+    auto       portfolio  = swr::parse_portfolio(args[3], false);
+    auto       values     = swr::load_values(portfolio);
+    const bool log        = args[4] == "log";
 
     TimeGraph graph(true);
 
@@ -2592,10 +2593,13 @@ int data_time_graph_scenario(const std::vector<std::string>& args) {
 
         std::map<int64_t, float> results;
 
+        float acc_value = 1000.0f;
+
         for (auto& value : values[i]) {
             if (value.year >= start_year) {
                 const int64_t timestamp = (value.year - 1970) * 365 * 24 * 3600 + (value.month - 1) * 31 * 24 * 3600;
-                results[timestamp] = value.value;
+                results[timestamp]      = log ? logf(acc_value) : acc_value;
+                acc_value *= value.value;
             }
             if (value.year > end_year) {
                 break;
@@ -3744,7 +3748,7 @@ int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
 }
 
 int times_graph_scenario(const std::vector<std::string>& args) {
-    if (args.size() < 7) {
+    if (args.size() < 8) {
         std::cout << "Not enough arguments for times_graph" << std::endl;
         return 1;
     }
@@ -3761,6 +3765,8 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
     scenario.rebalance      = swr::parse_rebalance(args[6]);
     scenario.wr             = 4.0f / 100.0f;
+    const bool normalize    = args[7] == "true";
+    const bool log          = args.size() > 8 ? args[8] == "log" : false;
 
     std::cout << "Portfolio: \n";
 
@@ -3805,7 +3811,7 @@ int times_graph_scenario(const std::vector<std::string>& args) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
             const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
 
-            if (timestamp > first_timestamp && timestamp < last_timestamp) {
+            if (!normalize || (timestamp > first_timestamp && timestamp < last_timestamp)) {
                 if (std::ranges::find_if(raw_data, [timestamp](auto value) { return value.first == timestamp; }) == raw_data.end()) {
                     raw_data.emplace_back(timestamp, 0);
                 }
@@ -3818,7 +3824,7 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     std::map<int64_t, float> data;
 
     for (auto [time, tv] : raw_data) {
-        data[time] = tv;
+        data[time] = log ? (tv == 0.0f ? 0.0f : logf(tv)) : tv;
     }
 
     TimeGraph graph(true, "Terminal Value (USD)", "line-graph");
