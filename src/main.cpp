@@ -3764,15 +3764,21 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
     scenario.rebalance      = swr::parse_rebalance(args[6]);
-    scenario.wr             = 4.0f / 100.0f;
+    scenario.wr             = 4.0f;
     const bool normalize    = args[7] == "true";
-    const bool log          = args.size() > 8 ? args[8] == "log" : false;
+    const bool log          = args.size() > 8 ? (args[8] == "log") : false;
+    const bool worst        = args.size() > 9 ? (args[9] == "worst") : false;
 
+    std::cout << "Normalize: " << normalize << "\n";
+    std::cout << "Log scale: " << log << "\n";
+    std::cout << "Worst: " << worst << "\n";
     std::cout << "Portfolio: \n";
 
     for (auto& position : scenario.portfolio) {
         std::cout << " " << position.asset << ": " << position.allocation << "%\n";
     }
+
+    std::cout << scenario << std::endl;
 
     if (!prepare_exchange_rates(scenario, "usd")) {
         std::cout << "Error with exchange rates" << std::endl;
@@ -3789,42 +3795,54 @@ int times_graph_scenario(const std::vector<std::string>& args) {
         return 1;
     }
 
+    std::cout << "Success rate: " << res.success_rate << std::endl;
+
     std::vector<std::pair<int64_t, float>> raw_data;
-    size_t                                 i = 0;
+    std::map<int64_t, float>               data;
+
+    size_t i = 0;
     for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
         for (size_t current_month = 1; current_month <= 12; ++current_month) {
             const auto    tv        = res.terminal_values[i++];
             const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
-            raw_data.emplace_back(timestamp, tv);
-        }
-    }
 
-    std::ranges::sort(raw_data, [](auto left, auto right) { return left.second > right.second; });
-    raw_data.resize(raw_data.size() * 0.10);
-
-    std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
-
-    auto first_timestamp = raw_data.front().first;
-    auto last_timestamp  = raw_data.back().first;
-
-    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
-        for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
-
-            if (!normalize || (timestamp > first_timestamp && timestamp < last_timestamp)) {
-                if (std::ranges::find_if(raw_data, [timestamp](auto value) { return value.first == timestamp; }) == raw_data.end()) {
-                    raw_data.emplace_back(timestamp, 0);
+            if (worst) {
+                if (tv == 0.0f) {
+                    data[timestamp] = log ? 13.0f : 20'000;
+                } else {
+                    data[timestamp] = 0.0f;
                 }
+            } else {
+                raw_data.emplace_back(timestamp, tv);
             }
         }
     }
 
-    std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
+    if (!worst) {
+        std::ranges::sort(raw_data, [](auto left, auto right) { return left.second > right.second; });
+        raw_data.resize(raw_data.size() * 0.10);
+        std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
 
-    std::map<int64_t, float> data;
+        auto first_timestamp = raw_data.front().first;
+        auto last_timestamp  = raw_data.back().first;
 
-    for (auto [time, tv] : raw_data) {
-        data[time] = log ? (tv == 0.0f ? 0.0f : logf(tv)) : tv;
+        for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+            for (size_t current_month = 1; current_month <= 12; ++current_month) {
+                const int64_t timestamp = (current_year - 1970) * 365 * 24 * 3600 + (current_month - 1) * 31 * 24 * 3600;
+
+                if (!normalize || (timestamp > first_timestamp && timestamp < last_timestamp)) {
+                    if (std::ranges::find_if(raw_data, [timestamp](auto value) { return value.first == timestamp; }) == raw_data.end()) {
+                        raw_data.emplace_back(timestamp, 0);
+                    }
+                }
+            }
+        }
+
+        std::ranges::sort(raw_data, [](auto left, auto right) { return left.first < right.first; });
+
+        for (const auto& [time, tv] : raw_data) {
+            data[time] = log ? (tv == 0.0f ? 0.0f : logf(tv)) : tv;
+        }
     }
 
     TimeGraph graph(true, "Terminal Value (USD)", "line-graph");
