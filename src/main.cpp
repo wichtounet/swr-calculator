@@ -1222,6 +1222,94 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
 }
 
+void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
+    if (!check_parameters(req, res, {"expenses", "income", "wr", "sr", "nw", "portfolio"})) {
+        return;
+    }
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    swr::scenario scenario;
+
+    // Don't run for too long
+    scenario.timeout_msecs = 200;
+
+    // Parse the parameters
+    scenario.wr               = atof(req.get_param_value("wr").c_str());
+    const float sr            = atof(req.get_param_value("sr").c_str());
+    const float income        = atoi(req.get_param_value("income").c_str());
+    const float expenses      = atoi(req.get_param_value("expenses").c_str());
+    const float nw            = atoi(req.get_param_value("nw").c_str());
+    const auto  portfolio_str = req.get_param_value("portfolio");
+    const auto  portfolio     = swr::parse_portfolio(portfolio_str, false);
+
+    float returns = 7.0f;
+
+    std::cout << "DEBUG: Retirement Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
+              << " portfolio=" << scenario.rebalance << std::endl;
+
+    const float fi_number = expenses * (100.0f / scenario.wr);
+    const bool  fi        = fi_number < nw;
+
+    size_t months = 0;
+    if (nw < fi_number && !income) {
+        months = 12 * 1000;
+    } else {
+        auto acc = nw;
+        while (acc < fi_number && months < 1200) {
+            acc *= 1.0f + (returns / 100.0f) / 12.0f;
+            acc += (income * sr / 100.0f) / 12.0f;
+            ++months;
+        }
+    }
+
+    // For now cannot be configured
+    scenario.rebalance          = swr::Rebalancing::YEARLY;
+    scenario.withdraw_frequency = 12;
+    scenario.threshold          = 0.0f;
+    scenario.start_year         = 1871;
+    scenario.end_year           = 2025;
+
+    auto values             = swr::load_values(portfolio);
+    scenario.inflation_data = swr::load_inflation(values, "us_inflation");
+
+    scenario.portfolio = portfolio;
+    scenario.values    = values;
+    prepare_exchange_rates(scenario, "usd");
+
+    scenario.years = 30;
+    auto results   = simulation(scenario);
+
+    bool        error = false;
+    std::string message;
+    if (results.error) {
+        error   = true;
+        message = results.message;
+    }
+
+    if (error) {
+        std::cout << "ERROR: Simulation error: " << message << std::endl;
+    }
+
+    std::stringstream ss;
+
+    ss << "{ \"results\": {\n"
+       << "  \"message\": \"" << message << "\",\n"
+       << "  \"error\": " << (error ? "true" : "false") << ",\n"
+       << "  \"fi\": " << (fi ? "true" : "false") << ",\n"
+       << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
+       << "  \"years\": " << months / 12 << ",\n"
+       << "  \"months\": " << months % 12 << ",\n"
+       << "  \"success_rate\": " << results.success_rate << "\n"
+       << "}}";
+
+    res.set_content(ss.str(), "text/json");
+
+    auto stop     = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
+    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
+}
+
 } // namespace
 
 void print_general_help() {
@@ -4273,6 +4361,7 @@ int main(int argc, const char* argv[]) {
 
             server.Get("/api/simple", &server_simple_api);
             server.Get("/api/retirement", &server_retirement_api);
+            server.Get("/api/fi_planner", &server_fi_planner_api);
 
             install_signal_handler();
 
