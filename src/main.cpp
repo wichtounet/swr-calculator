@@ -1245,8 +1245,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     float returns = 7.0f;
 
-    std::cout << "DEBUG: Retirement Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
-              << " portfolio=" << scenario.rebalance << std::endl;
+    std::cout << "DEBUG: FI Planner Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
+              << " portfolio=" << scenario.portfolio << std::endl;
 
     const float fi_number = expenses * (100.0f / scenario.wr);
     const bool  fi        = fi_number < nw;
