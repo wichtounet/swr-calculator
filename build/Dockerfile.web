@@ -1,4 +1,4 @@
-FROM wichtounet/cpp
+FROM wichtounet/cpp:alpine-latest
 
 ADD release_debug/gcc-15/bin/swr_calculator /bin/swr_calculator
 ADD stock-data /bin/stock-data
