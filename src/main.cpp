@@ -1223,11 +1223,16 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 }
 
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(req, res, {"expenses", "income", "wr", "sr", "nw", "portfolio"})) {
+    if (!check_parameters(req, res, {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio"})) {
         return;
     }
 
     auto start = std::chrono::high_resolution_clock::now();
+
+    const std::chrono::time_point     now{std::chrono::system_clock::now()};
+    const std::chrono::year_month_day ymd{std::chrono::floor<std::chrono::days>(now)};
+
+    const unsigned current_year = static_cast<unsigned>(static_cast<int>(ymd.year()));
 
     swr::scenario scenario;
 
@@ -1235,33 +1240,44 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     scenario.timeout_msecs = 200;
 
     // Parse the parameters
-    scenario.wr               = atof(req.get_param_value("wr").c_str());
-    const float sr            = atof(req.get_param_value("sr").c_str());
-    const float income        = atoi(req.get_param_value("income").c_str());
-    const float expenses      = atoi(req.get_param_value("expenses").c_str());
-    const float nw            = atoi(req.get_param_value("nw").c_str());
-    const auto  portfolio_str = req.get_param_value("portfolio");
-    const auto  portfolio     = swr::parse_portfolio(portfolio_str, false);
+    scenario.wr                 = atof(req.get_param_value("wr").c_str());
+    const float birth_year      = atoi(req.get_param_value("birth_year").c_str());
+    const float life_expectancy = atof(req.get_param_value("life_expectancy").c_str());
+    const float sr              = atof(req.get_param_value("sr").c_str());
+    const float income          = atoi(req.get_param_value("income").c_str());
+    const float expenses        = atoi(req.get_param_value("expenses").c_str());
+    const float fi_net_worth    = atoi(req.get_param_value("nw").c_str());
+    const auto  portfolio_str   = req.get_param_value("portfolio");
+    const auto  portfolio       = swr::parse_portfolio(portfolio_str, false);
+
+    // TODO Validate that birth_year < current_year
 
     float returns = 7.0f;
 
-    std::cout << "DEBUG: FI Planner Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
+    std::cout << "DEBUG: FI Planner Request wr=" << scenario.wr << " sr=" << sr << " nw=" << fi_net_worth << " income=" << income << " expenses=" << expenses
               << " portfolio=" << scenario.portfolio << std::endl;
 
     const float fi_number = expenses * (100.0f / scenario.wr);
-    const bool  fi        = fi_number < nw;
+    const bool  fi        = fi_number < fi_net_worth;
 
+    // Estimate the number of months until retirement
     size_t months = 0;
-    if (nw < fi_number && !income) {
-        months = 12 * 1000;
-    } else {
-        auto acc = nw;
-        while (acc < fi_number && months < 1200) {
-            acc *= 1.0f + (returns / 100.0f) / 12.0f;
-            acc += (income * sr / 100.0f) / 12.0f;
-            ++months;
+    if (fi_net_worth < fi_number) {
+        if (!income) {
+            months = 12 * 1000;
+        } else {
+            auto acc = fi_net_worth;
+            while (acc < fi_number && months < 1200) {
+                acc *= 1.0f + (returns / 100.0f) / 12.0f;
+                acc += (income * sr / 100.0f) / 12.0f;
+                ++months;
+            }
         }
     }
+
+    const unsigned retirement_year  = current_year + months / 12;
+    const unsigned retirement_age   = retirement_year - birth_year;
+    const unsigned retirement_years = life_expectancy - retirement_age;
 
     // For now cannot be configured
     scenario.rebalance          = swr::Rebalancing::YEARLY;
@@ -1277,7 +1293,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     scenario.values    = values;
     prepare_exchange_rates(scenario, "usd");
 
-    scenario.years = 30;
+    scenario.years = retirement_years;
     auto results   = simulation(scenario);
 
     bool        error = false;
@@ -1300,6 +1316,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
+       << "  \"retirement_year\": " << retirement_year << ",\n"
+       << "  \"retirement_age\": " << retirement_age << ",\n"
+       << "  \"retirement_years\": " << retirement_years << ",\n"
        << "  \"success_rate\": " << results.success_rate << "\n"
        << "}}";
 
