@@ -1300,6 +1300,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned retirement_age   = retirement_year - birth_year;
     const unsigned retirement_years = life_expectancy - retirement_age;
 
+    // Important to configure the initial value for social security and extra income to make sense
+    scenario.initial_value = std::max(fi_net_worth, fi_number);
+
     // Enable social security if configured (simulation expects yearly, API expects monthly)
     if (social_amount > 0.0f) {
         scenario.social_security = true;
