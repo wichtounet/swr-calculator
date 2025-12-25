@@ -1235,7 +1235,10 @@ std::string params_to_string(const httplib::Request& req) {
 }
 
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(req, res, {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio", "social_age", "social_amount"})) {
+    if (!check_parameters(
+                req,
+                res,
+                {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio", "social_age", "social_amount", "extra_amount"})) {
         return;
     }
 
@@ -1269,6 +1272,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned social_year   = social_age > age ? current_year - (social_age - age) : current_year;
     const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
+    const float extra_amount = atof(req.get_param_value("extra_amount").c_str());
+
     float returns = 7.0f;
 
     std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
@@ -1299,6 +1304,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         scenario.social_security = true;
         scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
         scenario.social_amount   = social_amount;
+    }
+
+    if (extra_amount > 0.0f) {
+        scenario.extra_income        = true;
+        scenario.extra_income_amount = extra_amount;
     }
 
     // For now cannot be configured
