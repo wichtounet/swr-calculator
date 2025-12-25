@@ -1222,6 +1222,18 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
 }
 
+std::string params_to_string(const httplib::Request& req) {
+    std::stringstream debug;
+    debug << "[";
+    std::string separator;
+    for (auto& [key, value] : req.params) {
+        debug << separator << key << "=" << value;
+        separator = ",";
+    }
+    debug << "]";
+    return debug.str();
+}
+
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req, res, {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio", "social_age", "social_amount"})) {
         return;
@@ -1259,8 +1271,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     float returns = 7.0f;
 
-    std::cout << "DEBUG: FI Planner Request wr=" << scenario.wr << " sr=" << sr << " nw=" << fi_net_worth << " income=" << income << " expenses=" << expenses
-              << " portfolio=" << scenario.portfolio << std::endl;
+    std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
 
     const float fi_number = expenses * (100.0f / scenario.wr);
     const bool  fi        = fi_number < fi_net_worth;
