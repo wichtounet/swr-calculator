@@ -114,6 +114,10 @@ struct scenario {
     float  social_coverage = 0.0f;
     float  social_amount   = 0.0f;
 
+    // Configuration for extra income
+    bool  extra_income        = false;
+    float extra_income_amount = 0.0f;
+
     // Configuration for flexibility
     Flexibility flexibility             = Flexibility::NONE;
     float       flexibility_threshold_1 = 0.0;

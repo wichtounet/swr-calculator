@@ -269,11 +269,17 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
             }
         }
 
+        // Social security means we have less to withdraw
         if (scenario.social_security) {
             if ((context.months / 12.0f) >= scenario.social_delay) {
                 withdrawal_amount -= (scenario.social_coverage * withdrawal_amount);
                 withdrawal_amount -= scenario.social_amount / 12.0f;
             }
+        }
+
+        // Extra income (without delay) means we have less to withdraw
+        if (scenario.extra_income) {
+            withdrawal_amount -= scenario.extra_income_amount / 12.0f;
         }
 
         context.last_withdrawal_amount = withdrawal_amount;
@@ -953,6 +959,7 @@ std::ostream& swr::operator<<(std::ostream& out, const scenario& scenario) {
         << " withdraw={" << scenario.withdraw_frequency << "," << scenario.wmethod << "," << scenario.wselection << "," << scenario.minimum << "}"
         << " fees=" << scenario.fees << " soc_sec={" << scenario.social_security << "," << scenario.social_delay << "," << scenario.social_coverage << ','
         << scenario.social_amount << "}"
+        << " extra_income={" << scenario.extra_income << "," << scenario.extra_income_amount << "}"
         << " gp={" << scenario.glidepath << "," << scenario.gp_pass << " " << scenario.gp_goal << "}"
         << " fin={" << scenario.final_inflation << "," << scenario.final_threshold << "}"
         << " cash={" << scenario.cash_simple << "," << scenario.initial_cash << "}"
