@@ -1300,15 +1300,17 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned retirement_age   = retirement_year - birth_year;
     const unsigned retirement_years = life_expectancy - retirement_age;
 
+    // Enable social security if configured (simulation expects yearly, API expects monthly)
     if (social_amount > 0.0f) {
         scenario.social_security = true;
         scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
-        scenario.social_amount   = social_amount;
+        scenario.social_amount   = 12.0f * social_amount;
     }
 
+    // Enable income if configured (simulation expects yearly, API expects monthly)
     if (extra_amount > 0.0f) {
         scenario.extra_income        = true;
-        scenario.extra_income_amount = extra_amount;
+        scenario.extra_income_amount = 12.0f * extra_amount;
     }
 
     // For now cannot be configured
