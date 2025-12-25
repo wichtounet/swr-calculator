@@ -1297,7 +1297,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     if (social_amount > 0.0f) {
         scenario.social_security = true;
-        scenario.social_delay    = retirement_year > social_year ? social_year - retirement_year : 0;
+        scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
         scenario.social_amount   = social_amount;
     }
 
