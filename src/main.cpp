@@ -1253,7 +1253,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     // TODO Validate that birth_year < current_year
 
     const unsigned age           = current_year - birth_year;
-    const unsigned social_age    = atoi(req.get_param_value("social_year").c_str());
+    const unsigned social_age    = atoi(req.get_param_value("social_age").c_str());
     const unsigned social_year   = social_age > age ? current_year - (social_age - age) : current_year;
     const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
