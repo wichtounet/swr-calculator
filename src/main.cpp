@@ -1223,7 +1223,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 }
 
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(req, res, {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio"})) {
+    if (!check_parameters(req, res, {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio", "social_age", "social_amount"})) {
         return;
     }
 
@@ -1240,17 +1240,22 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     scenario.timeout_msecs = 200;
 
     // Parse the parameters
-    scenario.wr                 = atof(req.get_param_value("wr").c_str());
-    const float birth_year      = atoi(req.get_param_value("birth_year").c_str());
-    const float life_expectancy = atof(req.get_param_value("life_expectancy").c_str());
-    const float sr              = atof(req.get_param_value("sr").c_str());
-    const float income          = atoi(req.get_param_value("income").c_str());
-    const float expenses        = atoi(req.get_param_value("expenses").c_str());
-    const float fi_net_worth    = atoi(req.get_param_value("nw").c_str());
-    const auto  portfolio_str   = req.get_param_value("portfolio");
-    const auto  portfolio       = swr::parse_portfolio(portfolio_str, false);
+    scenario.wr                    = atof(req.get_param_value("wr").c_str());
+    const unsigned birth_year      = atoi(req.get_param_value("birth_year").c_str());
+    const unsigned life_expectancy = atoi(req.get_param_value("life_expectancy").c_str());
+    const float    sr              = atof(req.get_param_value("sr").c_str());
+    const float    income          = atof(req.get_param_value("income").c_str());
+    const float    expenses        = atof(req.get_param_value("expenses").c_str());
+    const float    fi_net_worth    = atof(req.get_param_value("nw").c_str());
+    const auto     portfolio_str   = req.get_param_value("portfolio");
+    const auto     portfolio       = swr::parse_portfolio(portfolio_str, false);
 
     // TODO Validate that birth_year < current_year
+
+    const unsigned age           = current_year - birth_year;
+    const unsigned social_age    = atoi(req.get_param_value("social_year").c_str());
+    const unsigned social_year   = social_age > age ? current_year - (social_age - age) : current_year;
+    const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
     float returns = 7.0f;
 
@@ -1278,6 +1283,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned retirement_year  = current_year + months / 12;
     const unsigned retirement_age   = retirement_year - birth_year;
     const unsigned retirement_years = life_expectancy - retirement_age;
+
+    if (social_amount > 0.0f) {
+        scenario.social_security = true;
+        scenario.social_delay    = retirement_year > social_year ? social_year - retirement_year : 0;
+        scenario.social_amount   = social_amount;
+    }
 
     // For now cannot be configured
     scenario.rebalance          = swr::Rebalancing::YEARLY;
