@@ -1,10 +1,10 @@
 FROM wichtounet/cpp:alpine-latest
 
-ADD release_debug/gcc-15/bin/swr_calculator /bin/swr_calculator
-ADD stock-data /bin/stock-data
+EXPOSE 80
 
 WORKDIR /bin/
 
-EXPOSE 80
-
 CMD ["/bin/swr_calculator", "server", "0.0.0.0", "80"]
+
+ADD stock-data /bin/stock-data
+ADD release_debug/gcc-15/bin/swr_calculator /bin/swr_calculator
