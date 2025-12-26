@@ -733,9 +733,10 @@ void install_signal_handler() {
 }
 
 bool check_parameters(const httplib::Request& req, httplib::Response& res, std::vector<const char*> parameters) {
+    using namespace std::string_literals;
     for (auto& param : parameters) {
         if (!req.has_param(param)) {
-            res.set_content("Error: Missing parameter " + std::string(param), "text/plain");
+            res.set_content("{\"results\":{\"message\": \"Missing parameter "s + param + "\",\"error\": true,}}", "text/json");
             return false;
         }
     }
