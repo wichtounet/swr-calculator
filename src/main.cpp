@@ -1276,6 +1276,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned social_year   = social_age > age ? current_year - (social_age - age) : current_year;
     const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
+    // TODO Validate life life_expectancy and age
+
     const float extra_amount = atof(req.get_param_value("extra_amount").c_str());
 
     float returns = 7.0f;
@@ -1356,14 +1358,18 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         std::string separator;
 
-        for (size_t year = current_year; year < current_year + life_expectancy; ++year) {
+        bool below_fi = current_value < fi_number;
+
+        for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
             ss << separator << current_value;
             separator = ",";
 
-            if (current_value < fi_number) {
+            if (below_fi && current_value < fi_number) {
                 current_value += income * (sr / 100.0f);
                 current_value *= returns;
             } else {
+                below_fi = false;
+
                 // There are two cases based on social security
 
                 auto withdrawal = current_withdrawal_amount;
