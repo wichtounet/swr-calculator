@@ -1350,6 +1350,37 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     std::stringstream ss;
 
+    auto calculator = [&](float returns) {
+        float current_value             = fi_net_worth;
+        float current_withdrawal_amount = expenses;
+
+        std::string separator;
+
+        for (size_t year = current_year; year < current_year + life_expectancy; ++year) {
+            ss << separator << current_value;
+            separator = ",";
+
+            if (current_value < fi_number) {
+                current_value += income * (sr / 100.0f);
+                current_value *= returns;
+            } else {
+                // There are two cases based on social security
+
+                auto withdrawal = current_withdrawal_amount;
+                if (current_year >= social_year) {
+                    withdrawal -= social_amount * 12.0f;
+                }
+
+                withdrawal -= extra_amount * 12.0f;
+
+                current_value -= withdrawal;
+
+                current_value *= returns;
+                current_withdrawal_amount *= 1.01;
+            }
+        }
+    };
+
     ss << "{ \"results\": {\n"
        << "  \"message\": \"" << message << "\",\n"
        << "  \"error\": " << (error ? "true" : "false") << ",\n"
@@ -1360,8 +1391,16 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"retirement_year\": " << retirement_year << ",\n"
        << "  \"retirement_age\": " << retirement_age << ",\n"
        << "  \"retirement_years\": " << retirement_years << ",\n"
-       << "  \"success_rate\": " << results.success_rate << "\n"
-       << "}}";
+       << "  \"success_rate\": " << results.success_rate << ",\n"
+       << "  \"results_3\": [";
+
+    calculator(1.03);
+    ss << "  ],\n\"results_5\": [";
+    calculator(1.05);
+    ss << "  ],\n\"results_7\": [";
+    calculator(1.07);
+    ss << "  ]\n";
+    ss << "}}";
 
     res.set_content(ss.str(), "text/json");
 
