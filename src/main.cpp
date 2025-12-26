@@ -1266,7 +1266,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const auto     portfolio_str   = req.get_param_value("portfolio");
     const auto     portfolio       = swr::parse_portfolio(portfolio_str, false);
 
-    // TODO Validate that birth_year < current_year
+    if (birth_year >= current_year) {
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
+        return;
+    }
 
     const unsigned age           = current_year - birth_year;
     const unsigned social_age    = atoi(req.get_param_value("social_age").c_str());
