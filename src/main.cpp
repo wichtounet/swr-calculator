@@ -1280,8 +1280,6 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     const float extra_amount = atof(req.get_param_value("extra_amount").c_str());
 
-    float returns = 7.0f;
-
     std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
 
     const float fi_number = expenses * (100.0f / scenario.wr);
@@ -1293,6 +1291,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         if (!income) {
             months = 12 * 1000;
         } else {
+            const float returns = 5.0f;
+
             auto acc = fi_net_worth;
             while (acc < fi_number && months < 1200) {
                 acc *= 1.0f + (returns / 100.0f) / 12.0f;
