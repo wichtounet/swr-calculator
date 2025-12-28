@@ -3240,6 +3240,8 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
+    prepare_exchange_rates(scenario, "usd");
+
     Graph g(graph);
 
     if (!graph) {
@@ -3305,6 +3307,8 @@ int social_pf_scenario(std::string_view command, const std::vector<std::string>&
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    prepare_exchange_rates(scenario, "usd");
 
     Graph g(graph);
 
