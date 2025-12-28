@@ -279,6 +279,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 
         // Extra income (without delay) means we have less to withdraw
         if (scenario.extra_income) {
+            withdrawal_amount -= scenario.extra_income_coverage * (scenario.initial_value * (scenario.wr / 100.0f) / (12.0f / periods));
             withdrawal_amount -= scenario.extra_income_amount / 12.0f;
         }
 
