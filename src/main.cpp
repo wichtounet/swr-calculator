@@ -1,4 +1,4 @@
-//=======================================================================
+//=======================================================================G
 // Copyright Baptiste Wicht 2019-2024.
 // Distributed under the MIT License.
 // (See accompanying file LICENSE or copy at
@@ -984,6 +984,13 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.gp_goal = atof(req.get_param_value("gp_goal").c_str());
     } else {
         scenario.gp_goal = 0.0f;
+    }
+
+    if (req.has_param("extra_income_amount")){
+        scenario.extra_income = true;
+        scenario.extra_income_amount = atof(req.get_param_value("extra_income_amount").c_str());
+    } else {
+        scenario.extra_income = false;
     }
 
     std::string currency = "usd";
