@@ -987,8 +987,8 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     }
 
     if (req.has_param("extra_income_amount")){
-        scenario.extra_income = true;
         scenario.extra_income_amount = atof(req.get_param_value("extra_income_amount").c_str());
+        scenario.extra_income = scenario.extra_income_amount > 0.0f;
     } else {
         scenario.extra_income = false;
     }
