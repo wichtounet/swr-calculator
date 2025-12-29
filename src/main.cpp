@@ -3207,6 +3207,59 @@ int trinity_spending_scenario(std::string_view command, const std::vector<std::s
     return 0;
 }
 
+int income_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 10) {
+        std::cout << "Not enough arguments for income_graph" << std::endl;
+        return 1;
+    }
+
+    swr::scenario scenario;
+
+    scenario.fees       = 0.001;
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], false);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        std::cout << "The Portfolio must be fixed" << std::endl;
+        return 1;
+    }
+
+    float start_wr = atof(args[7].c_str());
+    float end_wr   = atof(args[8].c_str());
+    float add_wr   = atof(args[9].c_str());
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    scenario.extra_income = true;
+
+    prepare_exchange_rates(scenario, "usd");
+
+    Graph g(true);
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    auto run = [&](const std::string_view title, float coverage) {
+        scenario.extra_income_coverage = coverage;
+
+        multiple_wr_success_graph(g, title, false, scenario, start_wr, end_wr, add_wr);
+    };
+
+    run("0", 0.00f);
+    run("5000", 0.05f);
+    run("10000", 0.10f);
+    run("20000", 0.20f);
+    run("30000", 0.30f);
+    run("40000", 0.40f);
+    run("50000", 0.50f);
+
+    return 0;
+}
+
 int social_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 11) {
         std::cout << "Not enough arguments for social_sheets" << std::endl;
@@ -4439,6 +4492,8 @@ int main(int argc, const char* argv[]) {
             return social_scenario(command, args);
         } else if (command == "social_pf_sheets" || command == "social_pf_graph") {
             return social_pf_scenario(command, args);
+        } else if (command == "income_graph") {
+            return income_scenario(args);
         } else if (command == "current_wr" || command == "current_wr_graph") {
             return current_wr_scenario(command, args);
         } else if (command == "rebalance_sheets" || command == "rebalance_graph") {
