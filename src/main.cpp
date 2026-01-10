@@ -2075,6 +2075,11 @@ int frequency_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+float percentile(const std::vector<float>& v, size_t p) {
+    auto point = v.size() * (p / 100.0f);
+    return v[point];
+}
+
 int analysis_scenario(const std::vector<std::string>& args) {
     if (args.size() < 2) {
         std::cout << "Not enough arguments for analysis" << std::endl;
@@ -2142,7 +2147,8 @@ int analysis_scenario(const std::vector<std::string>& args) {
     to_price_graph(gold_graph, values[3], "Gold");
 
     auto analyzer = [&](auto& v, const std::string& name) {
-        float average = 0.0f;
+        float monthly_average = 0.0f;
+        float yearly_average  = 0.0f;
 
         float       worst_month = 1.0f;
         std::string worst_month_str;
@@ -2152,6 +2158,37 @@ int analysis_scenario(const std::vector<std::string>& args) {
 
         size_t negative = 0;
         size_t total    = 0;
+
+        auto year_it  = v.begin();
+        auto year_end = v.end();
+
+        std::vector<float> yearly_returns;
+
+        while (year_it != year_end) {
+            float returns = 1.0f;
+
+            bool skip = false;
+
+            for (size_t month = 0; month < 12; ++month) {
+                auto ret = year_it->value;
+
+                returns *= ret;
+
+                ++year_it;
+
+                if (year_it == year_end) {
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (!skip) {
+                yearly_average += returns;
+                yearly_returns.push_back(returns);
+            }
+        }
+
+        std::ranges::sort(yearly_returns);
 
         for (auto value : v) {
             if (value.year >= start_year && value.year <= end_year) {
@@ -2171,13 +2208,18 @@ int analysis_scenario(const std::vector<std::string>& args) {
                     ++negative;
                 }
 
-                average += value.value;
+                monthly_average += value.value;
             }
         }
 
-        std::cout << name << " average returns: +" << 100.0f * ((average / total) - 1.0f) << "%" << std::endl;
-        std::cout << name << " best returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
-        std::cout << name << " worst returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
+        std::cout << name << " average yearly returns: " << 100.0f * ((yearly_average / yearly_returns.size()) - 1.0f) << "%" << std::endl;
+        std::cout << name << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
+        std::cout << name << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
+        std::cout << name << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
+
+        std::cout << name << " average monthly returns: +" << 100.0f * ((monthly_average / total) - 1.0f) << "%" << std::endl;
+        std::cout << name << " best monthly returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
+        std::cout << name << " worst monthly returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
         std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
     };
 
