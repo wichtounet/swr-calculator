@@ -1465,11 +1465,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"high\": " << high << ",\n"
        << "  \"results_low\": [";
 
-    calculator(1.03);
+    calculator(1.0f + low * 0.8);
     ss << "  ],\n\"results_med\": [";
-    calculator(1.05);
+    calculator(1.0f + med * 0.8);
     ss << "  ],\n\"results_high\": [";
-    calculator(1.07);
+    calculator(1.0f + high * 0.8);
     ss << "  ]\n";
     ss << "}}";
 
