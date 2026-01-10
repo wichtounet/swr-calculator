@@ -2080,6 +2080,40 @@ float percentile(const std::vector<float>& v, size_t p) {
     return v[point];
 }
 
+std::vector<float> to_yearly_returns(const swr::data_vector& v) {
+    std::vector<float> yearly_returns;
+
+    auto year_it  = v.begin();
+    auto year_end = v.end();
+
+    while (year_it != year_end) {
+        float returns = 1.0f;
+
+        bool skip = false;
+
+        for (size_t month = 0; month < 12; ++month) {
+            auto ret = year_it->value;
+
+            returns *= ret;
+
+            ++year_it;
+
+            if (year_it == year_end) {
+                skip = true;
+                break;
+            }
+        }
+
+        if (!skip) {
+            yearly_returns.push_back(returns);
+        }
+    }
+
+    std::ranges::sort(yearly_returns);
+
+    return yearly_returns;
+}
+
 int analysis_scenario(const std::vector<std::string>& args) {
     if (args.size() < 2) {
         std::cout << "Not enough arguments for analysis" << std::endl;
@@ -2148,7 +2182,6 @@ int analysis_scenario(const std::vector<std::string>& args) {
 
     auto analyzer = [&](auto& v, const std::string& name) {
         float monthly_average = 0.0f;
-        float yearly_average  = 0.0f;
 
         float       worst_month = 1.0f;
         std::string worst_month_str;
@@ -2159,36 +2192,7 @@ int analysis_scenario(const std::vector<std::string>& args) {
         size_t negative = 0;
         size_t total    = 0;
 
-        auto year_it  = v.begin();
-        auto year_end = v.end();
-
-        std::vector<float> yearly_returns;
-
-        while (year_it != year_end) {
-            float returns = 1.0f;
-
-            bool skip = false;
-
-            for (size_t month = 0; month < 12; ++month) {
-                auto ret = year_it->value;
-
-                returns *= ret;
-
-                ++year_it;
-
-                if (year_it == year_end) {
-                    skip = true;
-                    break;
-                }
-            }
-
-            if (!skip) {
-                yearly_average += returns;
-                yearly_returns.push_back(returns);
-            }
-        }
-
-        std::ranges::sort(yearly_returns);
+        auto yearly_returns = to_yearly_returns(v);
 
         for (auto value : v) {
             if (value.year >= start_year && value.year <= end_year) {
@@ -2212,7 +2216,6 @@ int analysis_scenario(const std::vector<std::string>& args) {
             }
         }
 
-        std::cout << name << " average yearly returns: " << 100.0f * ((yearly_average / yearly_returns.size()) - 1.0f) << "%" << std::endl;
         std::cout << name << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
         std::cout << name << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
         std::cout << name << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
