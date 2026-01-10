@@ -814,6 +814,45 @@ void configure_withdrawal_method(swr::scenario& scenario, std::vector<std::strin
     }
 }
 
+float percentile(const std::vector<float>& v, size_t p) {
+    auto point = v.size() * (p / 100.0f);
+    return v[point];
+}
+
+std::vector<float> to_yearly_returns(const swr::data_vector& v) {
+    std::vector<float> yearly_returns;
+
+    auto year_it  = v.begin();
+    auto year_end = v.end();
+
+    while (year_it != year_end) {
+        float returns = 1.0f;
+
+        bool skip = false;
+
+        for (size_t month = 0; month < 12; ++month) {
+            auto ret = year_it->value;
+
+            returns *= ret;
+
+            ++year_it;
+
+            if (year_it == year_end) {
+                skip = true;
+                break;
+            }
+        }
+
+        if (!skip) {
+            yearly_returns.push_back(returns);
+        }
+    }
+
+    std::ranges::sort(yearly_returns);
+
+    return yearly_returns;
+}
+
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
@@ -1357,6 +1396,22 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         std::cout << "ERROR: Simulation error: " << message << std::endl;
     }
 
+    swr::data_vector merged = values[0];
+
+    for (size_t n = 0; n < merged.size(); ++n) {
+        merged[n].value *= portfolio[0].allocation / 100.0f;
+
+        for (size_t i = 1; i < values.size(); ++i) {
+            merged[n].value += (portfolio[i].allocation / 100.0f) * values[i][n].value;
+        }
+    }
+
+    auto yearly_returns = to_yearly_returns(merged);
+
+    const auto low  = 100.0f * (percentile(yearly_returns, 40) - 1.0f);
+    const auto med  = 100.0f * (percentile(yearly_returns, 50) - 1.0f);
+    const auto high = 100.0f * (percentile(yearly_returns, 60) - 1.0f);
+
     std::stringstream ss;
 
     auto calculator = [&](float returns) {
@@ -1405,12 +1460,15 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"retirement_age\": " << retirement_age << ",\n"
        << "  \"retirement_years\": " << retirement_years << ",\n"
        << "  \"success_rate\": " << results.success_rate << ",\n"
-       << "  \"results_3\": [";
+       << "  \"low\": " << low << ",\n"
+       << "  \"med\": " << med << ",\n"
+       << "  \"high\": " << high << ",\n"
+       << "  \"results_low\": [";
 
     calculator(1.03);
-    ss << "  ],\n\"results_5\": [";
+    ss << "  ],\n\"results_med\": [";
     calculator(1.05);
-    ss << "  ],\n\"results_7\": [";
+    ss << "  ],\n\"results_high\": [";
     calculator(1.07);
     ss << "  ]\n";
     ss << "}}";
@@ -2073,45 +2131,6 @@ int frequency_scenario(const std::vector<std::string>& args) {
     }
 
     return 0;
-}
-
-float percentile(const std::vector<float>& v, size_t p) {
-    auto point = v.size() * (p / 100.0f);
-    return v[point];
-}
-
-std::vector<float> to_yearly_returns(const swr::data_vector& v) {
-    std::vector<float> yearly_returns;
-
-    auto year_it  = v.begin();
-    auto year_end = v.end();
-
-    while (year_it != year_end) {
-        float returns = 1.0f;
-
-        bool skip = false;
-
-        for (size_t month = 0; month < 12; ++month) {
-            auto ret = year_it->value;
-
-            returns *= ret;
-
-            ++year_it;
-
-            if (year_it == year_end) {
-                skip = true;
-                break;
-            }
-        }
-
-        if (!skip) {
-            yearly_returns.push_back(returns);
-        }
-    }
-
-    std::ranges::sort(yearly_returns);
-
-    return yearly_returns;
 }
 
 int analysis_scenario(const std::vector<std::string>& args) {
