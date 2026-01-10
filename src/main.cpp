@@ -2242,6 +2242,37 @@ int analysis_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+int portfolio_analysis_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 2) {
+        std::cout << "Not enough arguments for portfolio_analysis" << std::endl;
+        return 1;
+    }
+
+    auto portfolio = swr::parse_portfolio(args[1], false);
+
+    auto values = swr::load_values(portfolio);
+
+    std::cout << "Number of assets: " << values.size() << std::endl;
+
+    swr::data_vector merged = values[0];
+
+    for (size_t n = 0; n < merged.size(); ++n) {
+        merged[n].value *= portfolio[0].allocation / 100.0f;
+
+        for (size_t i = 1; i < values.size(); ++i) {
+            merged[n].value += (portfolio[i].allocation / 100.0f) * values[i][n].value;
+        }
+    }
+
+    auto yearly_returns = to_yearly_returns(merged);
+
+    std::cout << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
+    std::cout << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
+    std::cout << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
+
+    return 0;
+}
+
 int allocation_scenario() {
     Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
     g_us.title_  = "US Portfolio Allocation Annualized Returns";
@@ -4518,6 +4549,8 @@ int main(int argc, const char* argv[]) {
             return frequency_scenario(args);
         } else if (command == "analysis") {
             return analysis_scenario(args);
+        } else if (command == "portfolio_analysis") {
+            return portfolio_analysis_scenario(args);
         } else if (command == "allocation") {
             return allocation_scenario();
         } else if (command == "term") {
