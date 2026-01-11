@@ -17,7 +17,7 @@ namespace swr {
 struct data {
     size_t month;
     size_t year;
-    float value;
+    float  value;
 };
 
 struct data_vector {
@@ -49,10 +49,10 @@ struct data_vector {
         return data.back();
     }
 
-    decltype(auto) operator[] (size_t i) {
+    decltype(auto) operator[](size_t i) {
         return data[i];
     }
-    decltype(auto) operator[] (size_t i) const {
+    decltype(auto) operator[](size_t i) const {
         return data[i];
     }
 
@@ -66,11 +66,12 @@ struct data_vector {
 };
 
 std::vector<data_vector> load_values(const std::vector<swr::allocation>& portfolio);
-data_vector load_inflation(const std::vector<data_vector> & values, const std::string& inflation);
-data_vector load_exchange(const std::string& inflation);
-data_vector load_exchange_inv(const std::string& inflation);
+std::vector<data_vector> load_adjusted_values(const std::vector<swr::allocation>& portfolio);
+data_vector              load_inflation(const std::vector<data_vector>& values, const std::string& inflation);
+data_vector              load_exchange(const std::string& inflation);
+data_vector              load_exchange_inv(const std::string& inflation);
 
-float get_value(const data_vector& values, size_t year, size_t month);
+float                       get_value(const data_vector& values, size_t year, size_t month);
 data_vector::const_iterator get_start(const data_vector& values, size_t year, size_t month);
 
 bool is_start_valid(const data_vector& values, size_t year, size_t month);

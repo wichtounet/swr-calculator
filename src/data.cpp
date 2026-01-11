@@ -20,7 +20,7 @@ std::mutex server_lock;
 
 std::unordered_map<std::string, swr::data_vector> data_cache;
 
-swr::data_vector load_data(const std::string & name, const std::string& path) {
+swr::data_vector load_data(const std::string& name, const std::string& path) {
     {
         const std::unique_lock l(server_lock);
         if (data_cache.contains(name)) {
@@ -71,20 +71,20 @@ swr::data_vector load_data(const std::string & name, const std::string& path) {
 }
 
 // Make sure that the data ends with a full year
-void fix_end(swr::data_vector & values) {
+void fix_end(swr::data_vector& values) {
     while (values.data.back().month != 12) {
         values.data.pop_back();
     }
 }
 
 // Make sure that the data starts with a full year
-void fix_start(swr::data_vector & values) {
+void fix_start(swr::data_vector& values) {
     while (values.data.front().month != 1) {
         values.data.erase(values.data.begin());
     }
 }
 
-void normalize_data(swr::data_vector & values) {
+void normalize_data(swr::data_vector& values) {
     fix_end(values);
     fix_start(values);
 
@@ -93,7 +93,7 @@ void normalize_data(swr::data_vector & values) {
     }
 
     auto previous_value = values[0].value;
-    values[0].value = 1.0f;
+    values[0].value     = 1.0f;
 
     for (size_t i = 1; i < values.size(); ++i) {
         auto value      = values[i].value;
@@ -102,7 +102,7 @@ void normalize_data(swr::data_vector & values) {
     }
 }
 
-void transform_to_returns(swr::data_vector & values) {
+void transform_to_returns(swr::data_vector& values) {
     // Should already be normalized
     float previous_value = values[0].value;
 
@@ -115,11 +115,25 @@ void transform_to_returns(swr::data_vector & values) {
 
 } // end of anonymous namespace
 
+std::vector<swr::data_vector> swr::load_adjusted_values(const std::vector<swr::allocation>& portfolio) {
+    auto values = load_values(portfolio);
+
+    for (size_t i = 0; i < values.size(); ++i) {
+        if (portfolio[i].asset == "us_bonds") {
+            for (auto& v : values[i]) {
+                v.value -= 0.25f / 100.0f;
+            }
+        }
+    }
+
+    return values;
+}
+
 std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation>& portfolio) {
     std::vector<swr::data_vector> values;
 
     for (auto& asset : portfolio) {
-        const auto & asset_name = asset.asset;
+        const auto& asset_name = asset.asset;
 
         bool x2 = asset_name.ends_with("_x2");
 
@@ -140,8 +154,8 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
             std::ranges::copy(copy, std::back_inserter(data.data));
 
             for (size_t i = 0; i < copy.size(); ++i) {
-                size_t j         = copy.size() - 1 - i;
-                auto& curr       = data[j];
+                size_t      j    = copy.size() - 1 - i;
+                auto&       curr = data[j];
                 const auto& prev = data[j + 1];
 
                 if (prev.month == 1) {
@@ -160,7 +174,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
     return values;
 }
 
-swr::data_vector swr::load_inflation(const std::vector<swr::data_vector> & values, const std::string& inflation) {
+swr::data_vector swr::load_inflation(const std::vector<swr::data_vector>& values, const std::string& inflation) {
     swr::data_vector inflation_data;
 
     if (inflation == "no_inflation") {
@@ -207,7 +221,7 @@ swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
     }
 
     // Invert the exchange rate
-    for (auto & v : exchange_data) {
+    for (auto& v : exchange_data) {
         v.value = 1.0f / v.value;
     }
 
@@ -218,7 +232,7 @@ swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
 }
 
 float swr::get_value(const swr::data_vector& values, size_t year, size_t month) {
-    for (auto & data : values) {
+    for (auto& data : values) {
         if (data.year == year && data.month == month) {
             return data.value;
         }
