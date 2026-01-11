@@ -854,18 +854,22 @@ std::vector<float> to_yearly_returns(const swr::data_vector& v) {
 }
 
 std::vector<float> to_cagr_returns(const std::vector<swr::allocation>& portfolio, size_t rolling) {
+    const size_t N = portfolio.size(); // Number of assets
+
     auto values = swr::load_values(portfolio);
 
-    std::vector<float> current_values(values.size());
+    const size_t M = values[0].size(); // Number of months
 
-    for (size_t i = 0; i < values.size(); ++i) {
-        current_values[i] = 1000.0f * portfolio[i].allocation;
+    std::vector<float> current_values(N);
+
+    for (size_t i = 0; i < N; ++i) {
+        current_values[i] = 1000.0f * (portfolio[i].allocation / 100.0f);
     }
 
-    std::vector<float> acc_values(values[0].size());
+    std::vector<float> acc_values(M);
 
-    for (size_t m = 0; m < values[0].size(); ++m) {
-        for (size_t i = 0; i < values.size(); ++i) {
+    for (size_t m = 0; m < M; ++m) {
+        for (size_t i = 0; i < N; ++i) {
             current_values[i] *= values[i][m].value;
         }
 
@@ -873,9 +877,9 @@ std::vector<float> to_cagr_returns(const std::vector<swr::allocation>& portfolio
     }
 
     std::vector<float> cagr_returns;
-    cagr_returns.reserve(values[0].size() / 12);
+    cagr_returns.reserve(M);
 
-    for (size_t m = 0; m + rolling * 12 < values[0].size(); ++m) {
+    for (size_t m = 0; m + rolling * 12 < M; ++m) {
         auto start_value = acc_values[m];
         auto end_value   = acc_values[m + rolling * 12];
         cagr_returns.push_back(std::powf((end_value / start_value), 1.0f / float(rolling)) - 1.0f);
