@@ -2328,11 +2328,19 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
 
     auto cagr_returns = to_cagr_returns(portfolio, 20);
 
-    std::cout << " p30 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 30)) << "%" << std::endl;
-    std::cout << " p40 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 40)) << "%" << std::endl;
-    std::cout << " p50 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 50)) << "%" << std::endl;
-    std::cout << " p60 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 60)) << "%" << std::endl;
-    std::cout << " p70 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 70)) << "%" << std::endl;
+    auto adjusted_factor = 0.0f;
+
+    for (auto& asset : portfolio) {
+        if (asset.asset == "us_bonds") {
+            adjusted_factor = 3.0f * asset.allocation / 100.0f;
+        }
+    }
+
+    std::cout << " p30 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 30) - adjusted_factor << "%" << std::endl;
+    std::cout << " p40 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 40) - adjusted_factor << "%" << std::endl;
+    std::cout << " p50 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 50) - adjusted_factor << "%" << std::endl;
+    std::cout << " p60 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 60) - adjusted_factor << "%" << std::endl;
+    std::cout << " p70 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 70) - adjusted_factor << "%" << std::endl;
 
     return 0;
 }
