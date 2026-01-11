@@ -853,6 +853,39 @@ std::vector<float> to_yearly_returns(const swr::data_vector& v) {
     return yearly_returns;
 }
 
+std::vector<float> to_cagr_returns(const std::vector<swr::allocation>& portfolio, size_t rolling) {
+    auto values = swr::load_values(portfolio);
+
+    std::vector<float> current_values(values.size());
+
+    for (size_t i = 0; i < values.size(); ++i) {
+        current_values[i] = 1000.0f * portfolio[i].allocation;
+    }
+
+    std::vector<float> acc_values(values[0].size());
+
+    for (size_t m = 0; m < values[0].size(); ++m) {
+        for (size_t i = 0; i < values.size(); ++i) {
+            current_values[i] *= values[i][m].value;
+        }
+
+        acc_values[m] = std::accumulate(current_values.begin(), current_values.end(), 0.0f);
+    }
+
+    std::vector<float> cagr_returns;
+    cagr_returns.reserve(values[0].size() / 12);
+
+    for (size_t m = 0; m + rolling * 12 < values[0].size(); ++m) {
+        auto start_value = acc_values[m];
+        auto end_value   = acc_values[m + rolling * 12];
+        cagr_returns.push_back(std::powf((end_value / start_value), 1.0f / float(rolling)) - 1.0f);
+    }
+
+    std::ranges::sort(cagr_returns);
+
+    return cagr_returns;
+}
+
 void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req, res, {"inflation", "years", "wr", "start", "end"})) {
         return;
@@ -2288,6 +2321,14 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
     std::cout << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
     std::cout << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
     std::cout << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
+
+    auto cagr_returns = to_cagr_returns(portfolio, 20);
+
+    std::cout << " p30 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 30)) << "%" << std::endl;
+    std::cout << " p40 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 40)) << "%" << std::endl;
+    std::cout << " p50 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 50)) << "%" << std::endl;
+    std::cout << " p60 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 60)) << "%" << std::endl;
+    std::cout << " p70 20-year cagr returns: " << 100.0f * (percentile(cagr_returns, 70)) << "%" << std::endl;
 
     return 0;
 }
