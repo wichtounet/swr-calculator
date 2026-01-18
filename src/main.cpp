@@ -1433,21 +1433,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         std::cout << "ERROR: Simulation error: " << message << std::endl;
     }
 
-    swr::data_vector merged = values[0];
+    auto cagr_returns = to_cagr_returns(portfolio, 20);
 
-    for (size_t n = 0; n < merged.size(); ++n) {
-        merged[n].value *= portfolio[0].allocation / 100.0f;
-
-        for (size_t i = 1; i < values.size(); ++i) {
-            merged[n].value += (portfolio[i].allocation / 100.0f) * values[i][n].value;
-        }
-    }
-
-    auto yearly_returns = to_yearly_returns(merged);
-
-    const auto low  = 100.0f * (percentile(yearly_returns, 40) - 1.0f);
-    const auto med  = 100.0f * (percentile(yearly_returns, 50) - 1.0f);
-    const auto high = 100.0f * (percentile(yearly_returns, 60) - 1.0f);
+    const float factor = 80.0f;
+    const float low    = factor * percentile(cagr_returns, 30);
+    const float med    = factor * percentile(cagr_returns, 50);
+    const float high   = factor * percentile(cagr_returns, 70);
 
     std::stringstream ss;
 
@@ -1502,11 +1493,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"high\": " << high << ",\n"
        << "  \"results_low\": [";
 
-    calculator(1.0f + low * 0.8);
+    calculator(1.0f + low / 100.0f);
     ss << "  ],\n\"results_med\": [";
-    calculator(1.0f + med * 0.8);
+    calculator(1.0f + med / 100.0f);
     ss << "  ],\n\"results_high\": [";
-    calculator(1.0f + high * 0.8);
+    calculator(1.0f + high / 100.0f);
     ss << "  ]\n";
     ss << "}}";
 
