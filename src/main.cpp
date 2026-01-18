@@ -1365,6 +1365,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
 
+    auto cagr_returns = to_cagr_returns(portfolio, 20);
+
+    const float factor = 75.0f;
+    const float low    = factor * percentile(cagr_returns, 30);
+    const float med    = factor * percentile(cagr_returns, 50);
+    const float high   = factor * percentile(cagr_returns, 70);
+
     const float fi_number = expenses * (100.0f / scenario.wr);
     const bool  fi        = fi_number < fi_net_worth;
 
@@ -1374,11 +1381,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         if (!income) {
             months = 12 * 1000;
         } else {
-            const float returns = 5.0f;
-
             auto acc = fi_net_worth;
             while (acc < fi_number && months < 1200) {
-                acc *= 1.0f + (returns / 100.0f) / 12.0f;
+                acc *= 1.0f + (med / 100.0f) / 12.0f;
                 acc += (income * sr / 100.0f) / 12.0f;
                 ++months;
             }
@@ -1432,13 +1437,6 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     if (error) {
         std::cout << "ERROR: Simulation error: " << message << std::endl;
     }
-
-    auto cagr_returns = to_cagr_returns(portfolio, 20);
-
-    const float factor = 80.0f;
-    const float low    = factor * percentile(cagr_returns, 30);
-    const float med    = factor * percentile(cagr_returns, 50);
-    const float high   = factor * percentile(cagr_returns, 70);
 
     std::stringstream ss;
 
