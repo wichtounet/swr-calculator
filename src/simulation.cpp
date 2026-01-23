@@ -285,6 +285,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 
         context.last_withdrawal_amount = withdrawal_amount;
 
+        // If we are not withdrawing anything, we return early
         if (withdrawal_amount <= 0.0f) {
             return true;
         }
