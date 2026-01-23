@@ -466,12 +466,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
             res.error   = true;
             return res;
         }
-
-        if (scenario.wmethod != swr::WithdrawalMethod::STANDARD) {
-            res.message = "Social security is only implemented for standard withdrawal method";
-            res.error   = true;
-            return res;
-        }
     }
 
     if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD && scenario.withdraw_frequency != 1) {
