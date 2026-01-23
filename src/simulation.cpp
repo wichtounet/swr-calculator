@@ -306,6 +306,11 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
                     context.cash = 0.0f;
                 }
             }
+
+            // Check whether we reduced the withdrawal to zero
+            if (withdrawal_amount <= 0.0f) {
+                return true;
+            }
         }
 
         switch (scenario.wselection) {
