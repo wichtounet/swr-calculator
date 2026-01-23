@@ -3436,6 +3436,10 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
 
     configure_withdrawal_method(scenario, args, 11);
 
+    if (args.size() > 12) {
+        scenario.initial_cash = atof(args[12].c_str());
+    }
+
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
