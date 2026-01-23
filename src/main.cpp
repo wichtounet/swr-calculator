@@ -3434,6 +3434,8 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
     scenario.social_security = true;
     scenario.social_delay    = atoi(args[10].c_str());
 
+    configure_withdrawal_method(scenario, args, 11);
+
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
