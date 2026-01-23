@@ -299,7 +299,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
                 if (withdrawal_amount <= context.cash) {
                     context.year_withdrawn += withdrawal_amount;
                     context.cash -= withdrawal_amount;
-                    withdrawal_amount = 0;
+                    withdrawal_amount = 0.0f;
                 } else {
                     context.year_withdrawn += context.cash;
                     withdrawal_amount -= context.cash;
@@ -463,14 +463,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
         res.message = "Cannot work with an empty portfolio";
         res.error   = true;
         return res;
-    }
-
-    if (scenario.social_security) {
-        if (scenario.initial_cash > 0.0f) {
-            res.message = "Social security and cash is not implemented";
-            res.error   = true;
-            return res;
-        }
     }
 
     if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD && scenario.withdraw_frequency != 1) {
