@@ -1393,7 +1393,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     const unsigned age           = current_year - birth_year;
     const unsigned social_age    = atoi(req.get_param_value("social_age").c_str());
-    const unsigned social_year   = social_age > age ? current_year - (social_age - age) : current_year;
+    const unsigned social_year   = social_age > age ? current_year + (social_age - age) : current_year;
     const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
     // TODO Validate life life_expectancy and age
@@ -1477,18 +1477,81 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     std::vector<float> liquidity;
     std::vector<float> net_worth;
 
-    {
-        auto returns_mut = 1.0f + returns / 100.0f;
+    const auto returns_mut = 1.0f + returns / 100.0f;
+
+    if (separated) {
+        float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
+        const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
+        const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
+        const unsigned second_pillar_1_year   = second_pillar_1_age > age ? current_year + (second_pillar_1_age - age) : current_year;
+
+        float liquid   = fi_net_worth;
+        float illiquid = second_pillar_1_amount;
+
+        float current_nw                = illiquid + liquid;
+        float current_withdrawal_amount = expenses;
+
+        bool below_fi = current_nw < fi_number;
+
+        auto update_fixed = [&illiquid, &liquid](size_t year, float& amount, float rate, unsigned withdraw_year) {
+            if (amount) {
+                if (year >= withdraw_year) {
+                    // Transfer second pillar to liquid net worth
+                    liquid += amount;
+                    amount = 0;
+                } else {
+                    amount *= (100.0f + rate) / 100.0f;
+                    illiquid += amount;
+                }
+            }
+        };
+
+        for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
+            liquidity.emplace_back(liquid);
+            net_worth.emplace_back(current_nw);
+
+            // Compute the liquid net worth
+
+            if (below_fi && current_nw < fi_number) {
+                // Update liquid net worth based on portfolio returns
+                liquid += income * (sr / 100.0f);
+                liquid *= returns_mut;
+            } else {
+                below_fi = false;
+
+                // There are two cases based on social security
+
+                auto withdrawal = current_withdrawal_amount;
+                current_withdrawal_amount *= 1.01; // Adjust for inflation
+                if (current_year >= social_year) {
+                    withdrawal -= social_amount * 12.0f;
+                }
+
+                withdrawal -= extra_amount * 12.0f;
+
+                liquid -= withdrawal;
+
+                liquid *= returns_mut;
+            }
+
+            // Compute the illiquid net worth
+
+            illiquid = 0;
+            update_fixed(year, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
+
+            // Get the net worth
+
+            current_nw = liquid + illiquid;
+        }
+    } else {
+        // TODO In the future, we can remove this when separated mode is out of staging
 
         float current_value             = fi_net_worth;
         float current_withdrawal_amount = expenses;
 
-        std::string separator;
-
         bool below_fi = current_value < fi_number;
 
         for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
-            liquidity.emplace_back(current_value);
             net_worth.emplace_back(current_value);
 
             if (below_fi && current_value < fi_number) {
@@ -1512,6 +1575,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 current_withdrawal_amount *= 1.01;
             }
         }
+
+        liquidity = net_worth;
     }
 
     std::stringstream ss;
