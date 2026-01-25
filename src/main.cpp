@@ -1318,6 +1318,22 @@ std::string params_to_string(const httplib::Request& req) {
     return debug.str();
 }
 
+std::string vector_to_json(const std::vector<float>& values) {
+    std::stringstream ss;
+
+    ss << "[";
+
+    std::string separator;
+    for (const auto& value : values) {
+        ss << separator << value;
+        separator = ",";
+    }
+
+    ss << "]";
+
+    return ss.str();
+}
+
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req,
                           res,
@@ -1448,9 +1464,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         std::cout << "ERROR: Simulation error: " << message << std::endl;
     }
 
-    std::stringstream ss;
+    std::vector<float> liquidity;
+    std::vector<float> net_worth;
 
-    auto calculator = [&](float returns) {
+    {
+        auto returns_mut = 1.0f + returns / 100.0f;
+
         float current_value             = fi_net_worth;
         float current_withdrawal_amount = expenses;
 
@@ -1459,12 +1478,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         bool below_fi = current_value < fi_number;
 
         for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
-            ss << separator << current_value;
-            separator = ",";
+            liquidity.emplace_back(current_value);
+            net_worth.emplace_back(current_value);
 
             if (below_fi && current_value < fi_number) {
                 current_value += income * (sr / 100.0f);
-                current_value *= returns;
+                current_value *= returns_mut;
             } else {
                 below_fi = false;
 
@@ -1479,11 +1498,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                 current_value -= withdrawal;
 
-                current_value *= returns;
+                current_value *= returns_mut;
                 current_withdrawal_amount *= 1.01;
             }
         }
-    };
+    }
+
+    std::stringstream ss;
 
     ss << "{ \"results\": {\n"
        << "  \"message\": \"" << message << "\",\n"
@@ -1497,10 +1518,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"retirement_years\": " << retirement_years << ",\n"
        << "  \"success_rate\": " << results.success_rate << ",\n"
        << "  \"returns\": " << returns << ",\n"
-       << "  \"liquidity\": [";
-    calculator(1.0f + returns / 100.0f);
-    ss << "  ]\n";
-    ss << "}}";
+       << "  \"liquidity\": " << vector_to_json(liquidity) << ",\n"
+       << "  \"net_worth\": " << vector_to_json(net_worth) << "\n"
+       << "}}";
 
     res.set_content(ss.str(), "text/json");
 
