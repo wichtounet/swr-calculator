@@ -1357,7 +1357,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     if (req.has_param("second_pillar_1_amount")) {
         separated = true;
 
-        if (!check_parameters(req, res, {"second_pillar_1_amount", "second_pillar_1_age", "second_pillar_1_rate"})) {
+        if (!check_parameters(req,
+                              res,
+                              {"second_pillar_1_amount",
+                               "second_pillar_1_age",
+                               "second_pillar_1_rate",
+                               "second_pillar_2_amount",
+                               "second_pillar_2_age",
+                               "second_pillar_2_rate"})) {
             return;
         }
     }
