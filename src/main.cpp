@@ -1416,30 +1416,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const float fi_number = expenses * (100.0f / wr);
     const bool  fi        = fi_number < fi_net_worth;
 
-    // Estimate the number of months until retirement
-    // TODO: Do this as part of the loop later
+    // Estimate of the number of months until retirement
     size_t months = 0;
-    if (fi_net_worth < fi_number) {
-        if (!income) {
-            months = 12 * 1000;
-        } else {
-            auto acc = fi_net_worth;
-            while (acc < fi_number && months < 1200) {
-                acc *= 1.0f + (returns / 100.0f) / 12.0f;
-                acc += (income * sr / 100.0f) / 12.0f;
-                ++months;
-            }
-        }
-    }
-
-    const unsigned retirement_year  = current_year + months / 12;
-    const unsigned retirement_age   = retirement_year - birth_year;
-    const unsigned retirement_years = life_expectancy - retirement_age;
 
     std::vector<float> liquidity;
     std::vector<float> net_worth;
 
-    const auto returns_mut = 1.0f + returns / 100.0f;
+    const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
+    const float monthly_returns_mut = 1.0f + monthly_returns;
 
     if (separated) {
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
@@ -1479,27 +1463,33 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
             // Compute the liquid net worth
 
-            if (below_fi && current_nw < fi_number) {
-                // Update liquid net worth based on portfolio returns
-                liquid += income * (sr / 100.0f);
-                liquid *= returns_mut;
-            } else {
-                below_fi = false;
+            for (size_t month = 0; month < 12; ++month) {
+                if (below_fi && current_nw < fi_number) {
+                    // Update liquid net worth based on portfolio returns
+                    liquid += (income * (sr / 100.0f)) / 12.0f;
 
-                // There are two cases based on social security
+                    ++months; // One more month to reach FI
+                } else {
+                    below_fi = false;
 
-                auto withdrawal = current_withdrawal_amount;
-                current_withdrawal_amount *= 1.01; // Adjust for inflation
-                if (current_year >= social_year) {
-                    withdrawal -= social_amount * 12.0f;
+                    // There are two cases based on social security
+
+                    auto withdrawal = current_withdrawal_amount / 12.0f;
+                    if (year >= social_year) {
+                        withdrawal -= social_amount;
+                    }
+
+                    withdrawal -= extra_amount;
+
+                    liquid -= withdrawal;
                 }
 
-                withdrawal -= extra_amount * 12.0f;
+                liquid *= monthly_returns_mut;
 
-                liquid -= withdrawal;
-
-                liquid *= returns_mut;
+                current_nw = liquid + illiquid;
             }
+
+            current_withdrawal_amount *= 1.01; // Adjust for inflation
 
             // Compute the illiquid net worth
 
@@ -1512,7 +1502,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             current_nw = liquid + illiquid;
         }
     } else {
-        // TODO In the future, we can remove this when separated mode is out of staging
+        // TODO In the future, we can remove block entirely this when separated mode is out of staging
+
+        const float yearly_returns_mut = 1.0f + returns / 100.0f;
 
         float current_value             = fi_net_worth;
         float current_withdrawal_amount = expenses;
@@ -1524,14 +1516,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
             if (below_fi && current_value < fi_number) {
                 current_value += income * (sr / 100.0f);
-                current_value *= returns_mut;
+                current_value *= yearly_returns_mut;
             } else {
                 below_fi = false;
 
                 // There are two cases based on social security
 
                 auto withdrawal = current_withdrawal_amount;
-                if (current_year >= social_year) {
+                if (year >= social_year) {
                     withdrawal -= social_amount * 12.0f;
                 }
 
@@ -1539,13 +1531,31 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                 current_value -= withdrawal;
 
-                current_value *= returns_mut;
+                current_value *= yearly_returns_mut;
                 current_withdrawal_amount *= 1.01;
             }
         }
 
         liquidity = net_worth;
+
+        // This is a bad estimation of retirement
+        if (fi_net_worth < fi_number) {
+            if (!income) {
+                months = 12 * 1000;
+            } else {
+                auto acc = fi_net_worth;
+                while (acc < fi_number && months < 1200) {
+                    acc *= 1.0f + (returns / 100.0f) / 12.0f;
+                    acc += (income * sr / 100.0f) / 12.0f;
+                    ++months;
+                }
+            }
+        }
     }
+
+    const unsigned retirement_year  = current_year + months / 12;
+    const unsigned retirement_age   = retirement_year - birth_year;
+    const unsigned retirement_years = life_expectancy - retirement_age;
 
     // Run the scenario through historical data to assess success rate
 
