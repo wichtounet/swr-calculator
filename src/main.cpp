@@ -1319,10 +1319,20 @@ std::string params_to_string(const httplib::Request& req) {
 }
 
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
-    if (!check_parameters(
-                req,
-                res,
-                {"birth_year", "life_expectancy", "expenses", "income", "wr", "sr", "nw", "portfolio", "social_age", "social_amount", "extra_amount"})) {
+    if (!check_parameters(req,
+                          res,
+                          {"birth_year",
+                           "life_expectancy",
+                           "expenses",
+                           "income",
+                           "wr",
+                           "sr",
+                           "nw",
+                           "portfolio",
+                           "social_age",
+                           "social_amount",
+                           "extra_amount",
+                           "returns"})) {
         return;
     }
 
@@ -1339,15 +1349,16 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     scenario.timeout_msecs = 200;
 
     // Parse the parameters
-    scenario.wr                    = atof(req.get_param_value("wr").c_str());
-    const unsigned birth_year      = atoi(req.get_param_value("birth_year").c_str());
-    const unsigned life_expectancy = atoi(req.get_param_value("life_expectancy").c_str());
-    const float    sr              = atof(req.get_param_value("sr").c_str());
-    const float    income          = atof(req.get_param_value("income").c_str());
-    const float    expenses        = atof(req.get_param_value("expenses").c_str());
-    const float    fi_net_worth    = atof(req.get_param_value("nw").c_str());
-    const auto     portfolio_str   = req.get_param_value("portfolio");
-    const auto     portfolio       = swr::parse_portfolio(portfolio_str, false);
+    scenario.wr                       = atof(req.get_param_value("wr").c_str());
+    const unsigned birth_year         = atoi(req.get_param_value("birth_year").c_str());
+    const unsigned life_expectancy    = atoi(req.get_param_value("life_expectancy").c_str());
+    const float    sr                 = atof(req.get_param_value("sr").c_str());
+    const float    income             = atof(req.get_param_value("income").c_str());
+    const float    expenses           = atof(req.get_param_value("expenses").c_str());
+    const float    fi_net_worth       = atof(req.get_param_value("nw").c_str());
+    const auto     portfolio_str      = req.get_param_value("portfolio");
+    const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
+    const float    returns_percentile = atof(req.get_param_value("returns").c_str());
 
     if (birth_year >= current_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
@@ -1367,15 +1378,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     auto cagr_returns = to_cagr_returns(portfolio, 20);
 
-    const float factor = 75.0f;
-    const float low    = factor * percentile(cagr_returns, 30);
-    const float med    = factor * percentile(cagr_returns, 50);
-    const float high   = factor * percentile(cagr_returns, 70);
+    const float factor  = 75.0f;
+    const float returns = factor * percentile(cagr_returns, returns_percentile);
 
     const float fi_number = expenses * (100.0f / scenario.wr);
     const bool  fi        = fi_number < fi_net_worth;
 
     // Estimate the number of months until retirement
+    // TODO: Do this as part of the loop later
     size_t months = 0;
     if (fi_net_worth < fi_number) {
         if (!income) {
@@ -1383,7 +1393,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         } else {
             auto acc = fi_net_worth;
             while (acc < fi_number && months < 1200) {
-                acc *= 1.0f + (med / 100.0f) / 12.0f;
+                acc *= 1.0f + (returns / 100.0f) / 12.0f;
                 acc += (income * sr / 100.0f) / 12.0f;
                 ++months;
             }
@@ -1486,16 +1496,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"retirement_age\": " << retirement_age << ",\n"
        << "  \"retirement_years\": " << retirement_years << ",\n"
        << "  \"success_rate\": " << results.success_rate << ",\n"
-       << "  \"low\": " << low << ",\n"
-       << "  \"med\": " << med << ",\n"
-       << "  \"high\": " << high << ",\n"
-       << "  \"results_low\": [";
-
-    calculator(1.0f + low / 100.0f);
-    ss << "  ],\n\"results_med\": [";
-    calculator(1.0f + med / 100.0f);
-    ss << "  ],\n\"results_high\": [";
-    calculator(1.0f + high / 100.0f);
+       << "  \"returns\": " << returns << ",\n"
+       << "  \"liquidity\": [";
+    calculator(1.0f + returns / 100.0f);
     ss << "  ]\n";
     ss << "}}";
 
