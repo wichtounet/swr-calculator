@@ -1376,13 +1376,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     const unsigned current_year = static_cast<unsigned>(static_cast<int>(ymd.year()));
 
-    swr::scenario scenario;
-
-    // Don't run for too long
-    scenario.timeout_msecs = 200;
+    // Prepare the outputs
+    bool        error = false;
+    std::string message;
 
     // Parse the parameters
-    scenario.wr                       = atof(req.get_param_value("wr").c_str());
+    const float    wr                 = atof(req.get_param_value("wr").c_str());
     const unsigned birth_year         = atoi(req.get_param_value("birth_year").c_str());
     const unsigned life_expectancy    = atoi(req.get_param_value("life_expectancy").c_str());
     const float    sr                 = atof(req.get_param_value("sr").c_str());
@@ -1414,7 +1413,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const float factor  = 75.0f;
     const float returns = factor * percentile(cagr_returns, returns_percentile);
 
-    const float fi_number = expenses * (100.0f / scenario.wr);
+    const float fi_number = expenses * (100.0f / wr);
     const bool  fi        = fi_number < fi_net_worth;
 
     // Estimate the number of months until retirement
@@ -1436,50 +1435,6 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned retirement_year  = current_year + months / 12;
     const unsigned retirement_age   = retirement_year - birth_year;
     const unsigned retirement_years = life_expectancy - retirement_age;
-
-    // Important to configure the initial value for social security and extra income to make sense
-    scenario.initial_value = std::max(fi_net_worth, fi_number);
-
-    // Enable social security if configured (simulation expects yearly, API expects monthly)
-    if (social_amount > 0.0f) {
-        scenario.social_security = true;
-        scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
-        scenario.social_amount   = 12.0f * social_amount;
-    }
-
-    // Enable income if configured (simulation expects yearly, API expects monthly)
-    if (extra_amount > 0.0f) {
-        scenario.extra_income        = true;
-        scenario.extra_income_amount = 12.0f * extra_amount;
-    }
-
-    // For now cannot be configured
-    scenario.rebalance          = swr::Rebalancing::YEARLY;
-    scenario.withdraw_frequency = 12;
-    scenario.threshold          = 0.0f;
-    scenario.start_year         = 1871;
-    scenario.end_year           = 2025;
-
-    auto values             = swr::load_values(portfolio);
-    scenario.inflation_data = swr::load_inflation(values, "us_inflation");
-
-    scenario.portfolio = portfolio;
-    scenario.values    = values;
-    prepare_exchange_rates(scenario, "usd");
-
-    scenario.years = retirement_years;
-    auto results   = simulation(scenario);
-
-    bool        error = false;
-    std::string message;
-    if (results.error) {
-        error   = true;
-        message = results.message;
-    }
-
-    if (error) {
-        std::cout << "ERROR: Simulation error: " << message << std::endl;
-    }
 
     std::vector<float> liquidity;
     std::vector<float> net_worth;
@@ -1592,6 +1547,63 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         liquidity = net_worth;
     }
 
+    // Run the scenario through historical data to assess success rate
+
+    float success_rate = 0.0f;
+
+    {
+        swr::scenario scenario;
+
+        // Don't run for too long
+        scenario.timeout_msecs = 200;
+
+        scenario.wr = wr;
+
+        // Important to configure the initial value for social security and extra income to make sense
+        scenario.initial_value = std::max(fi_net_worth, fi_number);
+
+        // Enable social security if configured (simulation expects yearly, API expects monthly)
+        if (social_amount > 0.0f) {
+            scenario.social_security = true;
+            scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
+            scenario.social_amount   = 12.0f * social_amount;
+        }
+
+        // Enable income if configured (simulation expects yearly, API expects monthly)
+        if (extra_amount > 0.0f) {
+            scenario.extra_income        = true;
+            scenario.extra_income_amount = 12.0f * extra_amount;
+        }
+
+        // For now cannot be configured
+        scenario.rebalance          = swr::Rebalancing::YEARLY;
+        scenario.withdraw_frequency = 12;
+        scenario.threshold          = 0.0f;
+        scenario.start_year         = 1871;
+        scenario.end_year           = 2025;
+
+        auto values             = swr::load_values(portfolio);
+        scenario.inflation_data = swr::load_inflation(values, "us_inflation");
+
+        scenario.portfolio = portfolio;
+        scenario.values    = values;
+        prepare_exchange_rates(scenario, "usd");
+
+        scenario.years = retirement_years;
+        auto results   = simulation(scenario);
+
+        if (results.error) {
+            error   = true;
+            message = results.message;
+        }
+
+        if (error) {
+            std::cout << "ERROR: Simulation error: " << message << std::endl;
+        }
+
+        success_rate = results.success_rate;
+    }
+
     std::stringstream ss;
 
     ss << "{ \"results\": {\n"
@@ -1605,7 +1617,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"retirement_year\": " << retirement_year << ",\n"
        << "  \"retirement_age\": " << retirement_age << ",\n"
        << "  \"retirement_years\": " << retirement_years << ",\n"
-       << "  \"success_rate\": " << results.success_rate << ",\n"
+       << "  \"success_rate\": " << success_rate << ",\n"
        << "  \"returns\": " << returns << ",\n"
        << "  \"liquidity\": " << vector_to_json(liquidity) << ",\n"
        << "  \"net_worth\": " << vector_to_json(net_worth) << "\n"
