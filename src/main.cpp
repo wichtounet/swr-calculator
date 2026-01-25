@@ -1352,6 +1352,16 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         return;
     }
 
+    bool separated = false;
+
+    if (req.has_param("second_pillar_1_amount")) {
+        separated = true;
+
+        if (!check_parameters(req, res, {"second_pillar_1_amount", "second_pillar_1_age", "second_pillar_1_rate"})) {
+            return;
+        }
+    }
+
     auto start = std::chrono::high_resolution_clock::now();
 
     const std::chrono::time_point     now{std::chrono::system_clock::now()};
@@ -1509,6 +1519,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     ss << "{ \"results\": {\n"
        << "  \"message\": \"" << message << "\",\n"
        << "  \"error\": " << (error ? "true" : "false") << ",\n"
+       << "  \"separated\": " << (separated ? "true" : "false") << ",\n"
        << "  \"fi\": " << (fi ? "true" : "false") << ",\n"
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
