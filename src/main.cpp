@@ -1485,8 +1485,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
         const unsigned second_pillar_1_year   = second_pillar_1_age > age ? current_year + (second_pillar_1_age - age) : current_year;
 
+        float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
+        const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
+        const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
+        const unsigned second_pillar_2_year   = second_pillar_2_age > age ? current_year + (second_pillar_2_age - age) : current_year;
+
         float liquid   = fi_net_worth;
-        float illiquid = second_pillar_1_amount;
+        float illiquid = second_pillar_1_amount + second_pillar_2_amount;
 
         float current_nw                = illiquid + liquid;
         float current_withdrawal_amount = expenses;
@@ -1538,6 +1543,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
             illiquid = 0;
             update_fixed(year, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
+            update_fixed(year, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
 
             // Get the net worth
 
