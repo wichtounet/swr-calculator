@@ -1422,10 +1422,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     std::vector<float> liquidity;
     std::vector<float> net_worth;
 
-    const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
-    const float monthly_returns_mut = 1.0f + monthly_returns;
-
     if (separated) {
+        const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
+        const float monthly_returns_mut = 1.0f + monthly_returns;
+
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
         const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
         const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
@@ -1442,18 +1442,37 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         float current_nw                = illiquid + liquid;
         float current_withdrawal_amount = expenses;
 
-        bool below_fi = current_nw < fi_number;
+        bool fi = current_nw >= fi_number;
 
-        auto update_fixed = [&illiquid, &liquid](size_t year, float& amount, float rate, unsigned withdraw_year) {
+        // The two functions should return liquid, illiquid
+
+        auto update_second_eoy = [&illiquid, &liquid](size_t year, bool fi, float& amount, float rate, unsigned withdraw_year) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer second pillar to liquid net worth
                     liquid += amount;
                     amount = 0;
                 } else {
-                    amount *= (100.0f + rate) / 100.0f;
+                    if (!fi) { // After FI, updated each month
+                        amount *= (100.0f + rate) / 100.0f;
+                    }
+
                     illiquid += amount;
                 }
+            }
+        };
+
+        auto update_second_eom = [&illiquid, monthly_returns_mut](size_t year, bool fi, float& amount, float rate, unsigned withdraw_year) {
+            if (amount) {
+                if (year < withdraw_year) {
+                    if (fi) {
+                        // Once we reach FI, the second pillar is transferred to a vested benefits account
+                        // So it grows normally but is still illiquid
+                        amount *= monthly_returns_mut;
+                    }
+                }
+
+                illiquid += amount;
             }
         };
 
@@ -1464,13 +1483,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             // Compute the liquid net worth
 
             for (size_t month = 0; month < 12; ++month) {
-                if (below_fi && current_nw < fi_number) {
+                if (!fi && current_nw < fi_number) {
                     // Update liquid net worth based on portfolio returns
                     liquid += (income * (sr / 100.0f)) / 12.0f;
 
                     ++months; // One more month to reach FI
                 } else {
-                    below_fi = false;
+                    fi = true;
 
                     // There are two cases based on social security
 
@@ -1486,6 +1505,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                 liquid *= monthly_returns_mut;
 
+                illiquid = 0;
+                update_second_eom(year, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
+                update_second_eom(year, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
+
                 current_nw = liquid + illiquid;
             }
 
@@ -1494,8 +1517,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             // Compute the illiquid net worth
 
             illiquid = 0;
-            update_fixed(year, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
-            update_fixed(year, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
+            update_second_eoy(year, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
+            update_second_eoy(year, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
 
             // Get the net worth
 
