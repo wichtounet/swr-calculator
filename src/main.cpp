@@ -1374,7 +1374,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const std::chrono::time_point     now{std::chrono::system_clock::now()};
     const std::chrono::year_month_day ymd{std::chrono::floor<std::chrono::days>(now)};
 
-    const unsigned current_year = static_cast<unsigned>(static_cast<int>(ymd.year()));
+    const unsigned start_year = static_cast<unsigned>(static_cast<int>(ymd.year()));
 
     // Prepare the outputs
     bool        error = false;
@@ -1392,14 +1392,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
     const float    returns_percentile = atof(req.get_param_value("returns").c_str());
 
-    if (birth_year >= current_year) {
+    if (birth_year >= start_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
         return;
     }
 
-    const unsigned age           = current_year - birth_year;
+    const unsigned age           = start_year - birth_year;
     const unsigned social_age    = atoi(req.get_param_value("social_age").c_str());
-    const unsigned social_year   = social_age > age ? current_year + (social_age - age) : current_year;
+    const unsigned social_year   = social_age > age ? start_year + (social_age - age) : start_year;
     const float    social_amount = atof(req.get_param_value("social_amount").c_str());
 
     // TODO Validate life life_expectancy and age
@@ -1429,12 +1429,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
         const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
         const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
-        const unsigned second_pillar_1_year   = second_pillar_1_age > age ? current_year + (second_pillar_1_age - age) : current_year;
+        const unsigned second_pillar_1_year   = second_pillar_1_age > age ? start_year + (second_pillar_1_age - age) : start_year;
 
         float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
         const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
         const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
-        const unsigned second_pillar_2_year   = second_pillar_2_age > age ? current_year + (second_pillar_2_age - age) : current_year;
+        const unsigned second_pillar_2_year   = second_pillar_2_age > age ? start_year + (second_pillar_2_age - age) : start_year;
 
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
@@ -1444,7 +1444,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool fi = current_nw >= fi_number;
 
-        auto update_second_eom = [&illiquid, &liquid, current_year, monthly_returns_mut](
+        auto update_second_eom = [&illiquid, &liquid, start_year, monthly_returns_mut](
                                          size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year) {
             if (amount) {
                 if (year >= withdraw_year) {
@@ -1458,7 +1458,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                         amount *= monthly_returns_mut;
                     } else {
                         // Traditionally, second pillars only get interest once a year
-                        if (year != current_year && month == 1) {
+                        if (year != start_year && month == 1) {
                             amount *= (100.0f + rate) / 100.0f;
                         }
                     }
@@ -1468,7 +1468,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
-        for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
+        for (size_t year = start_year; year < start_year + (life_expectancy - age); ++year) {
             liquidity.emplace_back(liquid);
             net_worth.emplace_back(current_nw);
 
@@ -1516,7 +1516,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool below_fi = current_value < fi_number;
 
-        for (size_t year = current_year; year < current_year + (life_expectancy - age); ++year) {
+        for (size_t year = start_year; year < start_year + (life_expectancy - age); ++year) {
             net_worth.emplace_back(current_value);
 
             if (below_fi && current_value < fi_number) {
@@ -1558,7 +1558,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         }
     }
 
-    const unsigned retirement_year  = current_year + months / 12;
+    const unsigned retirement_year  = start_year + months / 12;
     const unsigned retirement_age   = retirement_year - birth_year;
     const unsigned retirement_years = life_expectancy - retirement_age;
 
