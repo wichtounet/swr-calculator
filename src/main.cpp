@@ -1450,8 +1450,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool fi = current_nw >= fi_number;
 
-        auto update_second_eom = [&illiquid, &liquid, start_year, monthly_returns_mut](
-                                         size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year) {
+        // TODO Improvements:
+        //  * 3a amount should grow over time
+        //  * income should grow over time
+
+        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer second pillar to liquid net worth
@@ -1474,8 +1477,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
-        auto update_third_eom = [&illiquid, &liquid, start_year, monthly_returns_mut](
-                                        size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year) {
+        auto update_third_eom = [&](size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer third pillar to liquid net worth
