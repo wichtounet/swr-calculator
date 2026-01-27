@@ -1340,7 +1340,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                           {"birth_year",
                            "life_expectancy",
                            "expenses",
-                           "income",
+                           "income_1",
                            "wr",
                            "sr",
                            "nw",
@@ -1359,7 +1359,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         if (!check_parameters(req,
                               res,
-                              {"second_pillar_1_amount",
+                              {"income_2",
+                               "second_pillar_1_amount",
                                "second_pillar_1_age",
                                "second_pillar_1_rate",
                                "second_pillar_2_amount",
@@ -1387,12 +1388,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned birth_year         = atoi(req.get_param_value("birth_year").c_str());
     const unsigned life_expectancy    = atoi(req.get_param_value("life_expectancy").c_str());
     const float    sr                 = atof(req.get_param_value("sr").c_str());
-    const float    income             = atof(req.get_param_value("income").c_str());
     const float    expenses           = atof(req.get_param_value("expenses").c_str());
     const float    fi_net_worth       = atof(req.get_param_value("nw").c_str());
     const auto     portfolio_str      = req.get_param_value("portfolio");
     const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
     const float    returns_percentile = atof(req.get_param_value("returns").c_str());
+
+    const float income_1 = atof(req.get_param_value("income_1").c_str());
 
     if (birth_year >= start_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
@@ -1428,6 +1430,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
         const float monthly_returns_mut = 1.0f + monthly_returns;
 
+        const float income_2 = atof(req.get_param_value("income_2").c_str());
+
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
         const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
         const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
@@ -1454,8 +1458,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         //  * handle two income
         //  * 3a amount should grow over time
         //  * income should grow over time
+        //  * both persons may have a different age
 
-        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year) {
+        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer second pillar to liquid net worth
@@ -1522,7 +1527,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             for (size_t month = 0; month < 12; ++month) {
                 if (!fi && current_nw < fi_number) {
                     // Update liquid net worth based on portfolio returns
-                    liquid += (income * (sr / 100.0f)) / 12.0f;
+                    liquid += ((income_1 + income_2) * (sr / 100.0f)) / 12.0f;
                     // TODO Remove 7258 here!
 
                     ++months; // One more month to reach FI
@@ -1544,8 +1549,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 liquid *= monthly_returns_mut;
 
                 illiquid = 0;
-                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
-                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
+                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1);
+                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2);
                 update_third_eom(year, month, fi, third_pillar_1_amount, third_pillar_1_year);
 
                 current_nw = liquid + illiquid;
@@ -1567,7 +1572,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             net_worth.emplace_back(current_value);
 
             if (below_fi && current_value < fi_number) {
-                current_value += income * (sr / 100.0f);
+                current_value += income_1 * (sr / 100.0f);
                 current_value *= yearly_returns_mut;
             } else {
                 below_fi = false;
@@ -1592,13 +1597,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         // This is a bad estimation of retirement
         if (fi_net_worth < fi_number) {
-            if (!income) {
+            if (!income_1) {
                 months = 12 * 1000;
             } else {
                 auto acc = fi_net_worth;
                 while (acc < fi_number && months < 1200) {
                     acc *= 1.0f + (returns / 100.0f) / 12.0f;
-                    acc += (income * sr / 100.0f) / 12.0f;
+                    acc += (income_1 * sr / 100.0f) / 12.0f;
                     ++months;
                 }
             }
