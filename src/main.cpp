@@ -1366,8 +1366,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                                "second_pillar_2_amount",
                                "second_pillar_2_age",
                                "second_pillar_2_rate",
-                               "third_pillar_1_amount",
-                               "third_pillar_1_age"})) {
+                               "third_pillar_1_1_amount",
+                               "third_pillar_1_1_age",
+                               "third_pillar_2_1_amount",
+                               "third_pillar_2_1_age"})) {
             return;
         }
     }
@@ -1442,9 +1444,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
         const unsigned second_pillar_2_year   = second_pillar_2_age > age ? start_year + (second_pillar_2_age - age) : start_year;
 
-        float          third_pillar_1_amount = atof(req.get_param_value("third_pillar_1_amount").c_str());
-        const unsigned third_pillar_1_age    = atoi(req.get_param_value("third_pillar_1_age").c_str());
-        const unsigned third_pillar_1_year   = third_pillar_1_age > age ? start_year + (third_pillar_1_age - age) : start_year;
+        float          third_pillar_1_1_amount = atof(req.get_param_value("third_pillar_1_1_amount").c_str());
+        const unsigned third_pillar_1_1_age    = atoi(req.get_param_value("third_pillar_1_1_age").c_str());
+        const unsigned third_pillar_1_1_year   = third_pillar_1_1_age > age ? start_year + (third_pillar_1_1_age - age) : start_year;
+
+        float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
+        const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
+        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age ? start_year + (third_pillar_2_1_age - age) : start_year;
 
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
@@ -1455,8 +1461,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         bool fi = current_nw >= fi_number;
 
         // TODO Improvements:
-        //  * handle two income
-        //  * 3a amount should grow over time
+        //  * 3a amount should grow over time (120 CHF every two years)
         //  * income should grow over time
         //  * both persons may have a different age
 
@@ -1497,7 +1502,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
-        auto update_third_eom = [&](size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year) {
+        auto update_third_eom = [&](size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year, unsigned income) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer third pillar to liquid net worth
@@ -1509,8 +1514,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                     // Annual contribution to the 3a at the beginning of the year
                     if (!fi && year != start_year && month == 1) {
-                        // TODO What if the savings are lower than 7258?
-                        amount += 7258; // TODO Handle multiple 3a
+                        // TODO Handle multiple 3a
+                        if (income > 7258) {
+                            amount += 7258;
+                        }
                     }
 
                     illiquid += amount;
@@ -1526,9 +1533,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
             for (size_t month = 0; month < 12; ++month) {
                 if (!fi && current_nw < fi_number) {
-                    // Update liquid net worth based on portfolio returns
-                    liquid += ((income_1 + income_2) * (sr / 100.0f)) / 12.0f;
-                    // TODO Remove 7258 here!
+                    if (income_1 > 7258) {
+                        liquid += ((income_1 - 7258) * (sr / 100.0f)) / 12.0f;
+                    }
+
+                    if (income_2 > 7258) {
+                        liquid += ((income_2 - 7258) * (sr / 100.0f)) / 12.0f;
+                    }
 
                     ++months; // One more month to reach FI
                 } else {
@@ -1551,7 +1562,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 illiquid = 0;
                 update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1);
                 update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2);
-                update_third_eom(year, month, fi, third_pillar_1_amount, third_pillar_1_year);
+                update_third_eom(year, month, fi, third_pillar_1_1_amount, third_pillar_1_1_year, income_1);
+                update_third_eom(year, month, fi, third_pillar_2_1_amount, third_pillar_2_1_year, income_2);
 
                 current_nw = liquid + illiquid;
             }
