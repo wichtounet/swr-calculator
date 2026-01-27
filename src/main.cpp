@@ -1444,35 +1444,27 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool fi = current_nw >= fi_number;
 
-        // The two functions should return liquid, illiquid
-
-        auto update_second_eoy = [&illiquid, &liquid](size_t year, bool fi, float& amount, float rate, unsigned withdraw_year) {
+        auto update_second_eom = [&illiquid, &liquid, current_year, monthly_returns_mut](
+                                         size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer second pillar to liquid net worth
                     liquid += amount;
                     amount = 0;
                 } else {
-                    if (!fi) { // After FI, updated each month
-                        amount *= (100.0f + rate) / 100.0f;
-                    }
-
-                    illiquid += amount;
-                }
-            }
-        };
-
-        auto update_second_eom = [&illiquid, monthly_returns_mut](size_t year, bool fi, float& amount, float rate, unsigned withdraw_year) {
-            if (amount) {
-                if (year < withdraw_year) {
                     if (fi) {
                         // Once we reach FI, the second pillar is transferred to a vested benefits account
                         // So it grows normally but is still illiquid
                         amount *= monthly_returns_mut;
+                    } else {
+                        // Traditionally, second pillars only get interest once a year
+                        if (year != current_year && month == 1) {
+                            amount *= (100.0f + rate) / 100.0f;
+                        }
                     }
-                }
 
-                illiquid += amount;
+                    illiquid += amount;
+                }
             }
         };
 
@@ -1506,23 +1498,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 liquid *= monthly_returns_mut;
 
                 illiquid = 0;
-                update_second_eom(year, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
-                update_second_eom(year, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
+                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
+                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
 
                 current_nw = liquid + illiquid;
             }
 
             current_withdrawal_amount *= 1.01; // Adjust for inflation
-
-            // Compute the illiquid net worth
-
-            illiquid = 0;
-            update_second_eoy(year, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
-            update_second_eoy(year, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
-
-            // Get the net worth
-
-            current_nw = liquid + illiquid;
         }
     } else {
         // TODO In the future, we can remove block entirely this when separated mode is out of staging
