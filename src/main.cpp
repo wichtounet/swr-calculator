@@ -1364,7 +1364,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                                "second_pillar_1_rate",
                                "second_pillar_2_amount",
                                "second_pillar_2_age",
-                               "second_pillar_2_rate"})) {
+                               "second_pillar_2_rate",
+                               "third_pillar_1_amount",
+                               "third_pillar_1_age"})) {
             return;
         }
     }
@@ -1436,6 +1438,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
         const unsigned second_pillar_2_year   = second_pillar_2_age > age ? start_year + (second_pillar_2_age - age) : start_year;
 
+        float          third_pillar_1_amount = atof(req.get_param_value("third_pillar_1_amount").c_str());
+        const unsigned third_pillar_1_age    = atoi(req.get_param_value("third_pillar_1_age").c_str());
+        const unsigned third_pillar_1_year   = third_pillar_1_age > age ? start_year + (third_pillar_1_age - age) : start_year;
+
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
 
@@ -1468,6 +1474,28 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
+        auto update_third_eom = [&illiquid, &liquid, start_year, monthly_returns_mut](
+                                        size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year) {
+            if (amount) {
+                if (year >= withdraw_year) {
+                    // Transfer third pillar to liquid net worth
+                    liquid += amount;
+                    amount = 0;
+                } else {
+                    // We assume that the 3a is invested the same as the portfolio
+                    amount *= monthly_returns_mut;
+
+                    // Annual contribution to the 3a at the beginning of the year
+                    if (!fi && year != start_year && month == 1) {
+                        // TODO What if the savings are lower than 7258?
+                        amount += 7258; // TODO Handle multiple 3a
+                    }
+
+                    illiquid += amount;
+                }
+            }
+        };
+
         for (size_t year = start_year; year < start_year + (life_expectancy - age); ++year) {
             liquidity.emplace_back(liquid);
             net_worth.emplace_back(current_nw);
@@ -1478,6 +1506,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 if (!fi && current_nw < fi_number) {
                     // Update liquid net worth based on portfolio returns
                     liquid += (income * (sr / 100.0f)) / 12.0f;
+                    // TODO Remove 7258 here!
 
                     ++months; // One more month to reach FI
                 } else {
@@ -1500,6 +1529,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 illiquid = 0;
                 update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year);
                 update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year);
+                update_third_eom(year, month, fi, third_pillar_1_amount, third_pillar_1_year);
 
                 current_nw = liquid + illiquid;
             }
