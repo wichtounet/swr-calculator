@@ -1396,7 +1396,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
     const float    returns_percentile = atof(req.get_param_value("returns").c_str());
 
-    const float income_1 = atof(req.get_param_value("income_1").c_str());
+    float income_1 = atof(req.get_param_value("income_1").c_str());
 
     if (birth_year >= start_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
@@ -1432,7 +1432,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
         const float monthly_returns_mut = 1.0f + monthly_returns;
 
-        const float income_2 = atof(req.get_param_value("income_2").c_str());
+        const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
+        float       income_2      = atof(req.get_param_value("income_2").c_str());
+        const float income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
 
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
         const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
@@ -1462,7 +1464,6 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         // TODO Improvements:
         //  * 3a amount should grow over time (120 CHF every two years)
-        //  * income should grow over time
         //  * both persons may have a different age
 
         auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income) {
@@ -1535,10 +1536,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 if (!fi && current_nw < fi_number) {
                     if (income_1 > 7258) {
                         liquid += ((income_1 - 7258) * (sr / 100.0f)) / 12.0f;
+                    } else {
+                        liquid += (income_1 * (sr / 100.0f)) / 12.0f;
                     }
 
                     if (income_2 > 7258) {
                         liquid += ((income_2 - 7258) * (sr / 100.0f)) / 12.0f;
+                    } else {
+                        liquid += (income_2 * (sr / 100.0f)) / 12.0f;
                     }
 
                     ++months; // One more month to reach FI
@@ -1569,6 +1574,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
 
             current_withdrawal_amount *= 1.01; // Adjust for inflation
+
+            // Grow the income
+            income_1 *= 1.0f + income_1_rate / 100.0f;
+            income_2 *= 1.0f + income_2_rate / 100.0f;
         }
     } else {
         // TODO In the future, we can remove block entirely this when separated mode is out of staging
