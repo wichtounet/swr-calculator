@@ -1451,6 +1451,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         bool fi = current_nw >= fi_number;
 
         // TODO Improvements:
+        //  * handle two income
         //  * 3a amount should grow over time
         //  * income should grow over time
 
@@ -1469,6 +1470,20 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                         // Traditionally, second pillars only get interest once a year
                         if (year != start_year && month == 1) {
                             amount *= (100.0f + rate) / 100.0f;
+                        }
+
+                        // Monthly contribution based on income
+
+                        const size_t current_age = age + year - start_year;
+
+                        if (current_age < 34) {
+                            amount += (income / 24.0f) * 0.07f;
+                        } else if (current_age < 44) {
+                            amount += (income / 24.0f) * 0.10f;
+                        } else if (current_age < 54) {
+                            amount += (income / 24.0f) * 0.15f;
+                        } else {
+                            amount += (income / 24.0f) * 0.18f;
                         }
                     }
 
