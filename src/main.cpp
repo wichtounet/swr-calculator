@@ -1385,9 +1385,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     bool        error = false;
     std::string message;
 
-    // Parse the parameters
+    // Parse the global parameters
     const float    wr                 = atof(req.get_param_value("wr").c_str());
-    const unsigned birth_year         = atoi(req.get_param_value("birth_year").c_str());
     const unsigned life_expectancy    = atoi(req.get_param_value("life_expectancy").c_str());
     const float    sr                 = atof(req.get_param_value("sr").c_str());
     const float    expenses           = atof(req.get_param_value("expenses").c_str());
@@ -1395,18 +1394,21 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const auto     portfolio_str      = req.get_param_value("portfolio");
     const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
     const float    returns_percentile = atof(req.get_param_value("returns").c_str());
+    const unsigned social_age         = atoi(req.get_param_value("social_age").c_str());
 
-    float income_1 = atof(req.get_param_value("income_1").c_str());
+    // Parse the parameters per person
+    float          income_1     = atof(req.get_param_value("income_1").c_str());
+    const unsigned birth_year_1 = atoi(req.get_param_value("birth_year").c_str()); // TODO Double for each person
 
-    if (birth_year >= start_year) {
+    if (birth_year_1 >= start_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
         return;
     }
 
-    const unsigned age           = start_year - birth_year;
-    const unsigned social_age    = atoi(req.get_param_value("social_age").c_str());
-    const unsigned social_year   = social_age > age ? start_year + (social_age - age) : start_year;
-    const float    social_amount = atof(req.get_param_value("social_amount").c_str());
+    const unsigned age_1 = start_year - birth_year_1;
+
+    const unsigned social_year_1   = social_age > age_1 ? start_year + (social_age - age_1) : start_year;
+    const float    social_amount_1 = atof(req.get_param_value("social_amount").c_str()); // TODO Double for each person
 
     // TODO Validate life life_expectancy and age
 
@@ -1439,20 +1441,20 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
         const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
         const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
-        const unsigned second_pillar_1_year   = second_pillar_1_age > age ? start_year + (second_pillar_1_age - age) : start_year;
+        const unsigned second_pillar_1_year   = second_pillar_1_age > age_1 ? start_year + (second_pillar_1_age - age_1) : start_year;
 
         float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
         const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
         const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
-        const unsigned second_pillar_2_year   = second_pillar_2_age > age ? start_year + (second_pillar_2_age - age) : start_year;
+        const unsigned second_pillar_2_year   = second_pillar_2_age > age_1 ? start_year + (second_pillar_2_age - age_1) : start_year;
 
         float          third_pillar_1_1_amount = atof(req.get_param_value("third_pillar_1_1_amount").c_str());
         const unsigned third_pillar_1_1_age    = atoi(req.get_param_value("third_pillar_1_1_age").c_str());
-        const unsigned third_pillar_1_1_year   = third_pillar_1_1_age > age ? start_year + (third_pillar_1_1_age - age) : start_year;
+        const unsigned third_pillar_1_1_year   = third_pillar_1_1_age > age_1 ? start_year + (third_pillar_1_1_age - age_1) : start_year;
 
         float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
         const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
-        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age ? start_year + (third_pillar_2_1_age - age) : start_year;
+        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_1 ? start_year + (third_pillar_2_1_age - age_1) : start_year;
 
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
@@ -1486,7 +1488,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                         // Monthly contribution based on income
 
-                        const size_t current_age = age + year - start_year;
+                        const size_t current_age = age_1 + year - start_year;
 
                         if (current_age < 34) {
                             amount += (income / 24.0f) * 0.07f;
@@ -1527,7 +1529,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
-        for (size_t year = start_year; year < start_year + (life_expectancy - age); ++year) {
+        for (size_t year = start_year; year < start_year + (life_expectancy - age_1); ++year) {
             liquidity.emplace_back(liquid);
             net_worth.emplace_back(current_nw);
 
@@ -1554,8 +1556,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                     // There are two cases based on social security
 
                     auto withdrawal = current_withdrawal_amount / 12.0f;
-                    if (year >= social_year) {
-                        withdrawal -= social_amount;
+                    if (year >= social_year_1) {
+                        withdrawal -= social_amount_1;
                     }
 
                     withdrawal -= extra_amount;
@@ -1594,7 +1596,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool below_fi = current_value < fi_number;
 
-        for (size_t year = start_year; year < start_year + (life_expectancy - age); ++year) {
+        for (size_t year = start_year; year < start_year + (life_expectancy - age_1); ++year) {
             net_worth.emplace_back(current_value);
 
             if (below_fi && current_value < fi_number) {
@@ -1606,8 +1608,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 // There are two cases based on social security
 
                 auto withdrawal = current_withdrawal_amount;
-                if (year >= social_year) {
-                    withdrawal -= social_amount * 12.0f;
+                if (year >= social_year_1) {
+                    withdrawal -= social_amount_1 * 12.0f;
                 }
 
                 withdrawal -= extra_amount * 12.0f;
@@ -1637,7 +1639,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     const unsigned retirement_year  = start_year + months / 12;
-    const unsigned retirement_age   = retirement_year - birth_year;
+    const unsigned retirement_age   = retirement_year - birth_year_1;
     const unsigned retirement_years = life_expectancy - retirement_age;
 
     // Run the scenario through historical data to assess success rate
@@ -1656,10 +1658,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         scenario.initial_value = std::max(fi_net_worth, fi_number);
 
         // Enable social security if configured (simulation expects yearly, API expects monthly)
-        if (social_amount > 0.0f) {
+        if (social_amount_1 > 0.0f) {
             scenario.social_security = true;
-            scenario.social_delay    = retirement_year < social_year ? social_year - retirement_year : 0;
-            scenario.social_amount   = 12.0f * social_amount;
+            scenario.social_delay    = retirement_year < social_year_1 ? social_year_1 - retirement_year : 0;
+            scenario.social_amount   = 12.0f * social_amount_1;
         }
 
         // Enable income if configured (simulation expects yearly, API expects monthly)
