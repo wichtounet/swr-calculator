@@ -1462,8 +1462,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         bool fi = current_nw >= fi_number;
 
+        float contribution_3a = 7258;
+
         // TODO Improvements:
-        //  * 3a amount should grow over time (120 CHF every two years)
         //  * both persons may have a different age
 
         auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income) {
@@ -1516,8 +1517,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                     // Annual contribution to the 3a at the beginning of the year
                     if (!fi && year != start_year && month == 1) {
                         // TODO Handle multiple 3a
-                        if (income > 7258) {
-                            amount += 7258;
+                        if (income > contribution_3a) {
+                            amount += contribution_3a;
                         }
                     }
 
@@ -1534,14 +1535,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
             for (size_t month = 0; month < 12; ++month) {
                 if (!fi && current_nw < fi_number) {
-                    if (income_1 > 7258) {
-                        liquid += ((income_1 - 7258) * (sr / 100.0f)) / 12.0f;
+                    if (income_1 > contribution_3a) {
+                        liquid += ((income_1 - contribution_3a) * (sr / 100.0f)) / 12.0f;
                     } else {
                         liquid += (income_1 * (sr / 100.0f)) / 12.0f;
                     }
 
-                    if (income_2 > 7258) {
-                        liquid += ((income_2 - 7258) * (sr / 100.0f)) / 12.0f;
+                    if (income_2 > contribution_3a) {
+                        liquid += ((income_2 - contribution_3a) * (sr / 100.0f)) / 12.0f;
                     } else {
                         liquid += (income_2 * (sr / 100.0f)) / 12.0f;
                     }
@@ -1578,6 +1579,10 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             // Grow the income
             income_1 *= 1.0f + income_1_rate / 100.0f;
             income_2 *= 1.0f + income_2_rate / 100.0f;
+
+            if (year > start_year && year % 2 == 1) {
+                contribution_3a += 120;
+            }
         }
     } else {
         // TODO In the future, we can remove block entirely this when separated mode is out of staging
