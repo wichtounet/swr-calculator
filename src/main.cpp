@@ -1337,7 +1337,7 @@ std::string vector_to_json(const std::vector<float>& values) {
 void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) {
     if (!check_parameters(req,
                           res,
-                          {"birth_year",
+                          {"birth_year_1",
                            "life_expectancy",
                            "expenses",
                            "income_1",
@@ -1346,7 +1346,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                            "nw",
                            "portfolio",
                            "social_age",
-                           "social_amount",
+                           "social_amount_1",
                            "extra_amount",
                            "returns"})) {
         return;
@@ -1360,6 +1360,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         if (!check_parameters(req,
                               res,
                               {"income_2",
+                               "birth_year_2",
+                               "social_amount_2",
                                "second_pillar_1_amount",
                                "second_pillar_1_age",
                                "second_pillar_1_rate",
@@ -1398,7 +1400,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     // Parse the parameters per person
     float          income_1     = atof(req.get_param_value("income_1").c_str());
-    const unsigned birth_year_1 = atoi(req.get_param_value("birth_year").c_str()); // TODO Double for each person
+    const unsigned birth_year_1 = atoi(req.get_param_value("birth_year_1").c_str());
 
     if (birth_year_1 >= start_year) {
         res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
@@ -1408,7 +1410,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned age_1 = start_year - birth_year_1;
 
     const unsigned social_year_1   = social_age > age_1 ? start_year + (social_age - age_1) : start_year;
-    const float    social_amount_1 = atof(req.get_param_value("social_amount").c_str()); // TODO Double for each person
+    const float    social_amount_1 = atof(req.get_param_value("social_amount_1").c_str());
 
     // TODO Validate life life_expectancy and age
 
@@ -1434,6 +1436,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
         const float monthly_returns_mut = 1.0f + monthly_returns;
 
+        const unsigned birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
+
+        const unsigned age_2 = start_year - birth_year_2;
+
+        const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
+        const float    social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
+
         const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
         float       income_2      = atof(req.get_param_value("income_2").c_str());
         const float income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
@@ -1446,7 +1455,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
         const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
         const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
-        const unsigned second_pillar_2_year   = second_pillar_2_age > age_1 ? start_year + (second_pillar_2_age - age_1) : start_year;
+        const unsigned second_pillar_2_year   = second_pillar_2_age > age_2 ? start_year + (second_pillar_2_age - age_2) : start_year;
 
         float          third_pillar_1_1_amount = atof(req.get_param_value("third_pillar_1_1_amount").c_str());
         const unsigned third_pillar_1_1_age    = atoi(req.get_param_value("third_pillar_1_1_age").c_str());
@@ -1454,7 +1463,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
         const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
-        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_1 ? start_year + (third_pillar_2_1_age - age_1) : start_year;
+        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_2 ? start_year + (third_pillar_2_1_age - age_2) : start_year;
 
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
@@ -1466,10 +1475,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         float contribution_3a = 7258;
 
-        // TODO Improvements:
-        //  * both persons may have a different age
-
-        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income) {
+        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income, size_t age) {
             if (amount) {
                 if (year >= withdraw_year) {
                     // Transfer second pillar to liquid net worth
@@ -1488,7 +1494,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                         // Monthly contribution based on income
 
-                        const size_t current_age = age_1 + year - start_year;
+                        const size_t current_age = age + year - start_year;
 
                         if (current_age < 34) {
                             amount += (income / 24.0f) * 0.07f;
@@ -1559,6 +1565,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                     if (year >= social_year_1) {
                         withdrawal -= social_amount_1;
                     }
+                    if (year >= social_year_2) {
+                        withdrawal -= social_amount_2;
+                    }
 
                     withdrawal -= extra_amount;
 
@@ -1568,8 +1577,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                 liquid *= monthly_returns_mut;
 
                 illiquid = 0;
-                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1);
-                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2);
+                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1, age_1);
+                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2, age_2);
                 update_third_eom(year, month, fi, third_pillar_1_1_amount, third_pillar_1_1_year, income_1);
                 update_third_eom(year, month, fi, third_pillar_2_1_amount, third_pillar_2_1_year, income_2);
 
