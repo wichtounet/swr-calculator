@@ -1578,6 +1578,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                     // There are two cases based on social security
 
+                    // TODO handle one person dying before the other
                     auto withdrawal = current_withdrawal_amount / 12.0f;
                     if (year >= social_year_1) {
                         withdrawal -= social_amount_1;
