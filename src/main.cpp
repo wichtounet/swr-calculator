@@ -1550,6 +1550,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
+        // TODO End_year should be computed based on oldest person
+
         for (size_t year = start_year; year < start_year + (life_expectancy - age_1); ++year) {
             liquidity.emplace_back(liquid);
             net_worth.emplace_back(current_nw);
@@ -1665,6 +1667,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const unsigned retirement_year  = start_year + months / 12;
     const unsigned retirement_age   = retirement_year - birth_year_1;
     const unsigned retirement_years = life_expectancy - retirement_age;
+
+    // TODO REtirements years should be double for separated mode
 
     // Run the scenario through historical data to assess success rate
 
