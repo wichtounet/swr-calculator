@@ -1550,9 +1550,13 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
             }
         };
 
-        // TODO End_year should be computed based on oldest person
+        size_t end_year = start_year + (life_expectancy - age_1);
 
-        for (size_t year = start_year; year < start_year + (life_expectancy - age_1); ++year) {
+        if (situation == "couple") {
+            end_year = start_year + (life_expectancy - std::min(age_1, age_2));
+        }
+
+        for (size_t year = start_year; year < end_year; ++year) {
             liquidity.emplace_back(liquid);
             net_worth.emplace_back(current_nw);
 
