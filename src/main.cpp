@@ -1447,6 +1447,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         const unsigned age_2 = start_year - birth_year_2;
 
+        const unsigned death_year_1 = start_year + (life_expectancy - age_1);
+        const unsigned death_year_2 = start_year + (life_expectancy - age_2);
+
         const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
         float          social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
 
@@ -1582,12 +1585,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
                     // There are two cases based on social security
 
-                    // TODO handle one person dying before the other
                     auto withdrawal = current_withdrawal_amount / 12.0f;
-                    if (year >= social_year_1) {
+                    if (year >= social_year_1 && year <= death_year_1) {
                         withdrawal -= social_amount_1;
                     }
-                    if (year >= social_year_2) {
+                    if (year >= social_year_2 && year <= death_year_2) {
                         withdrawal -= social_amount_2;
                     }
 
