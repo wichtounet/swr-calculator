@@ -1666,10 +1666,21 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     const unsigned retirement_year  = start_year + months / 12;
-    const unsigned retirement_age   = retirement_year - birth_year_1;
-    const unsigned retirement_years = life_expectancy - retirement_age;
+    const unsigned retirement_age_1 = retirement_year - birth_year_1;
+    unsigned       retirement_years = life_expectancy - retirement_age_1;
 
-    // TODO REtirements years should be double for separated mode
+    unsigned retirement_age_2 = 0;
+
+    if (separated) {
+        const std::string situation    = req.get_param_value("situation");
+        const unsigned    birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
+
+        if (situation == "couple") {
+            retirement_age_2 = retirement_year - birth_year_2;
+
+            retirement_years = std::max(life_expectancy - retirement_age_1, life_expectancy - retirement_age_2);
+        }
+    }
 
     // Run the scenario through historical data to assess success rate
 
@@ -1739,7 +1750,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
        << "  \"retirement_year\": " << retirement_year << ",\n"
-       << "  \"retirement_age\": " << retirement_age << ",\n"
+       << "  \"retirement_age\": " << retirement_age_1 << ",\n" // TODO Remove later
+       << "  \"retirement_age_1\": " << retirement_age_1 << ",\n"
+       << "  \"retirement_age_2\": " << retirement_age_2 << ",\n"
        << "  \"retirement_years\": " << retirement_years << ",\n"
        << "  \"success_rate\": " << success_rate << ",\n"
        << "  \"returns\": " << returns << ",\n"
