@@ -1359,7 +1359,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
         if (!check_parameters(req,
                               res,
-                              {"income_2",
+                              {"situation",
+                               "income_2",
                                "birth_year_2",
                                "social_amount_2",
                                "second_pillar_1_amount",
@@ -1372,6 +1373,11 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
                                "third_pillar_1_1_age",
                                "third_pillar_2_1_amount",
                                "third_pillar_2_1_age"})) {
+            return;
+        }
+
+        if (req.get_param_value("situation") != "single" && req.get_param_value("situation") != "couple") {
+            res.set_content("{\"results\":{\"message\": \"There is something wrong with the situation parameter\",\"error\": true,}}", "text/json");
             return;
         }
     }
@@ -1418,10 +1424,12 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
 
-    auto cagr_returns = to_cagr_returns(portfolio, 20);
-
-    const float factor  = 75.0f;
-    const float returns = factor * percentile(cagr_returns, returns_percentile);
+    // Compute yearly and monthly returns based on CAGR returns
+    auto        cagr_returns        = to_cagr_returns(portfolio, 20);
+    const float factor              = 75.0f;
+    const float returns             = factor * percentile(cagr_returns, returns_percentile);
+    const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
+    const float monthly_returns_mut = 1.0f + monthly_returns;
 
     const float fi_number = expenses * (100.0f / wr);
     const bool  fi        = fi_number < fi_net_worth;
@@ -1433,15 +1441,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     std::vector<float> net_worth;
 
     if (separated) {
-        const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
-        const float monthly_returns_mut = 1.0f + monthly_returns;
+        const std::string situation = req.get_param_value("situation");
 
         const unsigned birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
 
         const unsigned age_2 = start_year - birth_year_2;
 
         const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
-        const float    social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
+        float          social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
 
         const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
         float       income_2      = atof(req.get_param_value("income_2").c_str());
@@ -1464,6 +1471,14 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
         const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
         const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_2 ? start_year + (third_pillar_2_1_age - age_2) : start_year;
+
+        // When single, we need to zero out some values
+        if (situation == "single") {
+            income_2                = 0;
+            social_amount_2         = 0;
+            second_pillar_2_amount  = 0;
+            third_pillar_2_1_amount = 0;
+        }
 
         float liquid   = fi_net_worth;
         float illiquid = second_pillar_1_amount + second_pillar_2_amount;
