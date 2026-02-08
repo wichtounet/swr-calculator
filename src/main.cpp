@@ -1352,34 +1352,28 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         return;
     }
 
-    bool separated = false;
+    if (!check_parameters(req,
+                          res,
+                          {"situation",
+                           "income_2",
+                           "birth_year_2",
+                           "social_amount_2",
+                           "second_pillar_1_amount",
+                           "second_pillar_1_age",
+                           "second_pillar_1_rate",
+                           "second_pillar_2_amount",
+                           "second_pillar_2_age",
+                           "second_pillar_2_rate",
+                           "third_pillar_1_1_amount",
+                           "third_pillar_1_1_age",
+                           "third_pillar_2_1_amount",
+                           "third_pillar_2_1_age"})) {
+        return;
+    }
 
-    if (req.has_param("second_pillar_1_amount")) {
-        separated = true;
-
-        if (!check_parameters(req,
-                              res,
-                              {"situation",
-                               "income_2",
-                               "birth_year_2",
-                               "social_amount_2",
-                               "second_pillar_1_amount",
-                               "second_pillar_1_age",
-                               "second_pillar_1_rate",
-                               "second_pillar_2_amount",
-                               "second_pillar_2_age",
-                               "second_pillar_2_rate",
-                               "third_pillar_1_1_amount",
-                               "third_pillar_1_1_age",
-                               "third_pillar_2_1_amount",
-                               "third_pillar_2_1_age"})) {
-            return;
-        }
-
-        if (req.get_param_value("situation") != "single" && req.get_param_value("situation") != "couple") {
-            res.set_content("{\"results\":{\"message\": \"There is something wrong with the situation parameter\",\"error\": true,}}", "text/json");
-            return;
-        }
+    if (req.get_param_value("situation") != "single" && req.get_param_value("situation") != "couple") {
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with the situation parameter\",\"error\": true,}}", "text/json");
+        return;
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -1432,7 +1426,6 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const float monthly_returns_mut = 1.0f + monthly_returns;
 
     const float fi_number = expenses * (100.0f / wr);
-    const bool  fi        = fi_number < fi_net_worth;
 
     // Estimate of the number of months until retirement
     size_t months = 0;
@@ -1440,234 +1433,182 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     std::vector<float> liquidity;
     std::vector<float> net_worth;
 
-    if (separated) {
-        const std::string situation = req.get_param_value("situation");
+    const std::string situation = req.get_param_value("situation");
 
-        const unsigned birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
+    const unsigned birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
 
-        const unsigned age_2 = start_year - birth_year_2;
+    const unsigned age_2 = start_year - birth_year_2;
 
-        const unsigned death_year_1 = start_year + (life_expectancy - age_1);
-        const unsigned death_year_2 = start_year + (life_expectancy - age_2);
+    const unsigned death_year_1 = start_year + (life_expectancy - age_1);
+    const unsigned death_year_2 = start_year + (life_expectancy - age_2);
 
-        const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
-        float          social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
+    const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
+    float          social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
 
-        const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
-        float       income_2      = atof(req.get_param_value("income_2").c_str());
-        const float income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
+    const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
+    float       income_2      = atof(req.get_param_value("income_2").c_str());
+    const float income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
 
-        float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
-        const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
-        const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
-        const unsigned second_pillar_1_year   = second_pillar_1_age > age_1 ? start_year + (second_pillar_1_age - age_1) : start_year;
+    float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
+    const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
+    const float    second_pillar_1_rate   = atof(req.get_param_value("second_pillar_1_rate").c_str());
+    const unsigned second_pillar_1_year   = second_pillar_1_age > age_1 ? start_year + (second_pillar_1_age - age_1) : start_year;
 
-        float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
-        const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
-        const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
-        const unsigned second_pillar_2_year   = second_pillar_2_age > age_2 ? start_year + (second_pillar_2_age - age_2) : start_year;
+    float          second_pillar_2_amount = atof(req.get_param_value("second_pillar_2_amount").c_str());
+    const unsigned second_pillar_2_age    = atoi(req.get_param_value("second_pillar_2_age").c_str());
+    const float    second_pillar_2_rate   = atof(req.get_param_value("second_pillar_2_rate").c_str());
+    const unsigned second_pillar_2_year   = second_pillar_2_age > age_2 ? start_year + (second_pillar_2_age - age_2) : start_year;
 
-        float          third_pillar_1_1_amount = atof(req.get_param_value("third_pillar_1_1_amount").c_str());
-        const unsigned third_pillar_1_1_age    = atoi(req.get_param_value("third_pillar_1_1_age").c_str());
-        const unsigned third_pillar_1_1_year   = third_pillar_1_1_age > age_1 ? start_year + (third_pillar_1_1_age - age_1) : start_year;
+    float          third_pillar_1_1_amount = atof(req.get_param_value("third_pillar_1_1_amount").c_str());
+    const unsigned third_pillar_1_1_age    = atoi(req.get_param_value("third_pillar_1_1_age").c_str());
+    const unsigned third_pillar_1_1_year   = third_pillar_1_1_age > age_1 ? start_year + (third_pillar_1_1_age - age_1) : start_year;
 
-        float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
-        const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
-        const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_2 ? start_year + (third_pillar_2_1_age - age_2) : start_year;
+    float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
+    const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
+    const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_2 ? start_year + (third_pillar_2_1_age - age_2) : start_year;
 
-        // When single, we need to zero out some values
-        if (situation == "single") {
-            income_2                = 0;
-            social_amount_2         = 0;
-            second_pillar_2_amount  = 0;
-            third_pillar_2_1_amount = 0;
-        }
+    // When single, we need to zero out some values
+    if (situation == "single") {
+        income_2                = 0;
+        social_amount_2         = 0;
+        second_pillar_2_amount  = 0;
+        third_pillar_2_1_amount = 0;
+    }
 
-        float liquid   = fi_net_worth;
-        float illiquid = second_pillar_1_amount + second_pillar_2_amount;
+    float liquid   = fi_net_worth;
+    float illiquid = second_pillar_1_amount + second_pillar_2_amount;
 
-        float current_nw                = illiquid + liquid;
-        float current_withdrawal_amount = expenses;
+    float current_nw                = illiquid + liquid;
+    float current_withdrawal_amount = expenses;
 
-        bool fi = current_nw >= fi_number;
+    bool fi = current_nw >= fi_number;
 
-        float contribution_3a = 7258;
+    float contribution_3a = 7258;
 
-        auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income, size_t age) {
-            if (amount) {
-                if (year >= withdraw_year) {
-                    // Transfer second pillar to liquid net worth
-                    liquid += amount;
-                    amount = 0;
-                } else {
-                    if (fi) {
-                        // Once we reach FI, the second pillar is transferred to a vested benefits account
-                        // So it grows normally but is still illiquid
-                        amount *= monthly_returns_mut;
-                    } else {
-                        // Traditionally, second pillars only get interest once a year
-                        if (year != start_year && month == 1) {
-                            amount *= (100.0f + rate) / 100.0f;
-                        }
-
-                        // Monthly contribution based on income
-
-                        const size_t current_age = age + year - start_year;
-
-                        if (current_age < 34) {
-                            amount += (income / 24.0f) * 0.07f;
-                        } else if (current_age < 44) {
-                            amount += (income / 24.0f) * 0.10f;
-                        } else if (current_age < 54) {
-                            amount += (income / 24.0f) * 0.15f;
-                        } else {
-                            amount += (income / 24.0f) * 0.18f;
-                        }
-                    }
-
-                    illiquid += amount;
-                }
-            }
-        };
-
-        auto update_third_eom = [&](size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year, unsigned income) {
-            if (amount) {
-                if (year >= withdraw_year) {
-                    // Transfer third pillar to liquid net worth
-                    liquid += amount;
-                    amount = 0;
-                } else {
-                    // We assume that the 3a is invested the same as the portfolio
-                    amount *= monthly_returns_mut;
-
-                    // Annual contribution to the 3a at the beginning of the year
-                    if (!fi && year != start_year && month == 1) {
-                        // TODO Handle multiple 3a
-                        if (income > contribution_3a) {
-                            amount += contribution_3a;
-                        }
-                    }
-
-                    illiquid += amount;
-                }
-            }
-        };
-
-        size_t end_year = start_year + (life_expectancy - age_1);
-
-        if (situation == "couple") {
-            end_year = start_year + (life_expectancy - std::min(age_1, age_2));
-        }
-
-        for (size_t year = start_year; year < end_year; ++year) {
-            liquidity.emplace_back(liquid);
-            net_worth.emplace_back(current_nw);
-
-            // Compute the liquid net worth
-
-            for (size_t month = 0; month < 12; ++month) {
-                if (!fi && current_nw < fi_number) {
-                    if (income_1 > contribution_3a) {
-                        liquid += ((income_1 - contribution_3a) * (sr / 100.0f)) / 12.0f;
-                    } else {
-                        liquid += (income_1 * (sr / 100.0f)) / 12.0f;
-                    }
-
-                    if (income_2 > contribution_3a) {
-                        liquid += ((income_2 - contribution_3a) * (sr / 100.0f)) / 12.0f;
-                    } else {
-                        liquid += (income_2 * (sr / 100.0f)) / 12.0f;
-                    }
-
-                    ++months; // One more month to reach FI
-                } else {
-                    fi = true;
-
-                    // There are two cases based on social security
-
-                    auto withdrawal = current_withdrawal_amount / 12.0f;
-                    if (year >= social_year_1 && year <= death_year_1) {
-                        withdrawal -= social_amount_1;
-                    }
-                    if (year >= social_year_2 && year <= death_year_2) {
-                        withdrawal -= social_amount_2;
-                    }
-
-                    withdrawal -= extra_amount;
-
-                    liquid -= withdrawal;
-                }
-
-                liquid *= monthly_returns_mut;
-
-                illiquid = 0;
-                update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1, age_1);
-                update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2, age_2);
-                update_third_eom(year, month, fi, third_pillar_1_1_amount, third_pillar_1_1_year, income_1);
-                update_third_eom(year, month, fi, third_pillar_2_1_amount, third_pillar_2_1_year, income_2);
-
-                current_nw = liquid + illiquid;
-            }
-
-            current_withdrawal_amount *= 1.01; // Adjust for inflation
-
-            // Grow the income
-            income_1 *= 1.0f + income_1_rate / 100.0f;
-            income_2 *= 1.0f + income_2_rate / 100.0f;
-
-            if (year > start_year && year % 2 == 1) {
-                contribution_3a += 120;
-            }
-        }
-    } else {
-        // TODO In the future, we can remove block entirely this when separated mode is out of staging
-
-        const float yearly_returns_mut = 1.0f + returns / 100.0f;
-
-        float current_value             = fi_net_worth;
-        float current_withdrawal_amount = expenses;
-
-        bool below_fi = current_value < fi_number;
-
-        for (size_t year = start_year; year < start_year + (life_expectancy - age_1); ++year) {
-            net_worth.emplace_back(current_value);
-
-            if (below_fi && current_value < fi_number) {
-                current_value += income_1 * (sr / 100.0f);
-                current_value *= yearly_returns_mut;
+    auto update_second_eom = [&](size_t year, size_t month, bool fi, float& amount, float rate, unsigned withdraw_year, unsigned income, size_t age) {
+        if (amount) {
+            if (year >= withdraw_year) {
+                // Transfer second pillar to liquid net worth
+                liquid += amount;
+                amount = 0;
             } else {
-                below_fi = false;
+                if (fi) {
+                    // Once we reach FI, the second pillar is transferred to a vested benefits account
+                    // So it grows normally but is still illiquid
+                    amount *= monthly_returns_mut;
+                } else {
+                    // Traditionally, second pillars only get interest once a year
+                    if (year != start_year && month == 1) {
+                        amount *= (100.0f + rate) / 100.0f;
+                    }
+
+                    // Monthly contribution based on income
+
+                    const size_t current_age = age + year - start_year;
+
+                    if (current_age < 34) {
+                        amount += (income / 24.0f) * 0.07f;
+                    } else if (current_age < 44) {
+                        amount += (income / 24.0f) * 0.10f;
+                    } else if (current_age < 54) {
+                        amount += (income / 24.0f) * 0.15f;
+                    } else {
+                        amount += (income / 24.0f) * 0.18f;
+                    }
+                }
+
+                illiquid += amount;
+            }
+        }
+    };
+
+    auto update_third_eom = [&](size_t year, size_t month, bool fi, float& amount, unsigned withdraw_year, unsigned income) {
+        if (amount) {
+            if (year >= withdraw_year) {
+                // Transfer third pillar to liquid net worth
+                liquid += amount;
+                amount = 0;
+            } else {
+                // We assume that the 3a is invested the same as the portfolio
+                amount *= monthly_returns_mut;
+
+                // Annual contribution to the 3a at the beginning of the year
+                if (!fi && year != start_year && month == 1) {
+                    // TODO Handle multiple 3a
+                    if (income > contribution_3a) {
+                        amount += contribution_3a;
+                    }
+                }
+
+                illiquid += amount;
+            }
+        }
+    };
+
+    size_t end_year = start_year + (life_expectancy - age_1);
+
+    if (situation == "couple") {
+        end_year = start_year + (life_expectancy - std::min(age_1, age_2));
+    }
+
+    for (size_t year = start_year; year < end_year; ++year) {
+        liquidity.emplace_back(liquid);
+        net_worth.emplace_back(current_nw);
+
+        // Compute the liquid net worth
+
+        for (size_t month = 0; month < 12; ++month) {
+            if (!fi && current_nw < fi_number) {
+                if (income_1 > contribution_3a) {
+                    liquid += ((income_1 - contribution_3a) * (sr / 100.0f)) / 12.0f;
+                } else {
+                    liquid += (income_1 * (sr / 100.0f)) / 12.0f;
+                }
+
+                if (income_2 > contribution_3a) {
+                    liquid += ((income_2 - contribution_3a) * (sr / 100.0f)) / 12.0f;
+                } else {
+                    liquid += (income_2 * (sr / 100.0f)) / 12.0f;
+                }
+
+                ++months; // One more month to reach FI
+            } else {
+                fi = true;
 
                 // There are two cases based on social security
 
-                auto withdrawal = current_withdrawal_amount;
-                if (year >= social_year_1) {
-                    withdrawal -= social_amount_1 * 12.0f;
+                auto withdrawal = current_withdrawal_amount / 12.0f;
+                if (year >= social_year_1 && year <= death_year_1) {
+                    withdrawal -= social_amount_1;
+                }
+                if (year >= social_year_2 && year <= death_year_2) {
+                    withdrawal -= social_amount_2;
                 }
 
-                withdrawal -= extra_amount * 12.0f;
+                withdrawal -= extra_amount;
 
-                current_value -= withdrawal;
-
-                current_value *= yearly_returns_mut;
-                current_withdrawal_amount *= 1.01;
+                liquid -= withdrawal;
             }
+
+            liquid *= monthly_returns_mut;
+
+            illiquid = 0;
+            update_second_eom(year, month, fi, second_pillar_1_amount, second_pillar_1_rate, second_pillar_1_year, income_1, age_1);
+            update_second_eom(year, month, fi, second_pillar_2_amount, second_pillar_2_rate, second_pillar_2_year, income_2, age_2);
+            update_third_eom(year, month, fi, third_pillar_1_1_amount, third_pillar_1_1_year, income_1);
+            update_third_eom(year, month, fi, third_pillar_2_1_amount, third_pillar_2_1_year, income_2);
+
+            current_nw = liquid + illiquid;
         }
 
-        liquidity = net_worth;
+        current_withdrawal_amount *= 1.01; // Adjust for inflation
 
-        // This is a bad estimation of retirement
-        if (fi_net_worth < fi_number) {
-            if (!income_1) {
-                months = 12 * 1000;
-            } else {
-                auto acc = fi_net_worth;
-                while (acc < fi_number && months < 1200) {
-                    acc *= 1.0f + (returns / 100.0f) / 12.0f;
-                    acc += (income_1 * sr / 100.0f) / 12.0f;
-                    ++months;
-                }
-            }
+        // Grow the income
+        income_1 *= 1.0f + income_1_rate / 100.0f;
+        income_2 *= 1.0f + income_2_rate / 100.0f;
+
+        if (year > start_year && year % 2 == 1) {
+            contribution_3a += 120;
         }
     }
 
@@ -1677,15 +1618,9 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     unsigned retirement_age_2 = 0;
 
-    if (separated) {
-        const std::string situation    = req.get_param_value("situation");
-        const unsigned    birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
-
-        if (situation == "couple") {
-            retirement_age_2 = retirement_year - birth_year_2;
-
-            retirement_years = std::max(life_expectancy - retirement_age_1, life_expectancy - retirement_age_2);
-        }
+    if (situation == "couple") {
+        retirement_age_2 = retirement_year - birth_year_2;
+        retirement_years = std::max(life_expectancy - retirement_age_1, life_expectancy - retirement_age_2);
     }
 
     // Run the scenario through historical data to assess success rate
@@ -1750,7 +1685,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     ss << "{ \"results\": {\n"
        << "  \"message\": \"" << message << "\",\n"
        << "  \"error\": " << (error ? "true" : "false") << ",\n"
-       << "  \"separated\": " << (separated ? "true" : "false") << ",\n"
+       << "  \"separated\": true,\n"
        << "  \"fi\": " << (fi ? "true" : "false") << ",\n"
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
