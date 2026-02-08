@@ -1376,6 +1376,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         return;
     }
 
+    std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
+
     auto start = std::chrono::high_resolution_clock::now();
 
     const std::chrono::time_point     now{std::chrono::system_clock::now()};
@@ -1397,57 +1399,49 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     const auto     portfolio          = swr::parse_portfolio(portfolio_str, false);
     const float    returns_percentile = atof(req.get_param_value("returns").c_str());
     const unsigned social_age         = atoi(req.get_param_value("social_age").c_str());
+    const float    extra_amount       = atof(req.get_param_value("extra_amount").c_str());
 
     // Parse the parameters per person
-    float          income_1     = atof(req.get_param_value("income_1").c_str());
-    const unsigned birth_year_1 = atoi(req.get_param_value("birth_year_1").c_str());
+    float          income_1      = atof(req.get_param_value("income_1").c_str());
+    float          income_2      = atof(req.get_param_value("income_2").c_str());
+    const unsigned birth_year_1  = atoi(req.get_param_value("birth_year_1").c_str());
+    const unsigned birth_year_2  = atoi(req.get_param_value("birth_year_2").c_str());
+    const float    income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
+    const float    income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
+
+    const float social_amount_1 = atof(req.get_param_value("social_amount_1").c_str());
+    float       social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
+
+    const std::string situation = req.get_param_value("situation");
 
     if (birth_year_1 >= start_year) {
-        res.set_content("{\"results\":{\"message\": \"There is something wrong with the birth year\",\"error\": true,}}", "text/json");
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with a birth year (too low)\",\"error\": true,}}", "text/json");
+        return;
+    }
+
+    if (situation == "couple" && birth_year_2 >= start_year) {
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with a birth year (too low)\",\"error\": true,}}", "text/json");
         return;
     }
 
     const unsigned age_1 = start_year - birth_year_1;
-
-    const unsigned social_year_1   = social_age > age_1 ? start_year + (social_age - age_1) : start_year;
-    const float    social_amount_1 = atof(req.get_param_value("social_amount_1").c_str());
-
-    // TODO Validate life life_expectancy and age
-
-    const float extra_amount = atof(req.get_param_value("extra_amount").c_str());
-
-    std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
-
-    // Compute yearly and monthly returns based on CAGR returns
-    auto        cagr_returns        = to_cagr_returns(portfolio, 20);
-    const float factor              = 75.0f;
-    const float returns             = factor * percentile(cagr_returns, returns_percentile);
-    const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
-    const float monthly_returns_mut = 1.0f + monthly_returns;
-
-    const float fi_number = expenses * (100.0f / wr);
-
-    // Estimate of the number of months until retirement
-    size_t months = 0;
-
-    std::vector<float> liquidity;
-    std::vector<float> net_worth;
-
-    const std::string situation = req.get_param_value("situation");
-
-    const unsigned birth_year_2 = atoi(req.get_param_value("birth_year_2").c_str());
-
     const unsigned age_2 = start_year - birth_year_2;
 
     const unsigned death_year_1 = start_year + (life_expectancy - age_1);
     const unsigned death_year_2 = start_year + (life_expectancy - age_2);
 
-    const unsigned social_year_2   = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
-    float          social_amount_2 = atof(req.get_param_value("social_amount_2").c_str());
+    const unsigned social_year_1 = social_age > age_1 ? start_year + (social_age - age_1) : start_year;
+    const unsigned social_year_2 = social_age > age_2 ? start_year + (social_age - age_2) : start_year;
 
-    const float income_1_rate = atof(req.get_param_value("income_1_rate").c_str());
-    float       income_2      = atof(req.get_param_value("income_2").c_str());
-    const float income_2_rate = atof(req.get_param_value("income_2_rate").c_str());
+    if (age_1 >= life_expectancy) {
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with a birth year (age too high)\",\"error\": true,}}", "text/json");
+        return;
+    }
+
+    if (situation == "couple" && age_2 >= life_expectancy) {
+        res.set_content("{\"results\":{\"message\": \"There is something wrong with a birth year (age too high)\",\"error\": true,}}", "text/json");
+        return;
+    }
 
     float          second_pillar_1_amount = atof(req.get_param_value("second_pillar_1_amount").c_str());
     const unsigned second_pillar_1_age    = atoi(req.get_param_value("second_pillar_1_age").c_str());
@@ -1466,6 +1460,21 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     float          third_pillar_2_1_amount = atof(req.get_param_value("third_pillar_2_1_amount").c_str());
     const unsigned third_pillar_2_1_age    = atoi(req.get_param_value("third_pillar_2_1_age").c_str());
     const unsigned third_pillar_2_1_year   = third_pillar_2_1_age > age_2 ? start_year + (third_pillar_2_1_age - age_2) : start_year;
+
+    // Compute yearly and monthly returns based on CAGR returns
+    auto        cagr_returns        = to_cagr_returns(portfolio, 20);
+    const float factor              = 75.0f;
+    const float returns             = factor * percentile(cagr_returns, returns_percentile);
+    const float monthly_returns     = std::powf(1.0f + returns / 100.0f, 1.0f / 12.0f) - 1.0f; // Geometric computation of the monthly returns
+    const float monthly_returns_mut = 1.0f + monthly_returns;
+
+    const float fi_number = expenses * (100.0f / wr);
+
+    // Estimate of the number of months until retirement
+    size_t months = 0;
+
+    std::vector<float> liquidity;
+    std::vector<float> net_worth;
 
     // When single, we need to zero out some values
     if (situation == "single") {
