@@ -241,6 +241,28 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
             if (withdrawal_amount < minimum_withdrawal) {
                 withdrawal_amount = minimum_withdrawal;
             }
+        } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
+            const auto year            = context.months / 12;
+            const auto remaining_years = scenario.years - year;
+            const auto base_withdrawal = total_value / remaining_years;
+
+            float health_factor = 1.0f;
+            if (year <= scenario.years * 0.40f) {
+                health_factor = 1.5f;
+            } else if (year < scenario.years * 0.80f) {
+                const auto progress = (year - (scenario.years * 0.40f)) / (scenario.years * 0.40);
+                health_factor       = 1.0f - (progress * 0.4f);
+            }
+
+            auto adjusted = base_withdrawal * health_factor;
+
+            if (adjusted < scenario.dwz_floor) {
+                adjusted = scenario.dwz_floor;
+            } else if (adjusted > scenario.dwz_ceiling) {
+                adjusted = scenario.dwz_ceiling;
+            }
+
+            withdrawal_amount = adjusted / (12.0f / periods);
         } else if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD) {
             // Compute the withdrawal for the year
 
@@ -467,6 +489,12 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
     if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD && scenario.withdraw_frequency != 1) {
         res.message = "Vanguard dynamic spending is only implemented with monthly withdrawals";
+        res.error   = true;
+        return res;
+    }
+
+    if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO && scenario.withdraw_frequency != 1) {
+        res.message = "Die with zero is only implemented with monthly withdrawals";
         res.error   = true;
         return res;
     }
@@ -849,6 +877,8 @@ std::ostream& swr::operator<<(std::ostream& out, const WithdrawalMethod& wmethod
         return out << "current";
     case WithdrawalMethod::VANGUARD:
         return out << "vanguard";
+    case WithdrawalMethod::DIE_WITH_ZERO:
+        return out << "die_with_zero";
     }
 
     return out << "Unknown withdrawal method";

@@ -18,9 +18,10 @@ namespace swr {
 enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
 enum class WithdrawalMethod : uint64_t {
-    STANDARD, // Withdraw based on the initial portfolio
-    CURRENT,  // Withdraw based on the current portfolio
-    VANGUARD  // Vanguard Dynamic Spending strategy
+    STANDARD,     // Withdraw based on the initial portfolio
+    CURRENT,      // Withdraw based on the current portfolio
+    VANGUARD,     // Vanguard Dynamic Spending strategy
+    DIE_WITH_ZERO // Methodology from the book
 };
 
 enum class WithdrawalSelection : uint64_t {
@@ -118,6 +119,10 @@ struct scenario {
     bool  extra_income          = false;
     float extra_income_amount   = 0.0f;
     float extra_income_coverage = 0.0f;
+
+    // Configuration for die with zero
+    float dwz_floor   = 0.0f;
+    float dwz_ceiling = 0.0f;
 
     // Configuration for flexibility
     Flexibility flexibility             = Flexibility::NONE;
