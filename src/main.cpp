@@ -3301,8 +3301,8 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
     uint32_t multiplier = atoi(args[7].c_str());
 
     float portfolio_add = 25;
-    float start_wr      = 3.0f;
-    float end_wr        = 6.0f;
+    float start_wr      = 2.0f;
+    float end_wr        = 5.0f;
     float add_wr        = 0.1f;
 
     scenario.wmethod = swr::WithdrawalMethod::DIE_WITH_ZERO;
