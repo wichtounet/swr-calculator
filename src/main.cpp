@@ -3319,7 +3319,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
     auto multiple_floor = [&](swr::scenario scenario) {
         g.add_legend(portfolio_to_string(scenario, true));
 
-        cpp::default_thread_pool pool(1) ; //2 * std::thread::hardware_concurrency());
+        cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
         std::map<float, float>   results;
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
