@@ -242,7 +242,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
                 withdrawal_amount = minimum_withdrawal;
             }
         } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
-            const auto year            = context.months / 12;
+            const auto year            = 1 + context.months / 12;
             const auto remaining_years = scenario.years - year;
             const auto base_withdrawal = total_value / remaining_years;
 
@@ -256,10 +256,10 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 
             auto adjusted = base_withdrawal * health_factor;
 
-            if (adjusted < scenario.dwz_floor) {
-                adjusted = scenario.dwz_floor;
-            } else if (adjusted > scenario.dwz_ceiling) {
-                adjusted = scenario.dwz_ceiling;
+            if (adjusted < context.dwz_floor) {
+                adjusted = context.dwz_floor;
+            } else if (adjusted > context.dwz_ceiling) {
+                adjusted = context.dwz_ceiling;
             }
 
             withdrawal_amount = adjusted / (12.0f / periods);
@@ -652,6 +652,10 @@ swr::results swr_simulation(swr::scenario& scenario) {
             // Used for the target threshold
             context.target_value_ = scenario.initial_value;
 
+            // Use for Die With Zero
+            context.dwz_floor = scenario.dwz_floor;
+            context.dwz_ceiling = scenario.dwz_ceiling;
+
             const size_t end_year  = current_year + (current_month - 1 + context.total_months - 1) / 12;
             const size_t end_month = 1 + ((current_month - 1) + (context.total_months - 1) % 12) % 12;
 
@@ -715,6 +719,8 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
                     // Adjust the withdrawals for inflation
                     context.withdrawal *= inflation->value;
+                    context.dwz_ceiling *= inflation->value;
+                    context.dwz_floor *= inflation->value;
                     context.minimum *= inflation->value;
                     context.target_value_ *= inflation->value;
                     ++inflation;

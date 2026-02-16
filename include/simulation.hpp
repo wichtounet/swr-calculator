@@ -57,6 +57,9 @@ struct context {
     float  withdrawal     = 0.0f;
     size_t withdraw_index = 0;
 
+    float dwz_floor   = 0.0f;
+    float dwz_ceiling = 0.0f;
+
     size_t months       = 0;
     size_t total_months = 0;
 
