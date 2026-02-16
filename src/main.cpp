@@ -3320,13 +3320,20 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
     g2.title_ = std::format("Worst Duration - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
     g2.set_extra("\"legend_position\": \"bottom_left\",");
 
-    auto multiple_floor = [&](swr::scenario scenario) {
+    Graph g3(true, std::format("Spending - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year), "bar-graph");
+
+    auto multiple_floor = [&](swr::scenario scenario, bool spending) {
         g1.add_legend(portfolio_to_string(scenario, true));
         g2.add_legend(portfolio_to_string(scenario, true));
 
         cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
         std::map<float, float>   results_g1;
         std::map<float, float>   results_g2;
+
+        std::map<float, float> max_spending;
+        std::map<float, float> min_spending;
+        std::map<float, float> avg_spending;
+        std::map<float, float> med_spending;
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
             results_g1[wr] = 0.0f;
@@ -3337,7 +3344,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
             pool.do_task(
-                    [&results_g1, &results_g2, &scenario, &error, &multiplier](float wr) {
+                    [&](float wr) {
                         auto my_scenario        = scenario;
                         my_scenario.dwz_floor   = (wr / 100.0f) * scenario.initial_value;
                         my_scenario.dwz_ceiling = ((multiplier * wr) / 100.0f) * scenario.initial_value;
@@ -3353,6 +3360,11 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
                             } else {
                                 results_g2[wr] = my_scenario.years * 12;
                             }
+
+                            max_spending[wr] = res.spending_maximum;
+                            min_spending[wr] = res.spending_minimum;
+                            avg_spending[wr] = res.spending_average;
+                            med_spending[wr] = res.spending_median;
                         }
                     },
                     wr);
@@ -3363,6 +3375,20 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
         if (!error) {
             g1.add_data(results_g1);
             g2.add_data(results_g2);
+
+            if (spending) {
+                g3.add_legend("MAX");
+                g3.add_data(max_spending);
+
+                g3.add_legend("MIN");
+                g3.add_data(min_spending);
+
+                g3.add_legend("AVG");
+                g3.add_data(avg_spending);
+
+                g3.add_legend("MED");
+                g3.add_data(med_spending);
+            }
         }
     };
 
@@ -3376,11 +3402,11 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
             scenario.portfolio[0].allocation = float(i);
             scenario.portfolio[1].allocation = float(100 - i);
 
-            multiple_floor(scenario);
+            multiple_floor(scenario, i == 100);
         }
     } else {
         swr::normalize_portfolio(scenario.portfolio);
-        multiple_floor(scenario);
+        multiple_floor(scenario, true);
     }
 
     return 0;
