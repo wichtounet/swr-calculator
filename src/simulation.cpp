@@ -244,7 +244,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
         } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
             const auto year            = context.months / 12;
             const auto remaining_years = scenario.years - year;
-            const auto base_withdrawal = total_value / remaining_years;
+            const auto base_withdrawal = remaining_years ? total_value / remaining_years : total_value;
 
             float health_factor = 1.0f;
             if (year <= scenario.years * 0.40f) {
@@ -653,7 +653,7 @@ swr::results swr_simulation(swr::scenario& scenario) {
             context.target_value_ = scenario.initial_value;
 
             // Use for Die With Zero
-            context.dwz_floor = scenario.dwz_floor;
+            context.dwz_floor   = scenario.dwz_floor;
             context.dwz_ceiling = scenario.dwz_ceiling;
 
             const size_t end_year  = current_year + (current_month - 1 + context.total_months - 1) / 12;

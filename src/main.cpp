@@ -3312,25 +3312,32 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
     prepare_exchange_rates(scenario, "usd");
 
-    Graph g(true);
-    g.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-    g.set_extra("\"legend_position\": \"bottom_left\",");
+    Graph g1(true);
+    g1.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g1.set_extra("\"legend_position\": \"bottom_left\",");
+
+    Graph g2(true);
+    g2.title_ = std::format("Worst Duration - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g2.set_extra("\"legend_position\": \"bottom_left\",");
 
     auto multiple_floor = [&](swr::scenario scenario) {
-        g.add_legend(portfolio_to_string(scenario, true));
+        g1.add_legend(portfolio_to_string(scenario, true));
+        g2.add_legend(portfolio_to_string(scenario, true));
 
         cpp::default_thread_pool pool(2 * std::thread::hardware_concurrency());
-        std::map<float, float>   results;
+        std::map<float, float>   results_g1;
+        std::map<float, float>   results_g2;
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-            results[wr] = 0.0f;
+            results_g1[wr] = 0.0f;
+            results_g2[wr] = 0.0f;
         }
 
         std::atomic<bool> error = false;
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
             pool.do_task(
-                    [&results, &scenario, &error, &multiplier](float wr) {
+                    [&results_g1, &results_g2, &scenario, &error, &multiplier](float wr) {
                         auto my_scenario        = scenario;
                         my_scenario.dwz_floor   = (wr / 100.0f) * scenario.initial_value;
                         my_scenario.dwz_ceiling = ((multiplier * wr) / 100.0f) * scenario.initial_value;
@@ -3340,7 +3347,12 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
                             error = false;
                             std::cout << std::endl << "ERROR: " << res.message << std::endl;
                         } else {
-                            results[wr] = res.success_rate;
+                            results_g1[wr] = res.success_rate;
+                            if (res.failures) {
+                                results_g2[wr] = res.worst_duration;
+                            } else {
+                                results_g2[wr] = my_scenario.years * 12;
+                            }
                         }
                     },
                     wr);
@@ -3349,7 +3361,8 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
         pool.wait();
 
         if (!error) {
-            g.add_data(results);
+            g1.add_data(results_g1);
+            g2.add_data(results_g2);
         }
     };
 
