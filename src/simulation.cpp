@@ -242,7 +242,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
                 withdrawal_amount = minimum_withdrawal;
             }
         } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
-            const auto year            = 1 + context.months / 12;
+            const auto year            = context.months / 12;
             const auto remaining_years = scenario.years - year;
             const auto base_withdrawal = total_value / remaining_years;
 
