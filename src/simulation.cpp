@@ -263,6 +263,26 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
             }
 
             withdrawal_amount = adjusted / (12.0f / periods);
+        } else if (scenario.wmethod == swr::WithdrawalMethod::VPW) {
+            const auto year = context.months / 12;
+            const auto n    = scenario.years - year;
+
+            float base_withdrawal = total_value;
+            if (n > 1) {
+                const float r = 0.05;
+
+                const float factor = (1.0f - std::powf(1.0f + r, -n)) / (r / (1.0f + r));
+                base_withdrawal    = total_value * factor;
+            }
+
+            auto adjusted = base_withdrawal;
+            if (adjusted < context.dwz_floor) {
+                adjusted = context.dwz_floor;
+            } else if (adjusted > context.dwz_ceiling) {
+                adjusted = context.dwz_ceiling;
+            }
+
+            withdrawal_amount = adjusted / (12.0f / periods);
         } else if (scenario.wmethod == swr::WithdrawalMethod::VANGUARD) {
             // Compute the withdrawal for the year
 
@@ -495,6 +515,12 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
     if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO && scenario.withdraw_frequency != 1) {
         res.message = "Die with zero is only implemented with monthly withdrawals";
+        res.error   = true;
+        return res;
+    }
+
+    if (scenario.wmethod == swr::WithdrawalMethod::VPW && scenario.withdraw_frequency != 1) {
+        res.message = "VPW is only implemented with monthly withdrawals";
         res.error   = true;
         return res;
     }
@@ -885,6 +911,8 @@ std::ostream& swr::operator<<(std::ostream& out, const WithdrawalMethod& wmethod
         return out << "vanguard";
     case WithdrawalMethod::DIE_WITH_ZERO:
         return out << "die_with_zero";
+    case WithdrawalMethod::VPW:
+        return out << "VPW";
     }
 
     return out << "Unknown withdrawal method";

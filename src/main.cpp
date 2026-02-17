@@ -3295,17 +3295,21 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
 
-    auto inflation     = args[5];
-    scenario.rebalance = swr::parse_rebalance(args[6]);
+    const auto inflation = args[5];
+    scenario.rebalance   = swr::parse_rebalance(args[6]);
 
-    uint32_t multiplier = atoi(args[7].c_str());
+    const uint32_t multiplier = atoi(args[7].c_str());
 
-    float portfolio_add = 25;
-    float start_wr      = 2.0f;
-    float end_wr        = 5.0f;
-    float add_wr        = 0.1f;
+    const float portfolio_add = 25;
+    const float start_wr      = 2.0f;
+    const float end_wr        = 5.0f;
+    const float add_wr        = 0.1f;
 
-    scenario.wmethod = swr::WithdrawalMethod::DIE_WITH_ZERO;
+    if (args.size() > 8 && args[8] == "vpw") {
+        scenario.wmethod = swr::WithdrawalMethod::VPW;
+    } else {
+        scenario.wmethod = swr::WithdrawalMethod::DIE_WITH_ZERO;
+    }
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);

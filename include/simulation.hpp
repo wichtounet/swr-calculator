@@ -18,10 +18,11 @@ namespace swr {
 enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
 enum class WithdrawalMethod : uint64_t {
-    STANDARD,     // Withdraw based on the initial portfolio
-    CURRENT,      // Withdraw based on the current portfolio
-    VANGUARD,     // Vanguard Dynamic Spending strategy
-    DIE_WITH_ZERO // Methodology from the book
+    STANDARD,      // Withdraw based on the initial portfolio
+    CURRENT,       // Withdraw based on the current portfolio
+    VANGUARD,      // Vanguard Dynamic Spending strategy
+    DIE_WITH_ZERO, // Methodology from the book
+    VPW            // Variable Pecentage Withdrawal (VPW)
 };
 
 enum class WithdrawalSelection : uint64_t {
