@@ -3316,15 +3316,20 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
     prepare_exchange_rates(scenario, "usd");
 
-    Graph g1(true);
-    g1.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-    g1.set_extra("\"legend_position\": \"bottom_left\",");
+    Graph g4(true, "Terminal Value (USD)", "bar-graph");
+    g4.title_ = std::format("Terminal values - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g4.set_extra("\"legend_position\": \"right\",");
 
-    Graph g2(true);
+    Graph g3(true, "Spending (USD)", "bar-graph");
+    g3.title_ = std::format("Spending - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+
+    Graph g2(true, "Worst Duration (months)");
     g2.title_ = std::format("Worst Duration - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
     g2.set_extra("\"legend_position\": \"bottom_left\",");
 
-    Graph g3(true, std::format("Spending - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year), "bar-graph");
+    Graph g1(true, "Success Rate (%)");
+    g1.title_ = std::format("Retirement Success Rate - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g1.set_extra("\"legend_position\": \"bottom_left\",");
 
     auto multiple_floor = [&](swr::scenario scenario, bool spending) {
         g1.add_legend(portfolio_to_string(scenario, true));
@@ -3339,9 +3344,22 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
         std::map<float, float> avg_spending;
         std::map<float, float> med_spending;
 
+        std::map<float, float> min_tv;
+        std::map<float, float> max_tv;
+        std::map<float, float> avg_tv;
+        std::map<float, float> med_tv;
+
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
             results_g1[wr] = 0.0f;
             results_g2[wr] = 0.0f;
+            max_spending[wr] = 0.0f;
+            min_spending[wr] = 0.0f;
+            avg_spending[wr] = 0.0f;
+            med_spending[wr] = 0.0f;
+            max_tv[wr] = 0.0f;
+            min_tv[wr] = 0.0f;
+            avg_tv[wr] = 0.0f;
+            med_tv[wr] = 0.0f;
         }
 
         std::atomic<bool> error = false;
@@ -3369,6 +3387,11 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
                             min_spending[wr] = res.spending_minimum;
                             avg_spending[wr] = res.spending_average;
                             med_spending[wr] = res.spending_median;
+
+                            max_tv[wr] = res.tv_maximum;
+                            min_tv[wr] = res.tv_minimum;
+                            avg_tv[wr] = res.tv_average;
+                            med_tv[wr] = res.tv_median;
                         }
                     },
                     wr);
@@ -3392,6 +3415,18 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
                 g3.add_legend("MED");
                 g3.add_data(med_spending);
+
+                g4.add_legend("MAX");
+                g4.add_data(max_tv);
+
+                g4.add_legend("MIN");
+                g4.add_data(min_tv);
+
+                g4.add_legend("AVG");
+                g4.add_data(avg_tv);
+
+                g4.add_legend("MED");
+                g4.add_data(med_tv);
             }
         }
     };
@@ -3608,9 +3643,9 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
         scenario.fees = atof(args[8].c_str()) / 100.0f;
     }
 
-    const float start_wr = 3.0f;
+    const float start_wr = 2.0f;
     const float end_wr   = 5.0f;
-    const float add_wr   = 0.25f;
+    const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -3662,8 +3697,8 @@ int trinity_spending_scenario(std::string_view command, const std::vector<std::s
         scenario.fees = atof(args[8].c_str()) / 100.0f;
     }
 
-    const float start_wr = 4.0f;
-    const float end_wr   = 6.0f;
+    const float start_wr = 2.0f;
+    const float end_wr   = 5.0f;
     const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
