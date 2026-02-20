@@ -1490,7 +1490,8 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     float current_nw                = illiquid + liquid;
     float current_withdrawal_amount = expenses;
 
-    bool fi = current_nw >= fi_number;
+    const bool fi_already = current_nw >= fi_number;
+    bool fi = fi_already;
 
     float contribution_3a = 7258;
 
@@ -1695,7 +1696,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
        << "  \"message\": \"" << message << "\",\n"
        << "  \"error\": " << (error ? "true" : "false") << ",\n"
        << "  \"separated\": true,\n"
-       << "  \"fi\": " << (fi ? "true" : "false") << ",\n"
+       << "  \"fi\": " << (fi_already ? "true" : "false") << ",\n"
        << "  \"fi_number\": " << std::setprecision(2) << std::fixed << fi_number << ",\n"
        << "  \"years\": " << months / 12 << ",\n"
        << "  \"months\": " << months % 12 << ",\n"
