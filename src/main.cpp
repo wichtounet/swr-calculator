@@ -1032,6 +1032,20 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.wmethod = swr::WithdrawalMethod::STANDARD;
     }
 
+    if (req.has_param("withdraw_selection")) {
+        auto selection = req.get_param_value("withdraw_selection");
+
+        if (selection == "stocks") {
+            scenario.wselection = swr::WithdrawalSelection::STOCKS;
+        } else if (selection == "bonds") {
+            scenario.wselection = swr::WithdrawalSelection::BONDS;
+        } else {
+            scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+        }
+    } else {
+        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
+    }
+
     if (req.has_param("initial_cash")) {
         scenario.initial_cash = atof(req.get_param_value("initial_cash").c_str());
     } else {
