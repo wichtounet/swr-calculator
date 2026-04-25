@@ -3565,7 +3565,7 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
     const float end_wr   = 5.0f;
     const float add_wr   = 0.1f;
 
-    const float portfolio_add = 20;
+    const float portfolio_add = 25;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -3644,9 +3644,9 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
         scenario.fees = atof(args[8].c_str()) / 100.0f;
     }
 
-    const float start_wr = 2.0f;
+    const float start_wr = 3.0f;
     const float end_wr   = 5.0f;
-    const float add_wr   = 0.1f;
+    const float add_wr   = 0.25f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
