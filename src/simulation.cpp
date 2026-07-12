@@ -945,6 +945,12 @@ swr::results swr::simulation(scenario& scenario) {
         return swr_simulation<4>(scenario);
     case 5:
         return swr_simulation<5>(scenario);
+    case 6:
+        return swr_simulation<6>(scenario);
+    case 7:
+        return swr_simulation<7>(scenario);
+    case 8:
+        return swr_simulation<8>(scenario);
     default:
         swr::results res;
         res.message = "The number of assets is too high";
