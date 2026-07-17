@@ -135,6 +135,8 @@ struct scenario {
     float       flexibility_change_1    = 0.0;
     float       flexibility_change_2    = 0.0;
 
+    bool bootstrapping = false;
+
     bool strict_validation = true;
 
     bool is_failure(const context& context, float current_value) const {
