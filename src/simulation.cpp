@@ -390,6 +390,251 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 }
 
 template <size_t N>
+swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_index) {
+    auto start_tp = chr::high_resolution_clock::now();
+
+    // The final results
+    swr::results res;
+
+    auto& inflation_data = scenario.inflation_data;
+    auto& values         = scenario.values;
+    auto& exchange_rates = scenario.exchange_rates;
+
+    // Prepare the starting points (for efficiency)
+    std::array<swr::data_vector::const_iterator, N> start_returns;
+    std::array<swr::data_vector::const_iterator, N> start_exchanges;
+
+    for (size_t i = 0; i < N; ++i) {
+        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
+        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
+    }
+
+    auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
+
+    // 3. Do the actual simulation
+
+    std::vector<std::vector<float>>                 spending;
+    std::array<swr::data_vector::const_iterator, N> returns;
+    std::array<swr::data_vector::const_iterator, N> exchanges;
+
+    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
+
+    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            spending.emplace_back();
+
+            swr::context context;
+            context.months         = 1;
+            context.total_months   = scenario.years * 12;
+            context.withdraw_index = withdraw_index;
+
+            // The amount of money withdrawn per year (STANDARD method)
+            context.withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
+
+            // The minimum amount of money withdraw (CURRENT method)
+            context.minimum = scenario.initial_value * scenario.minimum;
+
+            // The amount of cash available
+            context.cash = scenario.initial_cash;
+
+            // Used for the target threshold
+            context.target_value_ = scenario.initial_value;
+
+            // Use for Die With Zero
+            context.dwz_floor   = scenario.dwz_floor;
+            context.dwz_ceiling = scenario.dwz_ceiling;
+
+            const size_t end_year  = current_year + (current_month - 1 + context.total_months - 1) / 12;
+            const size_t end_month = 1 + ((current_month - 1) + (context.total_months - 1) % 12) % 12;
+
+            // Reset the allocation for the context
+            for (auto& asset : scenario.portfolio) {
+                asset.allocation_ = asset.allocation;
+            }
+
+            std::array<float, N> current_values;
+            std::array<float, N> market_values;
+
+            // Compute the initial values of the assets
+            for (size_t i = 0; i < N; ++i) {
+                current_values[i] = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
+                market_values[i]  = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
+                returns[i]        = start_returns[i]++;
+                exchanges[i]      = start_exchanges[i]++;
+            }
+
+            auto inflation = start_inflation++;
+
+            float total_withdrawn = 0.0f;
+            bool  failure         = false;
+
+            auto step = [&](auto result) {
+                if (!failure && !result()) {
+                    failure = true;
+                    res.record_failure(context.months, current_month, current_year);
+                }
+            };
+
+            for (size_t y = current_year; y <= end_year; ++y) {
+                context.year_start_value = current_value(current_values);
+                context.year_withdrawn   = 0.0f;
+
+                size_t m = 0;
+                for (m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
+                    // Adjust the portfolio with the returns and exchanges
+                    for (size_t i = 0; i < N; ++i) {
+                        current_values[i] *= returns[i]->value;
+                        current_values[i] *= exchanges[i]->value;
+
+                        market_values[i] *= returns[i]->value;
+                        market_values[i] *= exchanges[i]->value;
+
+                        ++returns[i];
+                        ++exchanges[i];
+                    }
+
+                    // Stock market losses can cause failure
+                    step([&]() { return !scenario.is_failure(context, current_value(current_values)); });
+
+                    // Glidepath
+                    step([&]() { return glidepath(scenario, context, current_values); });
+
+                    // Monthly Rebalance
+                    step([&]() { return monthly_rebalance(scenario, context, current_values); });
+
+                    // Simulate TER
+                    step([&]() { return pay_fees(scenario, context, current_values); });
+
+                    // Adjust the withdrawals for inflation
+                    context.withdrawal *= inflation->value;
+                    context.dwz_ceiling *= inflation->value;
+                    context.dwz_floor *= inflation->value;
+                    context.minimum *= inflation->value;
+                    context.target_value_ *= inflation->value;
+                    ++inflation;
+
+                    // Monthly withdrawal
+                    step([&]() { return withdraw(scenario, context, current_values, market_values); });
+
+                    // Record spending
+                    if ((context.months - 1) % 12 == 0) {
+                        spending.back().push_back(context.last_withdrawal_amount);
+                    } else {
+                        spending.back().back() += context.last_withdrawal_amount;
+                    }
+                }
+
+                total_withdrawn += context.year_withdrawn;
+
+                // Yearly Rebalance and check for failure
+                step([&]() { return yearly_rebalance(scenario, context, current_values); });
+
+                // Record effective withdrawal rates
+
+                if (failure) {
+                    auto eff_wr = context.year_withdrawn / context.year_start_value;
+
+                    if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
+                        res.lowest_eff_wr_start_year  = current_year;
+                        res.lowest_eff_wr_start_month = current_month;
+                        res.lowest_eff_wr_year        = y;
+                        res.lowest_eff_wr             = eff_wr;
+                    }
+
+                    if (!res.highest_eff_wr_year || eff_wr > res.highest_eff_wr) {
+                        res.highest_eff_wr_start_year  = current_year;
+                        res.highest_eff_wr_start_month = current_month;
+                        res.highest_eff_wr_year        = y;
+                        res.highest_eff_wr             = eff_wr;
+                    }
+
+                    break;
+                }
+            }
+
+            const auto final_value = failure ? 0.0f : current_value(current_values);
+
+            if (!failure) {
+                ++res.successes;
+
+                if (context.flexible) {
+                    ++res.flexible_successes;
+                }
+
+                // Total amount of money withdrawn
+                res.total_withdrawn += total_withdrawn;
+            } else {
+                ++res.failures;
+
+                if (context.flexible) {
+                    ++res.flexible_failures;
+                }
+            }
+
+            res.terminal_values.push_back(final_value);
+            res.flexible.push_back(context.flexible ? 1.0f : 0.0f);
+
+            if (failure) {
+                spending.pop_back();
+            }
+
+            // Record periods
+
+            if (!res.best_tv_year) {
+                res.best_tv_year  = current_year;
+                res.best_tv_month = current_month;
+                res.best_tv       = final_value;
+            }
+
+            if (!res.worst_tv_year) {
+                res.worst_tv_year  = current_year;
+                res.worst_tv_month = current_month;
+                res.worst_tv       = final_value;
+            }
+
+            if (final_value < res.worst_tv) {
+                res.worst_tv_year  = current_year;
+                res.worst_tv_month = current_month;
+                res.worst_tv       = final_value;
+            }
+
+            if (final_value > res.best_tv) {
+                res.best_tv_year  = current_year;
+                res.best_tv_month = current_month;
+                res.best_tv       = final_value;
+            }
+
+            // After each starting point, we check if we should timeout
+
+            if (scenario.timeout_msecs) {
+                auto stop_tp  = chr::high_resolution_clock::now();
+                auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
+
+                if (size_t(duration) > scenario.timeout_msecs) {
+                    res.message = "The computation took too long";
+                    res.error   = true;
+                    std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
+                    return res;
+                }
+            }
+        }
+    }
+
+    res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / float(res.successes);
+
+    res.highest_eff_wr *= 100.0f;
+    res.lowest_eff_wr *= 100.0f;
+
+    res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
+    res.compute_terminal_values(res.terminal_values);
+    res.compute_spending(spending, scenario.years);
+
+    simulations += res.terminal_values.size();
+
+    return res;
+}
+
+template <size_t N>
 swr::results swr_simulation(swr::scenario& scenario) {
     auto& inflation_data = scenario.inflation_data;
     auto& values         = scenario.values;
@@ -397,8 +642,6 @@ swr::results swr_simulation(swr::scenario& scenario) {
 
     // The final results
     swr::results res;
-
-    auto start_tp = chr::high_resolution_clock::now();
 
     // For compatibility, we set up exchange_rates and exchange_sets
 
@@ -638,238 +881,7 @@ swr::results swr_simulation(swr::scenario& scenario) {
         return res;
     }
 
-    // Prepare the starting points (for efficiency)
-    std::array<swr::data_vector::const_iterator, N> start_returns;
-    std::array<swr::data_vector::const_iterator, N> start_exchanges;
-
-    for (size_t i = 0; i < N; ++i) {
-        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
-        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
-    }
-
-    auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
-
-    // 3. Do the actual simulation
-
-    std::vector<std::vector<float>>                 spending;
-    std::array<swr::data_vector::const_iterator, N> returns;
-    std::array<swr::data_vector::const_iterator, N> exchanges;
-
-    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
-
-    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
-        for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            spending.emplace_back();
-
-            swr::context context;
-            context.months         = 1;
-            context.total_months   = scenario.years * 12;
-            context.withdraw_index = withdraw_index;
-
-            // The amount of money withdrawn per year (STANDARD method)
-            context.withdrawal = scenario.initial_value * (scenario.wr / 100.0f);
-
-            // The minimum amount of money withdraw (CURRENT method)
-            context.minimum = scenario.initial_value * scenario.minimum;
-
-            // The amount of cash available
-            context.cash = scenario.initial_cash;
-
-            // Used for the target threshold
-            context.target_value_ = scenario.initial_value;
-
-            // Use for Die With Zero
-            context.dwz_floor   = scenario.dwz_floor;
-            context.dwz_ceiling = scenario.dwz_ceiling;
-
-            const size_t end_year  = current_year + (current_month - 1 + context.total_months - 1) / 12;
-            const size_t end_month = 1 + ((current_month - 1) + (context.total_months - 1) % 12) % 12;
-
-            // Reset the allocation for the context
-            for (auto& asset : scenario.portfolio) {
-                asset.allocation_ = asset.allocation;
-            }
-
-            std::array<float, N> current_values;
-            std::array<float, N> market_values;
-
-            // Compute the initial values of the assets
-            for (size_t i = 0; i < N; ++i) {
-                current_values[i] = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
-                market_values[i]  = scenario.initial_value * (scenario.portfolio[i].allocation_ / 100.0f);
-                returns[i]        = start_returns[i]++;
-                exchanges[i]      = start_exchanges[i]++;
-            }
-
-            auto inflation = start_inflation++;
-
-            float total_withdrawn = 0.0f;
-            bool  failure         = false;
-
-            auto step = [&](auto result) {
-                if (!failure && !result()) {
-                    failure = true;
-                    res.record_failure(context.months, current_month, current_year);
-                }
-            };
-
-            for (size_t y = current_year; y <= end_year; ++y) {
-                context.year_start_value = current_value(current_values);
-                context.year_withdrawn   = 0.0f;
-
-                size_t m = 0;
-                for (m = (y == current_year ? current_month : 1); !failure && m <= (y == end_year ? end_month : 12); ++m, ++context.months) {
-                    // Adjust the portfolio with the returns and exchanges
-                    for (size_t i = 0; i < N; ++i) {
-                        current_values[i] *= returns[i]->value;
-                        current_values[i] *= exchanges[i]->value;
-
-                        market_values[i] *= returns[i]->value;
-                        market_values[i] *= exchanges[i]->value;
-
-                        ++returns[i];
-                        ++exchanges[i];
-                    }
-
-                    // Stock market losses can cause failure
-                    step([&]() { return !scenario.is_failure(context, current_value(current_values)); });
-
-                    // Glidepath
-                    step([&]() { return glidepath(scenario, context, current_values); });
-
-                    // Monthly Rebalance
-                    step([&]() { return monthly_rebalance(scenario, context, current_values); });
-
-                    // Simulate TER
-                    step([&]() { return pay_fees(scenario, context, current_values); });
-
-                    // Adjust the withdrawals for inflation
-                    context.withdrawal *= inflation->value;
-                    context.dwz_ceiling *= inflation->value;
-                    context.dwz_floor *= inflation->value;
-                    context.minimum *= inflation->value;
-                    context.target_value_ *= inflation->value;
-                    ++inflation;
-
-                    // Monthly withdrawal
-                    step([&]() { return withdraw(scenario, context, current_values, market_values); });
-
-                    // Record spending
-                    if ((context.months - 1) % 12 == 0) {
-                        spending.back().push_back(context.last_withdrawal_amount);
-                    } else {
-                        spending.back().back() += context.last_withdrawal_amount;
-                    }
-                }
-
-                total_withdrawn += context.year_withdrawn;
-
-                // Yearly Rebalance and check for failure
-                step([&]() { return yearly_rebalance(scenario, context, current_values); });
-
-                // Record effective withdrawal rates
-
-                if (failure) {
-                    auto eff_wr = context.year_withdrawn / context.year_start_value;
-
-                    if (!res.lowest_eff_wr_year || eff_wr < res.lowest_eff_wr) {
-                        res.lowest_eff_wr_start_year  = current_year;
-                        res.lowest_eff_wr_start_month = current_month;
-                        res.lowest_eff_wr_year        = y;
-                        res.lowest_eff_wr             = eff_wr;
-                    }
-
-                    if (!res.highest_eff_wr_year || eff_wr > res.highest_eff_wr) {
-                        res.highest_eff_wr_start_year  = current_year;
-                        res.highest_eff_wr_start_month = current_month;
-                        res.highest_eff_wr_year        = y;
-                        res.highest_eff_wr             = eff_wr;
-                    }
-
-                    break;
-                }
-            }
-
-            const auto final_value = failure ? 0.0f : current_value(current_values);
-
-            if (!failure) {
-                ++res.successes;
-
-                if (context.flexible) {
-                    ++res.flexible_successes;
-                }
-
-                // Total amount of money withdrawn
-                res.total_withdrawn += total_withdrawn;
-            } else {
-                ++res.failures;
-
-                if (context.flexible) {
-                    ++res.flexible_failures;
-                }
-            }
-
-            res.terminal_values.push_back(final_value);
-            res.flexible.push_back(context.flexible ? 1.0f : 0.0f);
-
-            if (failure) {
-                spending.pop_back();
-            }
-
-            // Record periods
-
-            if (!res.best_tv_year) {
-                res.best_tv_year  = current_year;
-                res.best_tv_month = current_month;
-                res.best_tv       = final_value;
-            }
-
-            if (!res.worst_tv_year) {
-                res.worst_tv_year  = current_year;
-                res.worst_tv_month = current_month;
-                res.worst_tv       = final_value;
-            }
-
-            if (final_value < res.worst_tv) {
-                res.worst_tv_year  = current_year;
-                res.worst_tv_month = current_month;
-                res.worst_tv       = final_value;
-            }
-
-            if (final_value > res.best_tv) {
-                res.best_tv_year  = current_year;
-                res.best_tv_month = current_month;
-                res.best_tv       = final_value;
-            }
-
-            // After each starting point, we check if we should timeout
-
-            if (scenario.timeout_msecs) {
-                auto stop_tp  = chr::high_resolution_clock::now();
-                auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
-
-                if (size_t(duration) > scenario.timeout_msecs) {
-                    res.message = "The computation took too long";
-                    res.error   = true;
-                    std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
-                    return res;
-                }
-            }
-        }
-    }
-
-    res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / float(res.successes);
-
-    res.highest_eff_wr *= 100.0f;
-    res.lowest_eff_wr *= 100.0f;
-
-    res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
-    res.compute_terminal_values(res.terminal_values);
-    res.compute_spending(spending, scenario.years);
-
-    simulations += res.terminal_values.size();
-
-    return res;
+    return swr_simulation_inside<N>(scenario, withdraw_index);
 }
 
 } // end of anonymous namespace
