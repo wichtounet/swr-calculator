@@ -211,6 +211,8 @@ struct results {
     void               compute_terminal_values(std::vector<float> terminal_values);
     void               compute_spending(std::vector<std::vector<float>>& terminal_values, size_t years);
 
+    std::vector<std::vector<float>> spending;
+
     void record_failure(size_t months, size_t current_month, size_t current_year) {
         if (!worst_duration || months < worst_duration) {
             worst_duration       = months;

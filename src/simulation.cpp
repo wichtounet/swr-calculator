@@ -390,38 +390,15 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 }
 
 template <size_t N>
-swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_index) {
-    auto start_tp = chr::high_resolution_clock::now();
+using data_vector_array = std::array<swr::data_vector::const_iterator, N>;
 
-    // The final results
-    swr::results res;
+template <size_t N>
+void swr_simulation_period(swr::results & res, swr::scenario& scenario, size_t withdraw_index, size_t current_year, size_t current_month, data_vector_array<N> & start_returns,
+    data_vector_array<N> & start_exchanges, swr::data_vector::const_iterator start_inflation) {
+    data_vector_array<N> returns;
+    data_vector_array<N> exchanges;
 
-    auto& inflation_data = scenario.inflation_data;
-    auto& values         = scenario.values;
-    auto& exchange_rates = scenario.exchange_rates;
-
-    // Prepare the starting points (for efficiency)
-    std::array<swr::data_vector::const_iterator, N> start_returns;
-    std::array<swr::data_vector::const_iterator, N> start_exchanges;
-
-    for (size_t i = 0; i < N; ++i) {
-        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
-        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
-    }
-
-    auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
-
-    // 3. Do the actual simulation
-
-    std::vector<std::vector<float>>                 spending;
-    std::array<swr::data_vector::const_iterator, N> returns;
-    std::array<swr::data_vector::const_iterator, N> exchanges;
-
-    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
-
-    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
-        for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            spending.emplace_back();
+            res.spending.emplace_back();
 
             swr::context context;
             context.months         = 1;
@@ -518,9 +495,9 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
 
                     // Record spending
                     if ((context.months - 1) % 12 == 0) {
-                        spending.back().push_back(context.last_withdrawal_amount);
+                        res.spending.back().push_back(context.last_withdrawal_amount);
                     } else {
-                        spending.back().back() += context.last_withdrawal_amount;
+                        res.spending.back().back() += context.last_withdrawal_amount;
                     }
                 }
 
@@ -575,7 +552,7 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
             res.flexible.push_back(context.flexible ? 1.0f : 0.0f);
 
             if (failure) {
-                spending.pop_back();
+                res.spending.pop_back();
             }
 
             // Record periods
@@ -603,6 +580,37 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
                 res.best_tv_month = current_month;
                 res.best_tv       = final_value;
             }
+}
+
+template <size_t N>
+swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_index) {
+    auto start_tp = chr::high_resolution_clock::now();
+
+    // The final results
+    swr::results res;
+
+    auto& inflation_data = scenario.inflation_data;
+    auto& values         = scenario.values;
+    auto& exchange_rates = scenario.exchange_rates;
+
+    // Prepare the starting points (for efficiency)
+    data_vector_array<N> start_returns;
+    data_vector_array<N> start_exchanges;
+
+    for (size_t i = 0; i < N; ++i) {
+        start_returns[i]   = swr::get_start(values[i], scenario.start_year, 1);
+        start_exchanges[i] = swr::get_start(exchange_rates[i], scenario.start_year, 1);
+    }
+
+    auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
+
+    // 3. Do the actual simulation
+
+    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
+
+    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+        for (size_t current_month = 1; current_month <= 12; ++current_month) {
+            swr_simulation_period<N>(res, scenario, withdraw_index, current_year, current_month, start_returns, start_exchanges, start_inflation);
 
             // After each starting point, we check if we should timeout
 
@@ -627,7 +635,7 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
 
     res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
     res.compute_terminal_values(res.terminal_values);
-    res.compute_spending(spending, scenario.years);
+    res.compute_spending(res.spending, scenario.years);
 
     simulations += res.terminal_values.size();
 
