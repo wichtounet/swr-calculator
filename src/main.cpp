@@ -1877,7 +1877,9 @@ int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
 
     swr::scenario scenario;
 
-    scenario.bootstrapping = bootstrapping;
+    if (bootstrapping) {
+        scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+    }
 
     scenario.wr         = atof(args[1].c_str());
     scenario.years      = atoi(args[2].c_str());

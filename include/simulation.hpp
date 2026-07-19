@@ -17,6 +17,11 @@ namespace swr {
 
 enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
+enum Simulation {
+    BACKTESTING,
+    BOOTSTRAPPING
+};
+
 enum class WithdrawalMethod : uint64_t {
     STANDARD,      // Withdraw based on the initial portfolio
     CURRENT,       // Withdraw based on the current portfolio
@@ -136,8 +141,9 @@ struct scenario {
     float       flexibility_change_2    = 0.0;
 
     bool   bootstrapping             = false;
-    size_t bootstrapping_simulations = 10000;
+    size_t simulations = 10000;
 
+    Simulation simulation = Simulation::BACKTESTING;
     bool strict_validation = true;
 
     bool is_failure(const context& context, float current_value) const {

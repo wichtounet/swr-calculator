@@ -610,7 +610,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
 
     // 3. Do the actual simulation
 
-    if (!scenario.bootstrapping) {
+    if (scenario.simulation == swr::Simulation::BACKTESTING) {
         res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
 
         for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
@@ -633,7 +633,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
             }
         }
     } else {
-        res.terminal_values.reserve(scenario.bootstrapping_simulations);
+        res.terminal_values.reserve(scenario.simulations);
 
         std::random_device                    rd;
         std::default_random_engine            g(rd());
@@ -655,7 +655,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
         data_vector_array<N> copy_start_returns;
         data_vector_array<N> copy_start_exchanges;
 
-        for (size_t simulation = 0; simulation < scenario.bootstrapping_simulations; ++simulation) {
+        for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
             // Get an iterator to the data of the copy
 
             for (size_t i = 0; i < N; ++i) {
