@@ -10,9 +10,9 @@
 
 #include "portfolio.hpp"
 
-std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> & portfolio) {
+std::ostream& swr::operator<<(std::ostream& out, const std::vector<allocation>& portfolio) {
     out << "{";
-    for (const auto & alloc : portfolio) {
+    for (const auto& alloc : portfolio) {
         out << alloc.asset << ':' << alloc.allocation << ';';
     }
     out << "(" << portfolio.size() << ")";
@@ -21,7 +21,7 @@ std::ostream & swr::operator<<(std::ostream& out, const std::vector<allocation> 
 
 std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_view, bool allow_zero) {
     std::vector<allocation> portfolio;
-    std::string portfolio_str(portfolio_view);
+    std::string             portfolio_str(portfolio_view);
 
     size_t positions = std::ranges::count(portfolio_str, ';');
 
@@ -32,7 +32,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
         std::string pos_alloc(position.begin() + position.find(':') + 1, position.end());
 
         allocation alloc;
-        alloc.asset = std::string(position.begin(), position.begin() + position.find(':'));
+        alloc.asset      = std::string(position.begin(), position.begin() + position.find(':'));
         alloc.allocation = atof(pos_alloc.c_str());
 
         if (allow_zero || alloc.allocation > 0.0f) {
@@ -43,7 +43,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
     return portfolio;
 }
 
-void swr::normalize_portfolio(std::vector<allocation> & portfolio){
+void swr::normalize_portfolio(std::vector<allocation>& portfolio) {
     float total = total_allocation(portfolio);
 
     if (total != 100.0f) {
@@ -53,10 +53,10 @@ void swr::normalize_portfolio(std::vector<allocation> & portfolio){
     }
 }
 
-float swr::total_allocation(std::vector<allocation> & portfolio){
+float swr::total_allocation(std::vector<allocation>& portfolio) {
     float total = 0;
 
-    for (auto & position : portfolio) {
+    for (auto& position : portfolio) {
         total += position.allocation;
     }
 

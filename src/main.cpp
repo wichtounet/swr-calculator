@@ -929,14 +929,14 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.portfolio = swr::parse_portfolio(portfolio_base, false);
     } else {
         portfolio_base     = std::format("us_stocks:{};us_bonds:{};commodities:{};gold:{};cash:{};ex_us_stocks:{};ch_stocks:{};ch_bonds:{};",
-                                     req.get_param_value("p_us_stocks"),
-                                     req.get_param_value("p_us_bonds"),
-                                     req.get_param_value("p_commodities"),
-                                     req.get_param_value("p_gold"),
-                                     req.get_param_value("p_cash"),
-                                     req.get_param_value("p_ex_us_stocks"),
-                                     req.get_param_value("p_ch_stocks"),
-                                     req.get_param_value("p_ch_bonds"));
+                                         req.get_param_value("p_us_stocks"),
+                                         req.get_param_value("p_us_bonds"),
+                                         req.get_param_value("p_commodities"),
+                                         req.get_param_value("p_gold"),
+                                         req.get_param_value("p_cash"),
+                                         req.get_param_value("p_ex_us_stocks"),
+                                         req.get_param_value("p_ch_stocks"),
+                                         req.get_param_value("p_ch_bonds"));
         scenario.portfolio = swr::parse_portfolio(portfolio_base, false);
     }
 
@@ -1505,7 +1505,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
     float current_withdrawal_amount = expenses;
 
     const bool fi_already = current_nw >= fi_number;
-    bool fi = fi_already;
+    bool       fi         = fi_already;
 
     float contribution_3a = 7258;
 
@@ -3367,16 +3367,16 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
         std::map<float, float> med_tv;
 
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
-            results_g1[wr] = 0.0f;
-            results_g2[wr] = 0.0f;
+            results_g1[wr]   = 0.0f;
+            results_g2[wr]   = 0.0f;
             max_spending[wr] = 0.0f;
             min_spending[wr] = 0.0f;
             avg_spending[wr] = 0.0f;
             med_spending[wr] = 0.0f;
-            max_tv[wr] = 0.0f;
-            min_tv[wr] = 0.0f;
-            avg_tv[wr] = 0.0f;
-            med_tv[wr] = 0.0f;
+            max_tv[wr]       = 0.0f;
+            min_tv[wr]       = 0.0f;
+            avg_tv[wr]       = 0.0f;
+            med_tv[wr]       = 0.0f;
         }
 
         std::atomic<bool> error = false;
