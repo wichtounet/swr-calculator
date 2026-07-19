@@ -135,7 +135,8 @@ struct scenario {
     float       flexibility_change_1    = 0.0;
     float       flexibility_change_2    = 0.0;
 
-    bool bootstrapping = false;
+    bool   bootstrapping             = false;
+    size_t bootstrapping_simulations = 10000;
 
     bool strict_validation = true;
 

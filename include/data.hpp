@@ -21,9 +21,9 @@ struct data {
 };
 
 struct data_vector {
-    using vector_type    = std::vector<swr::data>;
-    using const_iterator = vector_type::const_iterator;
-    using value_type     = vector_type::value_type;
+    using vector_type = std::vector<swr::data>;
+    using iterator    = vector_type::iterator;
+    using value_type  = vector_type::value_type;
 
     std::string name;
     vector_type data;
@@ -65,14 +65,17 @@ struct data_vector {
     }
 };
 
+using data_vector_iterator = data_vector::iterator;
+
 std::vector<data_vector> load_values(const std::vector<swr::allocation>& portfolio);
 std::vector<data_vector> load_adjusted_values(const std::vector<swr::allocation>& portfolio);
 data_vector              load_inflation(const std::vector<data_vector>& values, const std::string& inflation);
 data_vector              load_exchange(const std::string& inflation);
 data_vector              load_exchange_inv(const std::string& inflation);
 
-float                       get_value(const data_vector& values, size_t year, size_t month);
-data_vector::const_iterator get_start(const data_vector& values, size_t year, size_t month);
+float                get_value(const data_vector& values, size_t year, size_t month);
+data_vector_iterator get_start(data_vector& values, size_t year, size_t month);
+data_vector_iterator get_start_hint(data_vector_iterator hint, data_vector& values, size_t year, size_t month);
 
 bool is_start_valid(const data_vector& values, size_t year, size_t month);
 

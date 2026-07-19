@@ -8,6 +8,7 @@
 #include "simulation.hpp"
 
 #include <algorithm>
+#include <random>
 #include <iostream>
 #include <numeric>
 #include <sstream>
@@ -390,17 +391,17 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
 }
 
 template <size_t N>
-using data_vector_array = std::array<swr::data_vector::const_iterator, N>;
+using data_vector_array = std::array<swr::data_vector::iterator, N>;
 
 template <size_t N>
-void swr_simulation_period(swr::results&                    res,
-                           swr::scenario&                   scenario,
-                           size_t                           withdraw_index,
-                           size_t                           current_year,
-                           size_t                           current_month,
-                           data_vector_array<N>&            start_returns,
-                           data_vector_array<N>&            start_exchanges,
-                           swr::data_vector::const_iterator start_inflation) {
+void swr_simulation_period(swr::results&              res,
+                           swr::scenario&             scenario,
+                           size_t                     withdraw_index,
+                           size_t                     current_year,
+                           size_t                     current_month,
+                           data_vector_array<N>&      start_returns,
+                           data_vector_array<N>&      start_exchanges,
+                           swr::data_vector::iterator start_inflation) {
     data_vector_array<N> returns;
     data_vector_array<N> exchanges;
 
@@ -612,25 +613,91 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
 
     // 3. Do the actual simulation
 
-    res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
+    if (!scenario.bootstrapping) {
+        res.terminal_values.reserve(((scenario.end_year - scenario.start_year) - scenario.years) * 12);
 
-    for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
-        for (size_t current_month = 1; current_month <= 12; ++current_month) {
-            swr_simulation_period<N>(res, scenario, withdraw_index, current_year, current_month, start_returns, start_exchanges, start_inflation);
+        for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
+            for (size_t current_month = 1; current_month <= 12; ++current_month) {
+                swr_simulation_period<N>(res, scenario, withdraw_index, current_year, current_month, start_returns, start_exchanges, start_inflation);
 
-            // After each starting point, we check if we should timeout
+                // After each starting point, we check if we should timeout
 
-            if (scenario.timeout_msecs) {
-                auto stop_tp  = chr::high_resolution_clock::now();
-                auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
+                if (scenario.timeout_msecs) {
+                    auto stop_tp  = chr::high_resolution_clock::now();
+                    auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
 
-                if (size_t(duration) > scenario.timeout_msecs) {
-                    res.message = "The computation took too long";
-                    res.error   = true;
-                    std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
-                    return res;
+                    if (size_t(duration) > scenario.timeout_msecs) {
+                        res.message = "The computation took too long";
+                        res.error   = true;
+                        std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
+                        return res;
+                    }
                 }
             }
+        }
+    } else {
+        res.terminal_values.reserve(scenario.bootstrapping_simulations);
+
+        std::random_device                    rd;
+        std::default_random_engine            g(rd());
+        std::uniform_int_distribution<size_t> dist(scenario.start_year, scenario.end_year);
+
+        auto overwrite_year = [](auto left, auto right) {
+            for (size_t i = 0; i < 12; ++i) {
+                right->value = left->value;
+                ++left;
+                ++right;
+            }
+        };
+
+        // Create copies of all data
+        auto copy_inflation_data = scenario.inflation_data;
+        auto copy_values         = scenario.values;
+        auto copy_exchange_rates = scenario.exchange_rates;
+
+        data_vector_array<N> copy_start_returns;
+        data_vector_array<N> copy_start_exchanges;
+
+        for (size_t simulation = 0; simulation < scenario.bootstrapping_simulations; ++simulation) {
+            // Get an iterator to the data of the copy
+
+            for (size_t i = 0; i < N; ++i) {
+                copy_start_returns[i]   = copy_values[i].begin();
+                copy_start_exchanges[i] = copy_exchange_rates[i].begin();
+            }
+
+            auto copy_start_inflation = copy_inflation_data.begin();
+
+            for (size_t year = 0; year <= scenario.years; ++year) {
+                const size_t replacement_year = dist(g);
+
+                // std::cout << replacement_year << " replace " << current_year << std::endl;
+
+                for (size_t i = 0; i < N; ++i) {
+                    auto replacement_returns = swr::get_start_hint(start_returns[i], values[i], replacement_year, 1);
+                    overwrite_year(replacement_returns, copy_start_returns[i]);
+                    std::advance(copy_start_returns[i], 12);
+
+                    auto replacement_exchanges = swr::get_start_hint(start_exchanges[i], exchange_rates[i], replacement_year, 1);
+                    overwrite_year(replacement_exchanges, copy_start_exchanges[i]);
+                    std::advance(copy_start_exchanges[i], 12);
+                }
+
+                auto replacement_inflation = swr::get_start_hint(start_inflation, inflation_data, replacement_year, 1);
+                overwrite_year(replacement_inflation, copy_start_inflation);
+                std::advance(copy_start_inflation, 12);
+            }
+
+            // Get again the start iterators
+
+            for (size_t i = 0; i < N; ++i) {
+                copy_start_returns[i]   = copy_values[i].begin();
+                copy_start_exchanges[i] = copy_exchange_rates[i].begin();
+            }
+
+            copy_start_inflation = copy_inflation_data.begin();
+
+            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
         }
     }
 

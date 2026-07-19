@@ -243,21 +243,24 @@ float swr::get_value(const swr::data_vector& values, size_t year, size_t month) 
     return 0.0f;
 }
 
-swr::data_vector::const_iterator swr::get_start(const swr::data_vector& values, size_t year, size_t month) {
-    auto it  = values.begin();
+swr::data_vector_iterator swr::get_start_hint(data_vector_iterator hint, swr::data_vector& values, size_t year, size_t month) {
     auto end = values.end();
 
-    while (it != end) {
-        if (it->year == year && it->month == month) {
-            return it;
+    while (hint != end) {
+        if (hint->year == year && hint->month == month) {
+            return hint;
         }
 
-        ++it;
+        ++hint;
     }
 
-    std::cout << "This should not happen (start out of range)" << std::endl;
+    std::cout << "This should not happen (start out of range) " << year << "/" << month << std::endl;
 
     return values.begin();
+}
+
+swr::data_vector_iterator swr::get_start(swr::data_vector& values, size_t year, size_t month) {
+    return get_start_hint(values.begin(), values, year, month);
 }
 
 bool swr::is_start_valid(const swr::data_vector& values, size_t year, size_t month) {
