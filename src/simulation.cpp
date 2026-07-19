@@ -6,6 +6,7 @@
 //=======================================================================
 
 #include "simulation.hpp"
+#include "data.hpp"
 
 #include <algorithm>
 #include <random>
@@ -16,7 +17,6 @@
 #include <cmath>
 #include <array>
 #include <chrono>
-#include "data.hpp"
 
 namespace chr = std::chrono;
 
