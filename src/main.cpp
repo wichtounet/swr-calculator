@@ -1918,7 +1918,7 @@ int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
 
     scenario.strict_validation = false;
 
-    auto printer = [scenario](const std::string& message, const auto& results) {
+    auto printer = [&scenario](const std::string& message, const auto& results) {
         std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") "
                   << results.success_rate << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum
                   << "]" << std::endl;
@@ -1942,7 +1942,7 @@ int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
     auto start = std::chrono::high_resolution_clock::now();
 
     scenario.withdraw_frequency = 12;
-    std::cout << scenario << std::endl;
+
     auto yearly_results = swr::simulation(scenario);
 
     if (yearly_results.message.size()) {
@@ -1957,6 +1957,14 @@ int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
 
     scenario.withdraw_frequency = 1;
     auto monthly_results        = swr::simulation(scenario);
+
+    if (monthly_results.message.size()) {
+        std::cout << monthly_results.message << std::endl;
+    }
+
+    if (monthly_results.error) {
+        return 1;
+    }
 
     printer("Monthly", monthly_results);
 

@@ -590,11 +590,8 @@ void swr_simulation_period(swr::results&              res,
 }
 
 template <size_t N>
-swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_index) {
+swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, size_t withdraw_index) {
     auto start_tp = chr::high_resolution_clock::now();
-
-    // The final results
-    swr::results res;
 
     auto& inflation_data = scenario.inflation_data;
     auto& values         = scenario.values;
@@ -666,36 +663,22 @@ swr::results swr_simulation_inside(swr::scenario& scenario, size_t withdraw_inde
                 copy_start_exchanges[i] = copy_exchange_rates[i].begin();
             }
 
-            auto copy_start_inflation = copy_inflation_data.begin();
+            const auto copy_start_inflation = copy_inflation_data.begin();
 
-            for (size_t year = 0; year <= scenario.years; ++year) {
+            for (size_t year = 0; year < scenario.years; ++year) {
                 const size_t replacement_year = dist(g);
 
-                // std::cout << replacement_year << " replace " << current_year << std::endl;
-
                 for (size_t i = 0; i < N; ++i) {
-                    auto replacement_returns = swr::get_start_hint(start_returns[i], values[i], replacement_year, 1);
-                    overwrite_year(replacement_returns, copy_start_returns[i]);
-                    std::advance(copy_start_returns[i], 12);
+                    auto replacement_returns = swr::get_start_hint(start_returns[i], scenario.values[i], replacement_year, 1);
+                    overwrite_year(replacement_returns, copy_start_returns[i] + year * 12);
 
-                    auto replacement_exchanges = swr::get_start_hint(start_exchanges[i], exchange_rates[i], replacement_year, 1);
-                    overwrite_year(replacement_exchanges, copy_start_exchanges[i]);
-                    std::advance(copy_start_exchanges[i], 12);
+                    auto replacement_exchanges = swr::get_start_hint(start_exchanges[i], scenario.exchange_rates[i], replacement_year, 1);
+                    overwrite_year(replacement_exchanges, copy_start_exchanges[i] + year * 12);
                 }
 
-                auto replacement_inflation = swr::get_start_hint(start_inflation, inflation_data, replacement_year, 1);
-                overwrite_year(replacement_inflation, copy_start_inflation);
-                std::advance(copy_start_inflation, 12);
+                auto replacement_inflation = swr::get_start_hint(start_inflation, scenario.inflation_data, replacement_year, 1);
+                overwrite_year(replacement_inflation, copy_start_inflation + year * 12);
             }
-
-            // Get again the start iterators
-
-            for (size_t i = 0; i < N; ++i) {
-                copy_start_returns[i]   = copy_values[i].begin();
-                copy_start_exchanges[i] = copy_exchange_rates[i].begin();
-            }
-
-            copy_start_inflation = copy_inflation_data.begin();
 
             swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
         }
@@ -962,7 +945,7 @@ swr::results swr_simulation(swr::scenario& scenario) {
         return res;
     }
 
-    return swr_simulation_inside<N>(scenario, withdraw_index);
+    return swr_simulation_inside<N>(res, scenario, withdraw_index);
 }
 
 } // end of anonymous namespace
