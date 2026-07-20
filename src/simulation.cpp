@@ -399,8 +399,8 @@ void swr_simulation_period(swr::results&              res,
                            size_t                     withdraw_index,
                            size_t                     current_year,
                            size_t                     current_month,
-                           data_vector_array<N>&      start_returns,
-                           data_vector_array<N>&      start_exchanges,
+                           data_vector_array<N>      start_returns,
+                           data_vector_array<N>      start_exchanges,
                            swr::data_vector::iterator start_inflation) {
     data_vector_array<N> returns;
     data_vector_array<N> exchanges;
@@ -632,7 +632,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
                 }
             }
         }
-    } else {
+    } else if (scenario.simulation == swr::Simulation::BOOTSTRAPPING) {
         res.terminal_values.reserve(scenario.simulations);
 
         std::random_device                    rd;
@@ -655,16 +655,16 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
         data_vector_array<N> copy_start_returns;
         data_vector_array<N> copy_start_exchanges;
 
+        // Get an iterator to the data of the copy
+
+        for (size_t i = 0; i < N; ++i) {
+            copy_start_returns[i]   = copy_values[i].begin();
+            copy_start_exchanges[i] = copy_exchange_rates[i].begin();
+        }
+
+        const auto copy_start_inflation = copy_inflation_data.begin();
+
         for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
-            // Get an iterator to the data of the copy
-
-            for (size_t i = 0; i < N; ++i) {
-                copy_start_returns[i]   = copy_values[i].begin();
-                copy_start_exchanges[i] = copy_exchange_rates[i].begin();
-            }
-
-            const auto copy_start_inflation = copy_inflation_data.begin();
-
             for (size_t year = 0; year < scenario.years; ++year) {
                 const size_t replacement_year = dist(g);
 
@@ -682,6 +682,95 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
 
             swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
         }
+    } else if (scenario.simulation == swr::Simulation::MONTE_CARLO) {
+        res.terminal_values.reserve(scenario.simulations);
+
+        auto mean_data = [](const auto & data) {
+            float mean = 0.0f;
+            for (auto x : data) {
+                mean += std::log(x.value);
+            }
+            return mean / data.size();
+        };
+
+        auto stddev_data = [](const auto & data, float mean) {
+            float std = 0.0f;
+            for (auto x : data) {
+                std += (std::log(x.value) - mean) * (std::log(x.value) - mean);
+            }
+            return std::sqrt(std / data.size());
+        };
+
+        auto mean_inflation = mean_data(scenario.inflation_data);
+        auto stdd_inflation = stddev_data(scenario.inflation_data, mean_inflation);
+
+        std::array<float, N> mean_returns;
+        std::array<float, N> stdd_returns;
+
+        std::array<float, N> mean_exchange_rates;
+        std::array<float, N> stdd_exchange_rates;
+
+        for (size_t i = 0; i < N; ++i) {
+            mean_returns[i] = mean_data(scenario.values[i]);
+            stdd_returns[i] = stddev_data(scenario.values[i], mean_returns[i]);
+
+            mean_exchange_rates[i] = mean_data(scenario.exchange_rates[i]);
+            stdd_exchange_rates[i] = stddev_data(scenario.values[i], mean_exchange_rates[i]);
+        }
+
+        std::random_device                    rd;
+        std::default_random_engine            g(rd());
+
+        std::normal_distribution<float> dist_inflation(mean_inflation, stdd_inflation);
+
+        std::array<std::normal_distribution<float>, N> dist_returns;
+        std::array<std::normal_distribution<float>, N> dist_exchange_rates;
+
+        for (size_t i = 0; i < N; ++i) {
+            dist_returns[i] = std::normal_distribution<float>(mean_returns[i], stdd_returns[i]);
+            dist_exchange_rates[i] = std::normal_distribution<float>(mean_exchange_rates[i], stdd_exchange_rates[i]);
+        }
+
+        // Create copies of all data
+        auto copy_inflation_data = scenario.inflation_data;
+        auto copy_values         = scenario.values;
+        auto copy_exchange_rates = scenario.exchange_rates;
+
+        data_vector_array<N> copy_start_returns;
+        data_vector_array<N> copy_start_exchanges;
+
+        // Get an iterator to the data of the copy
+
+        for (size_t i = 0; i < N; ++i) {
+            copy_start_returns[i]   = copy_values[i].begin();
+            copy_start_exchanges[i] = copy_exchange_rates[i].begin();
+        }
+
+        const auto copy_start_inflation = copy_inflation_data.begin();
+
+        for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
+
+            for (size_t month = 0; month < scenario.years * 12; ++month) {
+                float log_inflation = dist_inflation(g);
+                copy_inflation_data[month].value = std::exp(log_inflation);
+
+                for (size_t i = 0; i < N; ++i) {
+                    float log_returns = dist_returns[i](g);
+                    copy_values[i][month].value = std::exp(log_returns);
+
+                    if (scenario.exchange_set[i]) {
+                        float log_exchange_rates = dist_exchange_rates[i](g);
+                        copy_exchange_rates[i][month].value = std::exp(log_exchange_rates);
+                    }
+                }
+            }
+
+            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
+        }
+    } else {
+        res.error = true;
+        res.message = "Invalid simulation method";
+        return res;
     }
 
     res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / float(res.successes);

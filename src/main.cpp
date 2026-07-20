@@ -1868,7 +1868,7 @@ void print_frequency_help() {
               << std::endl;
 }
 
-int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
+int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method) {
     if (args.size() < 7) {
         std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
         print_fixed_help();
@@ -1876,10 +1876,7 @@ int fixed_scenario(const std::vector<std::string>& args, bool bootstrapping) {
     }
 
     swr::scenario scenario;
-
-    if (bootstrapping) {
-        scenario.simulation = swr::Simulation::BOOTSTRAPPING;
-    }
+    scenario.simulation = method;
 
     scenario.wr         = atof(args[1].c_str());
     scenario.years      = atoi(args[2].c_str());
@@ -5012,9 +5009,11 @@ int main(int argc, const char* argv[]) {
         const auto& command = args[0];
 
         if (command == "fixed") {
-            return fixed_scenario(args, false);
+            return fixed_scenario(args, swr::Simulation::BACKTESTING);
         } else if (command == "fixed_boot") {
-            return fixed_scenario(args, true);
+            return fixed_scenario(args, swr::Simulation::BOOTSTRAPPING);
+        } else if (command == "fixed_mc") {
+            return fixed_scenario(args, swr::Simulation::MONTE_CARLO);
         } else if (command == "swr") {
             return single_swr_scenario(args);
         } else if (command == "multiple_wr") {

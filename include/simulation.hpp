@@ -19,7 +19,8 @@ enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
 enum Simulation {
     BACKTESTING,
-    BOOTSTRAPPING
+    BOOTSTRAPPING,
+    MONTE_CARLO
 };
 
 enum class WithdrawalMethod : uint64_t {
