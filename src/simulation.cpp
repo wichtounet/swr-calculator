@@ -623,7 +623,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                     auto stop_tp  = chr::high_resolution_clock::now();
                     auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
 
-                    if (size_t(duration) > scenario.timeout_msecs) {
+                    if (static_cast<size_t>(duration) > scenario.timeout_msecs) {
                         res.message = "The computation took too long";
                         res.error   = true;
                         std::cout << "ERROR: Timeout after " << duration << "ms\n";
@@ -750,15 +750,15 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
 
         for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
             for (size_t month = 0; month < scenario.years * 12; ++month) {
-                float log_inflation              = dist_inflation(g);
+                const float log_inflation        = dist_inflation(g);
                 copy_inflation_data[month].value = std::exp(log_inflation);
 
                 for (size_t i = 0; i < N; ++i) {
-                    float log_returns           = dist_returns[i](g);
+                    const float log_returns     = dist_returns[i](g);
                     copy_values[i][month].value = std::exp(log_returns);
 
                     if (scenario.exchange_set[i]) {
-                        float log_exchange_rates            = dist_exchange_rates[i](g);
+                        const float log_exchange_rates      = dist_exchange_rates[i](g);
                         copy_exchange_rates[i][month].value = std::exp(log_exchange_rates);
                     }
                 }
@@ -772,12 +772,12 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
         return res;
     }
 
-    res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / float(res.successes);
+    res.withdrawn_per_year = (res.total_withdrawn / scenario.years) / static_cast<float>(res.successes);
 
     res.highest_eff_wr *= 100.0f;
     res.lowest_eff_wr *= 100.0f;
 
-    res.success_rate = 100 * (res.successes / float(res.successes + res.failures));
+    res.success_rate = 100 * (res.successes / static_cast<float>(res.successes + res.failures));
     res.compute_terminal_values(res.terminal_values);
     res.compute_spending(res.spending, scenario.years);
 

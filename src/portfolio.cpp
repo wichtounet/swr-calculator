@@ -29,7 +29,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
         std::string position(portfolio_str.begin(), portfolio_str.begin() + portfolio_str.find(';'));
         portfolio_str.erase(portfolio_str.begin(), portfolio_str.begin() + position.size() + 1);
 
-        std::string pos_alloc(position.begin() + position.find(':') + 1, position.end());
+        const std::string pos_alloc(position.begin() + position.find(':') + 1, position.end());
 
         allocation alloc;
         alloc.asset      = std::string(position.begin(), position.begin() + position.find(':'));

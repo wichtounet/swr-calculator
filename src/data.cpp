@@ -44,9 +44,9 @@ swr::data_vector load_data(const std::string& name, const std::string& path) {
         auto index1 = line.find(',');
         auto index2 = line.find(',', index1 + 1);
 
-        std::string month(line.begin(), line.begin() + index1);
-        std::string year(line.begin() + index1 + 1, line.begin() + index2);
-        std::string value(line.begin() + index2 + 1, line.end());
+        const std::string month(line.begin(), line.begin() + index1);
+        const std::string year(line.begin() + index1 + 1, line.begin() + index2);
+        std::string       value(line.begin() + index2 + 1, line.end());
 
         if (value[0] == '\"') {
             value = value.substr(1, value.size() - 3);
@@ -132,12 +132,12 @@ std::vector<swr::data_vector> swr::load_adjusted_values(const std::vector<swr::a
 std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation>& portfolio) {
     std::vector<swr::data_vector> values;
 
-    for (auto& asset : portfolio) {
+    for (const auto& asset : portfolio) {
         const auto& asset_name = asset.asset;
 
-        bool x2 = asset_name.ends_with("_x2");
+        const bool x2 = asset_name.ends_with("_x2");
 
-        std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
+        const std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
 
         auto data = load_data(filename, "stock-data/" + filename + ".csv");
 
@@ -154,9 +154,9 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
             std::ranges::copy(copy, std::back_inserter(data.data));
 
             for (size_t i = 0; i < copy.size(); ++i) {
-                size_t      j    = copy.size() - 1 - i;
-                auto&       curr = data[j];
-                const auto& prev = data[j + 1];
+                const size_t j    = copy.size() - 1 - i;
+                auto&        curr = data[j];
+                const auto&  prev = data[j + 1];
 
                 if (prev.month == 1) {
                     curr.month = 12;
@@ -232,7 +232,7 @@ swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
 }
 
 float swr::get_value(const swr::data_vector& values, size_t year, size_t month) {
-    for (auto& data : values) {
+    for (const auto& data : values) {
         if (data.year == year && data.month == month) {
             return data.value;
         }
