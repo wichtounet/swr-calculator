@@ -399,8 +399,8 @@ void swr_simulation_period(swr::results&              res,
                            size_t                     withdraw_index,
                            size_t                     current_year,
                            size_t                     current_month,
-                           data_vector_array<N>      start_returns,
-                           data_vector_array<N>      start_exchanges,
+                           data_vector_array<N>       start_returns,
+                           data_vector_array<N>       start_exchanges,
                            swr::data_vector::iterator start_inflation) {
     data_vector_array<N> returns;
     data_vector_array<N> exchanges;
@@ -436,8 +436,8 @@ void swr_simulation_period(swr::results&              res,
         asset.allocation_ = asset.allocation;
     }
 
-    std::array<float, N> current_values;
-    std::array<float, N> market_values;
+    std::array<float, N> current_values{};
+    std::array<float, N> market_values{};
 
     // Compute the initial values of the assets
     for (size_t i = 0; i < N; ++i) {
@@ -590,7 +590,7 @@ void swr_simulation_period(swr::results&              res,
 }
 
 template <size_t N>
-swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, size_t withdraw_index) {
+swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, size_t withdraw_index) {
     auto start_tp = chr::high_resolution_clock::now();
 
     auto& inflation_data = scenario.inflation_data;
@@ -626,7 +626,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
                     if (size_t(duration) > scenario.timeout_msecs) {
                         res.message = "The computation took too long";
                         res.error   = true;
-                        std::cout << "ERROR: Timeout after " << duration << "ms" << std::endl;
+                        std::cout << "ERROR: Timeout after " << duration << "ms\n";
                         return res;
                     }
                 }
@@ -685,7 +685,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
     } else if (scenario.simulation == swr::Simulation::MONTE_CARLO) {
         res.terminal_values.reserve(scenario.simulations);
 
-        auto mean_data = [](const auto & data) {
+        auto mean_data = [](const auto& data) {
             float mean = 0.0f;
             for (auto x : data) {
                 mean += std::log(x.value);
@@ -693,7 +693,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
             return mean / data.size();
         };
 
-        auto stddev_data = [](const auto & data, float mean) {
+        auto stddev_data = [](const auto& data, float mean) {
             float std = 0.0f;
             for (auto x : data) {
                 std += (std::log(x.value) - mean) * (std::log(x.value) - mean);
@@ -704,11 +704,11 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
         auto mean_inflation = mean_data(scenario.inflation_data);
         auto stdd_inflation = stddev_data(scenario.inflation_data, mean_inflation);
 
-        std::array<float, N> mean_returns;
-        std::array<float, N> stdd_returns;
+        std::array<float, N> mean_returns{};
+        std::array<float, N> stdd_returns{};
 
-        std::array<float, N> mean_exchange_rates;
-        std::array<float, N> stdd_exchange_rates;
+        std::array<float, N> mean_exchange_rates{};
+        std::array<float, N> stdd_exchange_rates{};
 
         for (size_t i = 0; i < N; ++i) {
             mean_returns[i] = mean_data(scenario.values[i]);
@@ -718,16 +718,16 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
             stdd_exchange_rates[i] = stddev_data(scenario.values[i], mean_exchange_rates[i]);
         }
 
-        std::random_device                    rd;
-        std::default_random_engine            g(rd());
+        std::random_device         rd;
+        std::default_random_engine g(rd());
 
         std::normal_distribution<float> dist_inflation(mean_inflation, stdd_inflation);
 
-        std::array<std::normal_distribution<float>, N> dist_returns;
-        std::array<std::normal_distribution<float>, N> dist_exchange_rates;
+        std::array<std::normal_distribution<float>, N> dist_returns{};
+        std::array<std::normal_distribution<float>, N> dist_exchange_rates{};
 
         for (size_t i = 0; i < N; ++i) {
-            dist_returns[i] = std::normal_distribution<float>(mean_returns[i], stdd_returns[i]);
+            dist_returns[i]        = std::normal_distribution<float>(mean_returns[i], stdd_returns[i]);
             dist_exchange_rates[i] = std::normal_distribution<float>(mean_exchange_rates[i], stdd_exchange_rates[i]);
         }
 
@@ -749,17 +749,16 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
         const auto copy_start_inflation = copy_inflation_data.begin();
 
         for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
-
             for (size_t month = 0; month < scenario.years * 12; ++month) {
-                float log_inflation = dist_inflation(g);
+                float log_inflation              = dist_inflation(g);
                 copy_inflation_data[month].value = std::exp(log_inflation);
 
                 for (size_t i = 0; i < N; ++i) {
-                    float log_returns = dist_returns[i](g);
+                    float log_returns           = dist_returns[i](g);
                     copy_values[i][month].value = std::exp(log_returns);
 
                     if (scenario.exchange_set[i]) {
-                        float log_exchange_rates = dist_exchange_rates[i](g);
+                        float log_exchange_rates            = dist_exchange_rates[i](g);
                         copy_exchange_rates[i][month].value = std::exp(log_exchange_rates);
                     }
                 }
@@ -768,7 +767,7 @@ swr::results swr_simulation_inside(swr::results & res, swr::scenario& scenario, 
             swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
         }
     } else {
-        res.error = true;
+        res.error   = true;
         res.message = "Invalid simulation method";
         return res;
     }
@@ -888,11 +887,11 @@ swr::results swr_simulation(swr::scenario& scenario) {
             res.message = "The period is invalid with this duration. Try to use a longer period (1871-2018 works well) or a shorter duration.";
             res.error   = true;
             return res;
-        } else {
-            std::stringstream ss;
-            ss << "The period has been changed to " << scenario.start_year << ":" << scenario.end_year << " based on the available data. ";
-            res.message = ss.str();
         }
+
+        std::stringstream ss;
+        ss << "The period has been changed to " << scenario.start_year << ":" << scenario.end_year << " based on the available data. ";
+        res.message = ss.str();
     }
 
     // 2. Make sure the simulation makes sense
@@ -980,19 +979,13 @@ swr::results swr_simulation(swr::scenario& scenario) {
         }
 
         if (scenario.gp_pass > 0.0f && scenario.gp_goal <= portfolio[0].allocation) {
-            std::cout << scenario.gp_pass << std::endl;
-            std::cout << scenario.gp_goal << std::endl;
-            std::cout << portfolio[0].allocation << std::endl;
-            res.message = "Invalid goal/pass (1) for glidepath";
+            res.message = std::format("Invalid goal/pass ({}/{}) (1) for glidepath", scenario.gp_goal, scenario.gp_pass);
             res.error   = true;
             return res;
         }
 
         if (scenario.gp_pass < 0.0f && scenario.gp_goal >= portfolio[0].allocation) {
-            std::cout << scenario.gp_pass << std::endl;
-            std::cout << scenario.gp_goal << std::endl;
-            std::cout << portfolio[0].allocation << std::endl;
-            res.message = "Invalid goal/pass (2) for glidepath";
+            res.message = std::format("Invalid goal/pass ({}/{}) (2) for glidepath", scenario.gp_goal, scenario.gp_pass);
             res.error   = true;
             return res;
         }
@@ -1042,13 +1035,14 @@ swr::results swr_simulation(swr::scenario& scenario) {
 swr::Rebalancing swr::parse_rebalance(const std::string& str) {
     if (str == "none") {
         return Rebalancing::NONE;
-    } else if (str == "monthly") {
-        return Rebalancing::MONTHLY;
-    } else if (str == "yearly") {
-        return Rebalancing::YEARLY;
-    } else {
-        return Rebalancing::THRESHOLD;
     }
+    if (str == "monthly") {
+        return Rebalancing::MONTHLY;
+    }
+    if (str == "yearly") {
+        return Rebalancing::YEARLY;
+    }
+    return Rebalancing::THRESHOLD;
 }
 
 std::ostream& swr::operator<<(std::ostream& out, const Rebalancing& rebalance) {
@@ -1127,7 +1121,7 @@ swr::results swr::simulation(scenario& scenario) {
 void swr::results::compute_terminal_values(std::vector<float> terminal_values) {
     std::ranges::sort(terminal_values);
 
-    tv_median  = terminal_values[terminal_values.size() / 2 + 1];
+    tv_median  = terminal_values[(terminal_values.size() / 2) + 1];
     tv_minimum = terminal_values.front();
     tv_maximum = terminal_values.back();
     tv_average = std::accumulate(terminal_values.begin(), terminal_values.end(), 0.0f) / terminal_values.size();
@@ -1168,7 +1162,7 @@ void swr::results::compute_spending(std::vector<std::vector<float>>& yearly_spen
 
     std::ranges::sort(spending);
 
-    spending_median  = spending[spending.size() / 2 + 1] / years;
+    spending_median  = spending[(spending.size() / 2) + 1] / years;
     spending_minimum = spending.front() / years;
     spending_maximum = spending.back() / years;
     spending_average = (std::accumulate(spending.begin(), spending.end(), 0.0f) / spending.size()) / years;

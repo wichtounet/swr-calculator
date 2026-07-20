@@ -82,20 +82,20 @@ void multiple_wr(const swr::scenario& scenario) {
         std::cout << wr << "% Success Rate (Yearly): (" << yearly_results.successes << "/" << (yearly_results.failures + yearly_results.successes) << ") "
                   << yearly_results.success_rate << "%"
                   << " [" << yearly_results.tv_average << ":" << yearly_results.tv_median << ":" << yearly_results.tv_minimum << ":"
-                  << yearly_results.tv_maximum << "]" << std::endl;
+                  << yearly_results.tv_maximum << "]\n";
 
         if (yearly_results.error) {
-            std::cout << "Error in simulation: " << yearly_results.message << std::endl;
+            std::cout << "Error in simulation: " << yearly_results.message << "\n";
             return;
         }
 
         std::cout << wr << "% Success Rate (Monthly): (" << monthly_results.successes << "/" << (monthly_results.failures + monthly_results.successes) << ") "
                   << monthly_results.success_rate << "%"
                   << " [" << monthly_results.tv_average << ":" << monthly_results.tv_median << ":" << monthly_results.tv_minimum << ":"
-                  << monthly_results.tv_maximum << "]" << std::endl;
+                  << monthly_results.tv_maximum << "]\n";
 
         if (monthly_results.error) {
-            std::cout << "Error in simulation: " << monthly_results.message << std::endl;
+            std::cout << "Error in simulation: " << monthly_results.message << "\n";
             return;
         }
 
@@ -336,7 +336,7 @@ void multiple_wr_graph(
 
                     if (res.error) {
                         error = false;
-                        std::cout << std::endl << "ERROR: " << res.message << std::endl;
+                        std::cout << "\nERROR: " << res.message << "\n";
                     } else {
                         results[wr] = functor(res, wr);
                     }
@@ -382,7 +382,7 @@ void multiple_wr_sheets(std::string_view title, const swr::scenario& scenario, f
 
                     if (res.error) {
                         error = false;
-                        std::cout << std::endl << "ERROR: " << res.message << std::endl;
+                        std::cout << "\nERROR: " << res.message << "\n";
                     } else {
                         results[i] = functor(res);
                     }
@@ -714,7 +714,7 @@ void multiple_rebalance_graph(Graph& graph, swr::scenario scenario, float start_
 httplib::Server* server_ptr = nullptr;
 
 void server_signal_handler(int signum) {
-    std::cout << "Received signal (" << signum << ")" << std::endl;
+    std::cout << "Received signal (" << signum << ")\n";
 
     if (server_ptr) {
         server_ptr->stop();
@@ -729,7 +729,7 @@ void install_signal_handler() {
     sigaction(SIGTERM, &action, NULL);
     sigaction(SIGINT, &action, NULL);
 
-    std::cout << "Installed the signal handler" << std::endl;
+    std::cout << "Installed the signal handler\n";
 }
 
 bool check_parameters(const httplib::Request& req, httplib::Response& res, std::vector<const char*> parameters) {
@@ -807,7 +807,7 @@ void configure_withdrawal_method(swr::scenario& scenario, std::vector<std::strin
             scenario.wmethod = swr::WithdrawalMethod::VANGUARD;
             scenario.minimum = 0.03f;
         } else {
-            std::cout << "No support for method: " << args[n] << std::endl;
+            std::cout << "No support for method: " << args[n] << "\n";
         }
     } else {
         scenario.wmethod = swr::WithdrawalMethod::STANDARD;
@@ -1088,7 +1088,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         currency = req.get_param_value("currency") == "chf" ? "chf" : "usd";
     }
 
-    std::cout << "DEBUG: Request " << scenario << std::endl;
+    std::cout << "DEBUG: Request " << scenario << "\n";
 
     swr::normalize_portfolio(scenario.portfolio);
 
@@ -1113,7 +1113,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
     auto results = simulation(scenario);
 
     std::cout << "DEBUG: Response"
-              << " error=" << results.error << " message=" << results.message << " success_rate=" << results.success_rate << std::endl;
+              << " error=" << results.error << " message=" << results.message << " success_rate=" << results.success_rate << "\n";
 
     std::stringstream ss;
 
@@ -1151,7 +1151,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
+    std::cout << "DEBUG: Simulated in " << duration << "ms\n";
 }
 
 void server_retirement_api(const httplib::Request& req, httplib::Response& res) {
@@ -1194,7 +1194,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     float returns = 7.0f;
 
     std::cout << "DEBUG: Retirement Request wr=" << scenario.wr << " sr=" << sr << " nw=" << nw << " income=" << income << " expenses=" << expenses
-              << " rebalance=" << scenario.rebalance << std::endl;
+              << " rebalance=" << scenario.rebalance << "\n";
 
     float fi_number = expenses * (100.0f / scenario.wr);
 
@@ -1291,7 +1291,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
     }
 
     if (error) {
-        std::cout << "ERROR: Simulation error: " << message << std::endl;
+        std::cout << "ERROR: Simulation error: " << message << "\n";
     }
 
     std::stringstream ss;
@@ -1317,7 +1317,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
+    std::cout << "DEBUG: Simulated in " << duration << "ms\n";
 }
 
 std::string params_to_string(const httplib::Request& req) {
@@ -1390,7 +1390,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         return;
     }
 
-    std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << std::endl;
+    std::cout << "DEBUG: FI Planner Request " << params_to_string(req) << "\n";
 
     auto start = std::chrono::high_resolution_clock::now();
 
@@ -1698,7 +1698,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
         }
 
         if (error) {
-            std::cout << "ERROR: Simulation error: " << message << std::endl;
+            std::cout << "ERROR: Simulation error: " << message << "\n";
         }
 
         success_rate = results.success_rate;
@@ -1729,7 +1729,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
-    std::cout << "DEBUG: Simulated in " << duration << "ms" << std::endl;
+    std::cout << "DEBUG: Simulated in " << duration << "ms\n";
 }
 
 } // namespace
@@ -1780,7 +1780,7 @@ void print_general_help() {
             << "General Help:\n"
             << "  Use 'swr_calculator help' to display this help message.\n"
             << "  For detailed help on a specific command, provide incorrect arguments to trigger command-specific help.\n"
-            << std::endl;
+            << "\n";
 }
 
 void print_fixed_help() {
@@ -1798,7 +1798,7 @@ void print_fixed_help() {
               << "  [final_threshold]  (Optional) Final portfolio threshold as a percentage (default: 0%).\n\n"
               << "Example:\n"
               << "  swr_calculator fixed 4 30 1871 2024 \"us_stocks:100;\" us_inflation\n"
-              << std::endl;
+              << "\n";
 }
 
 void print_swr_help() {
@@ -1815,7 +1815,7 @@ void print_swr_help() {
               << "  [success_rate_limit] (Optional) Desired success rate limit as a percentage (default: 95%).\n\n"
               << "Example:\n"
               << "  swr_calculator swr 30 1871 2024 \"us_stocks:100;\" us_inflation 0.1 95\n"
-              << std::endl;
+              << "\n";
 }
 
 void print_multiple_wr_help() {
@@ -1831,7 +1831,7 @@ void print_multiple_wr_help() {
               << "  <rebalance_strategy> Strategy for rebalancing (e.g., 'annual', 'none').\n\n"
               << "Example:\n"
               << "  swr_calculator multiple_wr 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation annual\n"
-              << std::endl;
+              << "\n";
 }
 
 void print_withdraw_frequency_help() {
@@ -1850,7 +1850,7 @@ void print_withdraw_frequency_help() {
             << "  [portfolio_adjustment] (Optional) Adjustment factor for the portfolio in percentage (default: 20%).\n\n"
             << "Example:\n"
             << "  swr_calculator withdraw_frequency 4 30 1871 2024 \"us_stocks:70;us_bonds:30;\" us_inflation 0.1 25\n"
-            << std::endl;
+            << "\n";
 }
 
 void print_frequency_help() {
@@ -1865,12 +1865,12 @@ void print_frequency_help() {
               << "  <monthly_contribution> Monthly contribution amount (e.g., 500).\n\n"
               << "Example:\n"
               << "  swr_calculator frequency 1871 2024 30 12 500\n"
-              << std::endl;
+              << "\n";
 }
 
 int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method) {
     if (args.size() < 7) {
-        std::cout << "Error: Not enough arguments for the 'fixed' command." << std::endl;
+        std::cout << "Error: Not enough arguments for the 'fixed' command.\n";
         print_fixed_help();
         return 1;
     }
@@ -1911,7 +1911,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     }
 
     if (!prepare_exchange_rates(scenario, "usd")) {
-        std::cout << "Error with exchange rates" << std::endl;
+        std::cout << "Error with exchange rates\n";
         return 1;
     }
 
@@ -1920,22 +1920,22 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     auto printer = [&scenario](const std::string& message, const auto& results) {
         std::cout << "     Success Rate (" << message << "): (" << results.successes << "/" << (results.failures + results.successes) << ") "
                   << results.success_rate << " [" << results.tv_average << ":" << results.tv_median << ":" << results.tv_minimum << ":" << results.tv_maximum
-                  << "]" << std::endl;
+                  << "]\n";
 
         if (results.failures) {
             std::cout << "         Worst duration: " << results.worst_duration << " months (" << results.worst_starting_month << "/"
-                      << results.worst_starting_year << ")" << std::endl;
+                      << results.worst_starting_year << ")\n";
         } else {
-            std::cout << "         Worst duration: " << scenario.years * 12 << " months" << std::endl;
+            std::cout << "         Worst duration: " << scenario.years * 12 << " months\n";
         }
 
-        std::cout << "         Worst result: " << results.worst_tv << " (" << results.worst_tv_month << "/" << results.worst_tv_year << ")" << std::endl;
-        std::cout << "          Best result: " << results.best_tv << " (" << results.best_tv_month << "/" << results.best_tv_year << ")" << std::endl;
+        std::cout << "         Worst result: " << results.worst_tv << " (" << results.worst_tv_month << "/" << results.worst_tv_year << ")\n"
+                  << "          Best result: " << results.best_tv << " (" << results.best_tv_month << "/" << results.best_tv_year << ")\n"
 
-        std::cout << "         Highest Eff. WR: " << results.highest_eff_wr << "% (" << results.highest_eff_wr_start_month << "/"
-                  << results.highest_eff_wr_start_year << "->" << results.highest_eff_wr_year << ")" << std::endl;
-        std::cout << "          Lowest Eff. WR: " << results.lowest_eff_wr << "% (" << results.lowest_eff_wr_start_month << "/"
-                  << results.lowest_eff_wr_start_year << "->" << results.lowest_eff_wr_year << ")" << std::endl;
+                  << "         Highest Eff. WR: " << results.highest_eff_wr << "% (" << results.highest_eff_wr_start_month << "/"
+                  << results.highest_eff_wr_start_year << "->" << results.highest_eff_wr_year << ")\n"
+                  << "          Lowest Eff. WR: " << results.lowest_eff_wr << "% (" << results.lowest_eff_wr_start_month << "/"
+                  << results.lowest_eff_wr_start_year << "->" << results.lowest_eff_wr_year << ")\n";
     };
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -1945,7 +1945,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     auto yearly_results = swr::simulation(scenario);
 
     if (yearly_results.message.size()) {
-        std::cout << yearly_results.message << std::endl;
+        std::cout << yearly_results.message << "\n";
     }
 
     if (yearly_results.error) {
@@ -1958,7 +1958,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     auto monthly_results        = swr::simulation(scenario);
 
     if (monthly_results.message.size()) {
-        std::cout << monthly_results.message << std::endl;
+        std::cout << monthly_results.message << "\n";
     }
 
     if (monthly_results.error) {
@@ -1970,15 +1970,15 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     auto end      = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
-              << std::endl;
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
 
     return 0;
 }
 
 int single_swr_scenario(const std::vector<std::string>& args) {
     if (args.size() < 6) {
-        std::cout << "Error: Not enough arguments for the 'swr' command." << std::endl;
+        std::cout << "Error: Not enough arguments for the 'swr' command.\n";
         print_swr_help();
         return 1;
     }
@@ -2022,7 +2022,7 @@ int single_swr_scenario(const std::vector<std::string>& args) {
         auto results = swr::simulation(scenario);
 
         if (results.message.size()) {
-            std::cout << results.message << std::endl;
+            std::cout << results.message << "\n";
         }
 
         if (results.error) {
@@ -2036,20 +2036,20 @@ int single_swr_scenario(const std::vector<std::string>& args) {
         }
     }
 
-    std::cout << "WR: " << best_wr << "(" << best_results.success_rate << ")" << std::endl;
+    std::cout << "WR: " << best_wr << "(" << best_results.success_rate << ")\n";
 
     auto end      = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
-              << std::endl;
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
 
     return 0;
 }
 
 int multiple_swr_scenario(const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Error: Not enough arguments for the 'multiple_wr' command." << std::endl;
+        std::cout << "Error: Not enough arguments for the 'multiple_wr' command.\n";
         print_multiple_wr_help();
         return 1;
     }
@@ -2075,7 +2075,7 @@ int multiple_swr_scenario(const std::vector<std::string>& args) {
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -2093,15 +2093,15 @@ int multiple_swr_scenario(const std::vector<std::string>& args) {
     auto end      = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
-              << std::endl;
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
 
     return 0;
 }
 
 int withdraw_frequency_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command." << std::endl;
+        std::cout << "Error: Not enough arguments for the 'withdraw_frequency' command.\n";
         print_withdraw_frequency_help();
         return 1;
     }
@@ -2150,14 +2150,14 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
         for (size_t f = 1; f <= 24; ++f) {
             std::cout << f << ";";
         }
-        std::cout << std::endl;
+        std::cout << "\n";
     }
 
     prepare_exchange_rates(scenario, "usd");
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -2185,7 +2185,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
                 auto results = swr::simulation(scenario);
 
                 if (results.message.size()) {
-                    std::cout << results.message << std::endl;
+                    std::cout << results.message << "\n";
                 }
 
                 if (results.error) {
@@ -2204,7 +2204,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
                 g.add_data(g_results);
                 duration_g.add_data(duration_g_results);
             } else {
-                std::cout << std::endl;
+                std::cout << "\n";
             }
         }
     } else {
@@ -2224,7 +2224,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
             auto results = swr::simulation(scenario);
 
             if (results.message.size()) {
-                std::cout << results.message << std::endl;
+                std::cout << results.message << "\n";
             }
 
             if (results.error) {
@@ -2234,8 +2234,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
             std::cout << ";" << results.success_rate;
         }
 
-        std::cout << std::endl;
-        std::cout << std::endl;
+        std::cout << "\n\n";
 
         for (float w = 3.0f; w <= 6.0f; w += 0.25f) {
             std::cout << w;
@@ -2251,7 +2250,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
                 auto results = swr::simulation(scenario);
 
                 if (results.message.size()) {
-                    std::cout << results.message << std::endl;
+                    std::cout << results.message << "\n";
                 }
 
                 if (results.error) {
@@ -2268,7 +2267,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
             if (g.enabled_) {
                 g.add_data(g_results);
             } else {
-                std::cout << std::endl;
+                std::cout << "\n";
             }
         }
     }
@@ -2276,15 +2275,15 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
     auto end      = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
-              << std::endl;
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
 
     return 0;
 }
 
 int frequency_scenario(const std::vector<std::string>& args) {
     if (args.size() < 6) {
-        std::cout << "Error: Not enough arguments for the 'frequency' command." << std::endl;
+        std::cout << "Error: Not enough arguments for the 'frequency' command.\n";
         print_frequency_help();
         return 1;
     }
@@ -2338,8 +2337,8 @@ int frequency_scenario(const std::vector<std::string>& args) {
         }
     }
 
-    std::array<float, 6> worst_results;
-    std::array<float, 6> best_results;
+    std::array<float, 6> worst_results{};
+    std::array<float, 6> best_results{};
     worst_results.fill(0.0f);
     best_results.fill(0.0f);
 
@@ -2348,7 +2347,7 @@ int frequency_scenario(const std::vector<std::string>& args) {
             size_t end_year  = current_year + (current_month - 1 + months - 1) / 12;
             size_t end_month = 1 + ((current_month - 1) + (months - 1) % 12) % 12;
 
-            std::array<float, 6> results;
+            std::array<float, 6> results{};
 
             for (size_t freq = 1; freq <= 6; ++freq) {
                 size_t months = 0;
@@ -2379,16 +2378,16 @@ int frequency_scenario(const std::vector<std::string>& args) {
         }
     }
 
-    std::cout << "Average: " << std::fixed << total / simulations << std::endl;
-    std::cout << "Max: " << std::fixed << max << std::endl;
-    std::cout << "Simulations: " << simulations << std::endl;
+    std::cout << "Average: " << std::fixed << total / simulations << "\n";
+    std::cout << "Max: " << std::fixed << max << "\n";
+    std::cout << "Simulations: " << simulations << "\n";
 
     for (size_t f = 1; f < 6; ++f) {
-        std::cout << "Worst case " << f + 1 << " : " << worst_results[f] << std::endl;
+        std::cout << "Worst case " << f + 1 << " : " << worst_results[f] << "\n";
     }
 
     for (size_t f = 1; f < 6; ++f) {
-        std::cout << "Best case " << f + 1 << " : " << best_results[f] << std::endl;
+        std::cout << "Best case " << f + 1 << " : " << best_results[f] << "\n";
     }
 
     return 0;
@@ -2396,7 +2395,7 @@ int frequency_scenario(const std::vector<std::string>& args) {
 
 int analysis_scenario(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        std::cout << "Not enough arguments for analysis" << std::endl;
+        std::cout << "Not enough arguments for analysis\n";
         return 1;
     }
 
@@ -2496,14 +2495,14 @@ int analysis_scenario(const std::vector<std::string>& args) {
             }
         }
 
-        std::cout << name << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
-        std::cout << name << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
-        std::cout << name << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
+        std::cout << name << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%\n";
+        std::cout << name << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%\n";
+        std::cout << name << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%\n";
 
-        std::cout << name << " average monthly returns: +" << 100.0f * ((monthly_average / total) - 1.0f) << "%" << std::endl;
-        std::cout << name << " best monthly returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")" << std::endl;
-        std::cout << name << " worst monthly returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")" << std::endl;
-        std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)" << std::endl;
+        std::cout << name << " average monthly returns: +" << 100.0f * ((monthly_average / total) - 1.0f) << "%\n";
+        std::cout << name << " best monthly returns: +" << 100.0f * (best_month - 1.0f) << "% (" << best_month_str << ")\n";
+        std::cout << name << " worst monthly returns: -" << 100.0f * (1.0f - worst_month) << "% (" << worst_month_str << ")\n";
+        std::cout << name << " Negative months: " << negative << " (" << 100.0f * (negative / float(total)) << "%)\n";
     };
 
     analyzer(values[0], "CH Stocks");
@@ -2524,7 +2523,7 @@ int analysis_scenario(const std::vector<std::string>& args) {
 
 int portfolio_analysis_scenario(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        std::cout << "Not enough arguments for portfolio_analysis" << std::endl;
+        std::cout << "Not enough arguments for portfolio_analysis\n";
         return 1;
     }
 
@@ -2532,7 +2531,7 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
 
     auto values = swr::load_values(portfolio);
 
-    std::cout << "Number of assets: " << values.size() << std::endl;
+    std::cout << "Number of assets: " << values.size() << "\n";
 
     swr::data_vector merged = values[0];
 
@@ -2546,9 +2545,9 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
 
     auto yearly_returns = to_yearly_returns(merged);
 
-    std::cout << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%" << std::endl;
-    std::cout << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%" << std::endl;
-    std::cout << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%" << std::endl;
+    std::cout << " p40 yearly returns: " << 100.0f * (percentile(yearly_returns, 40) - 1.0f) << "%\n";
+    std::cout << " p50 yearly returns: " << 100.0f * (percentile(yearly_returns, 50) - 1.0f) << "%\n";
+    std::cout << " p60 yearly returns: " << 100.0f * (percentile(yearly_returns, 60) - 1.0f) << "%\n";
 
     auto cagr_returns = to_cagr_returns(portfolio, 20);
 
@@ -2560,11 +2559,11 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
         }
     }
 
-    std::cout << " p30 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 30) - adjusted_factor << "%" << std::endl;
-    std::cout << " p40 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 40) - adjusted_factor << "%" << std::endl;
-    std::cout << " p50 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 50) - adjusted_factor << "%" << std::endl;
-    std::cout << " p60 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 60) - adjusted_factor << "%" << std::endl;
-    std::cout << " p70 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 70) - adjusted_factor << "%" << std::endl;
+    std::cout << " p30 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 30) - adjusted_factor << "%\n";
+    std::cout << " p40 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 40) - adjusted_factor << "%\n";
+    std::cout << " p50 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 50) - adjusted_factor << "%\n";
+    std::cout << " p60 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 60) - adjusted_factor << "%\n";
+    std::cout << " p70 20-year cagr returns: " << 100.0f * percentile(cagr_returns, 70) - adjusted_factor << "%\n";
 
     return 0;
 }
@@ -2723,7 +2722,7 @@ int allocation_scenario() {
 
 int term_scenario(const std::vector<std::string>& args) {
     if (args.size() < 2) {
-        std::cout << "Not enough arguments for term" << std::endl;
+        std::cout << "Not enough arguments for term\n";
         return 1;
     }
 
@@ -3038,7 +3037,7 @@ int glidepath_scenario(std::string_view command, const std::vector<std::string>&
         failsafe_and_success(r_g, "100%-80% -0.5");
     }
 
-    std::cout << std::endl;
+    std::cout << "\n";
     std::cout << "Portfolio;Failsafe;1%;5%;10%;25%\n";
     std::cout << failsafe_ss.str();
 
@@ -3073,7 +3072,7 @@ int failsafe_scenario(std::string_view command, const std::vector<std::string>& 
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -3111,7 +3110,7 @@ int failsafe_scenario(std::string_view command, const std::vector<std::string>& 
 
 int data_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 4) {
-        std::cout << "Not enough arguments for data_graph" << std::endl;
+        std::cout << "Not enough arguments for data_graph\n";
         return 1;
     }
 
@@ -3148,7 +3147,7 @@ int data_graph_scenario(const std::vector<std::string>& args) {
 
 int data_time_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 5) {
-        std::cout << "Not enough arguments for data_time_graph" << std::endl;
+        std::cout << "Not enough arguments for data_time_graph\n";
         return 1;
     }
 
@@ -3186,7 +3185,7 @@ int data_time_graph_scenario(const std::vector<std::string>& args) {
 
 int trinity_success_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        std::cout << "Not enough arguments for trinity_sheets\n";
         return 1;
     }
 
@@ -3259,7 +3258,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
                 }
             }
         } else {
-            std::cout << "No support for country: " << country << std::endl;
+            std::cout << "No support for country: " << country << "\n";
             return 1;
         }
     } else {
@@ -3280,7 +3279,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -3308,7 +3307,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
 
 int die_with_zero_scenario(const std::vector<std::string>& args) {
     if (args.size() < 8) {
-        std::cout << "Not enough arguments for die_with_zero_graph" << std::endl;
+        std::cout << "Not enough arguments for die_with_zero_graph\n";
         return 1;
     }
 
@@ -3398,7 +3397,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
                         auto res = swr::simulation(my_scenario);
                         if (res.error) {
                             error = false;
-                            std::cout << std::endl << "ERROR: " << res.message << std::endl;
+                            std::cout << "\n" << "ERROR: " << res.message << "\n";
                         } else {
                             results_g1[wr] = res.success_rate;
                             if (res.failures) {
@@ -3457,7 +3456,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -3477,7 +3476,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
 
 int trinity_cash_graphs_scenario(const std::vector<std::string>& args) {
     if (args.size() < 4) {
-        std::cout << "Not enough arguments for trinity_cash_graphs" << std::endl;
+        std::cout << "Not enough arguments for trinity_cash_graphs\n";
         return 1;
     }
 
@@ -3604,7 +3603,7 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
     }
 
     if (scenario.portfolio.size() != 2) {
-        std::cout << "trinity_duration needs 2 assets in the portfolio" << std::endl;
+        std::cout << "trinity_duration needs 2 assets in the portfolio\n";
         return 1;
     }
 
@@ -3622,8 +3621,7 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
         }
     }
 
-    std::cout << std::endl;
-    std::cout << std::endl;
+    std::cout << "\n\n";
 
     {
         Graph g(graph);
@@ -3644,7 +3642,7 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
 
 int trinity_tv_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        std::cout << "Not enough arguments for trinity_sheets\n";
         return 1;
     }
 
@@ -3697,7 +3695,7 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
 
 int trinity_spending_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for trinity_sheets" << std::endl;
+        std::cout << "Not enough arguments for trinity_sheets\n";
         return 1;
     }
 
@@ -3757,7 +3755,7 @@ int trinity_spending_scenario(std::string_view command, const std::vector<std::s
 
 int income_scenario(const std::vector<std::string>& args) {
     if (args.size() < 10) {
-        std::cout << "Not enough arguments for income_graph" << std::endl;
+        std::cout << "Not enough arguments for income_graph\n";
         return 1;
     }
 
@@ -3772,7 +3770,7 @@ int income_scenario(const std::vector<std::string>& args) {
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
-        std::cout << "The Portfolio must be fixed" << std::endl;
+        std::cout << "The Portfolio must be fixed\n";
         return 1;
     }
 
@@ -3810,7 +3808,7 @@ int income_scenario(const std::vector<std::string>& args) {
 
 int social_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 11) {
-        std::cout << "Not enough arguments for social_sheets" << std::endl;
+        std::cout << "Not enough arguments for social_sheets\n";
         return 1;
     }
 
@@ -3827,7 +3825,7 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
-        std::cout << "The Portfolio must be fixed" << std::endl;
+        std::cout << "The Portfolio must be fixed\n";
         return 1;
     }
 
@@ -3883,7 +3881,7 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
 
 int social_pf_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 12) {
-        std::cout << "Not enough arguments for social_pf_sheets" << std::endl;
+        std::cout << "Not enough arguments for social_pf_sheets\n";
         return 1;
     }
 
@@ -3900,7 +3898,7 @@ int social_pf_scenario(std::string_view command, const std::vector<std::string>&
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) != 0.0f) {
-        std::cout << "The Portfolio must be open" << std::endl;
+        std::cout << "The Portfolio must be open\n";
         return 1;
     }
 
@@ -3950,7 +3948,7 @@ int social_pf_scenario(std::string_view command, const std::vector<std::string>&
 
 int current_wr_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for current_wr" << std::endl;
+        std::cout << "Not enough arguments for current_wr\n";
         return 1;
     }
 
@@ -4027,7 +4025,7 @@ int current_wr_scenario(std::string_view command, const std::vector<std::string>
         duration_graph.set_extra("\"legend_position\": \"bottom_left\",");
 
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -4084,7 +4082,7 @@ int current_wr_scenario(std::string_view command, const std::vector<std::string>
 
 int rebalance_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 6) {
-        std::cout << "Not enough arguments for rebalance_sheets" << std::endl;
+        std::cout << "Not enough arguments for rebalance_sheets\n";
         return 1;
     }
 
@@ -4154,7 +4152,7 @@ int rebalance_scenario(std::string_view command, const std::vector<std::string>&
 
 int threshold_rebalance_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 6) {
-        std::cout << "Not enough arguments for threshold_rebalance_sheets" << std::endl;
+        std::cout << "Not enough arguments for threshold_rebalance_sheets\n";
         return 1;
     }
 
@@ -4244,7 +4242,7 @@ int threshold_rebalance_scenario(std::string_view command, const std::vector<std
 
 int trinity_low_yield_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 8) {
-        std::cout << "Not enough arguments for trinity_low_yield_sheets" << std::endl;
+        std::cout << "Not enough arguments for trinity_low_yield_sheets\n";
         return 1;
     }
 
@@ -4312,7 +4310,7 @@ int trinity_low_yield_scenario(std::string_view command, const std::vector<std::
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -4370,7 +4368,7 @@ int trinity_low_yield_scenario(std::string_view command, const std::vector<std::
 
 int flexibility_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 12) {
-        std::cout << "Not enough arguments for flexibility_graph" << std::endl;
+        std::cout << "Not enough arguments for flexibility_graph\n";
         return 1;
     }
 
@@ -4389,7 +4387,7 @@ int flexibility_graph_scenario(const std::vector<std::string>& args) {
     } else if (args[7] == "portfolio") {
         scenario.flexibility = swr::Flexibility::PORTFOLIO;
     } else {
-        std::cout << "Invalid flexibility parameter" << std::endl;
+        std::cout << "Invalid flexibility parameter\n";
         return 1;
     }
 
@@ -4413,7 +4411,7 @@ int flexibility_graph_scenario(const std::vector<std::string>& args) {
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -4433,7 +4431,7 @@ int flexibility_graph_scenario(const std::vector<std::string>& args) {
 
 int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 8) {
-        std::cout << "Not enough arguments for flexibility_auto_graph" << std::endl;
+        std::cout << "Not enough arguments for flexibility_auto_graph\n";
         return 1;
     }
 
@@ -4452,7 +4450,7 @@ int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
     } else if (args[7] == "portfolio") {
         flexibility = swr::Flexibility::PORTFOLIO;
     } else {
-        std::cout << "Invalid flexibility parameter" << std::endl;
+        std::cout << "Invalid flexibility parameter\n";
         return 1;
     }
 
@@ -4553,7 +4551,7 @@ int flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
 
 int times_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 8) {
-        std::cout << "Not enough arguments for times_graph" << std::endl;
+        std::cout << "Not enough arguments for times_graph\n";
         return 1;
     }
 
@@ -4582,10 +4580,10 @@ int times_graph_scenario(const std::vector<std::string>& args) {
         std::cout << " " << position.asset << ": " << position.allocation << "%\n";
     }
 
-    std::cout << scenario << std::endl;
+    std::cout << scenario << "\n";
 
     if (!prepare_exchange_rates(scenario, "usd")) {
-        std::cout << "Error with exchange rates" << std::endl;
+        std::cout << "Error with exchange rates\n";
         return 1;
     }
 
@@ -4594,12 +4592,12 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     auto res = swr::simulation(scenario);
 
     if (res.error) {
-        std::cout << "Simulation error: " << res.message << std::endl;
+        std::cout << "Simulation error: " << res.message << "\n";
 
         return 1;
     }
 
-    std::cout << "Success rate: " << res.success_rate << std::endl;
+    std::cout << "Success rate: " << res.success_rate << "\n";
 
     std::vector<std::pair<int64_t, float>> raw_data;
     std::map<int64_t, float>               data;
@@ -4657,7 +4655,7 @@ int times_graph_scenario(const std::vector<std::string>& args) {
 
 int selection_graph_scenario(const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for selection_graph" << std::endl;
+        std::cout << "Not enough arguments for selection_graph\n";
         return 1;
     }
 
@@ -4676,7 +4674,7 @@ int selection_graph_scenario(const std::vector<std::string>& args) {
     if (args[6] == "none") {
         scenario.rebalance = swr::parse_rebalance(args[6]);
     } else if (args[6] != "auto" && args[6] != "gp") {
-        std::cout << "Invalid arguments for selection_graph" << std::endl;
+        std::cout << "Invalid arguments for selection_graph\n";
         return 1;
     }
 
@@ -4687,7 +4685,7 @@ int selection_graph_scenario(const std::vector<std::string>& args) {
     }
 
     if (!prepare_exchange_rates(scenario, "usd")) {
-        std::cout << "Error with exchange rates" << std::endl;
+        std::cout << "Error with exchange rates\n";
         return 1;
     }
 
@@ -4778,7 +4776,7 @@ int selection_graph_scenario(const std::vector<std::string>& args) {
 
 int trinity_cash_graph_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
-        std::cout << "Not enough arguments for trinity_cash" << std::endl;
+        std::cout << "Not enough arguments for trinity_cash\n";
         return 1;
     }
 
@@ -4832,7 +4830,7 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
-            std::cout << "Portfolio allocation cannot be zero!" << std::endl;
+            std::cout << "Portfolio allocation cannot be zero!\n";
             return 1;
         }
 
@@ -4872,8 +4870,8 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
 
         const float withdrawal = (wr / 100.0f) * scenario.initial_value;
 
-        std::array<std::vector<swr::results>, 61> all_results;
-        std::array<std::vector<swr::results>, 61> all_compare_results;
+        std::array<std::vector<swr::results>, 61> all_results{};
+        std::array<std::vector<swr::results>, 61> all_compare_results{};
 
         cpp::default_thread_pool pool(std::thread::hardware_concurrency());
 
@@ -4992,8 +4990,8 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
     auto end      = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
-    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration) << "/s)"
-              << std::endl;
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
 
     return 0;
 }
@@ -5002,7 +5000,7 @@ int main(int argc, const char* argv[]) {
     auto args = parse_args(argc, argv);
 
     if (args.empty()) {
-        std::cout << "Error: Not enough arguments." << std::endl;
+        std::cout << "Error: Not enough arguments.\n";
         print_general_help();
         return 1;
     } else {
@@ -5076,12 +5074,12 @@ int main(int argc, const char* argv[]) {
             return times_graph_scenario(args);
         } else if (command == "server") {
             if (args.size() < 3) {
-                std::cout << "Not enough arguments for server" << std::endl;
+                std::cout << "Not enough arguments for server\n";
                 return 1;
             }
 
-            std::string listen = args[1];
-            auto        port   = atoi(args[2].c_str());
+            const std::string listen = args[1];
+            const auto        port   = atoi(args[2].c_str());
 
             httplib::Server server;
 
@@ -5092,11 +5090,11 @@ int main(int argc, const char* argv[]) {
             install_signal_handler();
 
             server_ptr = &server;
-            std::cout << "Server is starting to listen on " << listen << ":" << port << std::endl;
+            std::cout << "Server is starting to listen on " << listen << ":" << port << "\n";
             server.listen(listen.c_str(), port);
-            std::cout << "Server has exited" << std::endl;
+            std::cout << "Server has exited\n";
         } else {
-            std::cout << "Unhandled command \"" << command << "\"" << std::endl;
+            std::cout << "Unhandled command \"" << command << "\"\n";
             return 1;
         }
     }

@@ -17,11 +17,7 @@ namespace swr {
 
 enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
-enum Simulation {
-    BACKTESTING,
-    BOOTSTRAPPING,
-    MONTE_CARLO
-};
+enum Simulation { BACKTESTING, BOOTSTRAPPING, MONTE_CARLO };
 
 enum class WithdrawalMethod : uint64_t {
     STANDARD,      // Withdraw based on the initial portfolio
@@ -141,11 +137,11 @@ struct scenario {
     float       flexibility_change_1    = 0.0;
     float       flexibility_change_2    = 0.0;
 
-    bool   bootstrapping             = false;
-    size_t simulations = 10000;
+    bool   bootstrapping = false;
+    size_t simulations   = 10000;
 
-    Simulation simulation = Simulation::BACKTESTING;
-    bool strict_validation = true;
+    Simulation simulation        = Simulation::BACKTESTING;
+    bool       strict_validation = true;
 
     bool is_failure(const context& context, float current_value) const {
         // If it's not the end, we simply need to not run out of money

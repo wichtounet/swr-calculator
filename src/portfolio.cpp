@@ -23,7 +23,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
     std::vector<allocation> portfolio;
     std::string             portfolio_str(portfolio_view);
 
-    size_t positions = std::ranges::count(portfolio_str, ';');
+    const size_t positions = std::ranges::count(portfolio_str, ';');
 
     for (size_t i = 0; i < positions; ++i) {
         std::string position(portfolio_str.begin(), portfolio_str.begin() + portfolio_str.find(';'));
@@ -44,9 +44,7 @@ std::vector<swr::allocation> swr::parse_portfolio(std::string_view portfolio_vie
 }
 
 void swr::normalize_portfolio(std::vector<allocation>& portfolio) {
-    float total = total_allocation(portfolio);
-
-    if (total != 100.0f) {
+    if (const float total = total_allocation(portfolio); total != 100.0f) {
         for (auto& position : portfolio) {
             position.allocation *= 100.0f / total;
         }

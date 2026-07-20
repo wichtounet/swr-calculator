@@ -33,7 +33,7 @@ swr::data_vector load_data(const std::string& name, const std::string& path) {
     std::ifstream file(path);
 
     if (!file) {
-        std::cout << "Impossible to load data " << path << std::endl;
+        std::cout << "Impossible to load data " << path << "\n";
         return {};
     }
 
@@ -142,7 +142,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
         auto data = load_data(filename, "stock-data/" + filename + ".csv");
 
         if (data.empty()) {
-            std::cout << "Impossible to load data for asset " << asset_name << std::endl;
+            std::cout << "Impossible to load data for asset " << asset_name << "\n";
             return {};
         }
 
@@ -187,7 +187,7 @@ swr::data_vector swr::load_inflation(const std::vector<swr::data_vector>& values
         inflation_data = load_data(inflation, "stock-data/" + inflation + ".csv");
 
         if (inflation_data.empty()) {
-            std::cout << "Impossible to load inflation data for asset " << inflation << std::endl;
+            std::cout << "Impossible to load inflation data for asset " << inflation << "\n";
             return {};
         }
 
@@ -202,7 +202,7 @@ swr::data_vector swr::load_exchange(const std::string& exchange) {
     auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
 
     if (exchange_data.empty()) {
-        std::cout << "Impossible to load exchange data for " << exchange << std::endl;
+        std::cout << "Impossible to load exchange data for " << exchange << "\n";
         return {};
     }
 
@@ -216,7 +216,7 @@ swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
     auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
 
     if (exchange_data.empty()) {
-        std::cout << "Impossible to load exchange data for " << exchange << std::endl;
+        std::cout << "Impossible to load exchange data for " << exchange << "\n";
         return {};
     }
 
@@ -238,7 +238,7 @@ float swr::get_value(const swr::data_vector& values, size_t year, size_t month) 
         }
     }
 
-    std::cout << "This should not happen (value out of range)" << std::endl;
+    std::cout << "This should not happen (value out of range)\n";
 
     return 0.0f;
 }
@@ -254,7 +254,7 @@ swr::data_vector_iterator swr::get_start_hint(data_vector_iterator hint, swr::da
         ++hint;
     }
 
-    std::cout << "This should not happen (start out of range) " << year << "/" << month << std::endl;
+    std::cout << "This should not happen (start out of range) " << year << "/" << month << "\n";
 
     return values.begin();
 }
