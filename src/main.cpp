@@ -4996,6 +4996,67 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
     return 0;
 }
 
+int method_success_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for method_success_graph\n";
+        return 1;
+    }
+
+    const bool graph = true;
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    float start_wr = 3.0f;
+    float end_wr = 6.0f;
+    float add_wr = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    // TODO Make it flexible for Monte Carlo
+
+    prepare_exchange_rates(scenario, "usd");
+
+    Graph g(graph);
+    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.set_extra(R"("legend_position": "bottom_left",)");
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!\n";
+            return 1;
+        }
+
+        for (size_t i = 80; i <= 100; i += 20) {
+            scenario.portfolio[0].allocation = static_cast<float>(i);
+            scenario.portfolio[1].allocation = static_cast<float>(100 - i);
+
+            scenario.simulation = swr::Simulation::BACKTESTING;
+            multiple_wr_success_graph(g, portfolio_to_blog_string(scenario, true) + " - Backtesting", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+            multiple_wr_success_graph(g, portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+
+        scenario.simulation = swr::Simulation::BACKTESTING;
+        multiple_wr_success_graph(g, portfolio_to_blog_string(scenario, true) + " - Backtesting", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+        multiple_wr_success_graph(g, portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+    }
+
+    return 0;
+}
+
 int main(int argc, const char* argv[]) {
     auto args = parse_args(argc, argv);
 
@@ -5072,6 +5133,8 @@ int main(int argc, const char* argv[]) {
             return trinity_cash_graph_scenario(command, args);
         } else if (command == "times_graph") {
             return times_graph_scenario(args);
+        } else if (command == "method_success_graph") {
+            return method_success_scenario(args);
         } else if (command == "server") {
             if (args.size() < 3) {
                 std::cout << "Not enough arguments for server\n";
