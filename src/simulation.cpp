@@ -630,6 +630,15 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                         return res;
                     }
                 }
+
+                // Go to the next round of data
+
+                for (size_t i = 0; i < N; ++i) {
+                    ++start_returns[i];
+                    ++start_exchanges[i];
+                }
+
+                ++start_inflation;
             }
         }
     } else if (scenario.simulation == swr::Simulation::BOOTSTRAPPING) {

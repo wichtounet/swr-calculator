@@ -17,7 +17,7 @@ namespace swr {
 
 enum class Rebalancing : uint64_t { NONE, MONTHLY, YEARLY, THRESHOLD };
 
-enum Simulation { BACKTESTING, BOOTSTRAPPING, MONTE_CARLO };
+enum class Simulation : uint64_t { BACKTESTING, BOOTSTRAPPING, MONTE_CARLO };
 
 enum class WithdrawalMethod : uint64_t {
     STANDARD,      // Withdraw based on the initial portfolio
