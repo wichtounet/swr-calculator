@@ -4009,8 +4009,8 @@ int method_success_scenario(const std::vector<std::string>& args) {
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float start_wr = 3.0f;
-    float end_wr = 6.0f;
-    float add_wr = 0.1f;
+    float end_wr   = 6.0f;
+    float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);

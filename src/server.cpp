@@ -903,7 +903,7 @@ void server_fi_planner_api(const httplib::Request& req, httplib::Response& res) 
 
 } // namespace
 
-int swr::server(const std::vector<std::string> & args) {
+int swr::server(const std::vector<std::string>& args) {
     if (args.size() < 3) {
         std::cout << "Not enough arguments for server\n";
         return 1;
