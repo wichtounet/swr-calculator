@@ -257,6 +257,22 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         currency = req.get_param_value("currency") == "chf" ? "chf" : "usd";
     }
 
+    if (req.has_param("simulation")) {
+        auto simulation = req.get_param_value("simulation");
+
+        if (simulation == "backtesting") {
+            scenario.simulation = swr::Simulation::BACKTESTING;
+        } else if (simulation == "bootstrapping") {
+            scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+        }
+
+        // TODO Add monte carlo later
+
+        scenario.simulations = 2500;
+    } else {
+        scenario.simulation = swr::Simulation::BACKTESTING;
+    }
+
     std::cout << "DEBUG: Request " << scenario << "\n";
 
     swr::normalize_portfolio(scenario.portfolio);
