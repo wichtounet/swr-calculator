@@ -3123,7 +3123,7 @@ int method_success_scenario(const std::vector<std::string>& args) {
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float start_wr = 3.0f;
-    float end_wr   = 6.0f;
+    float end_wr   = 5.0f;
     float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
@@ -3135,7 +3135,7 @@ int method_success_scenario(const std::vector<std::string>& args) {
 
     swr::Graph g(graph);
     g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
-    g.set_extra(R"("legend_position": "bottom_left",)");
+    g.set_extra(R"("legend_position": "bottom", "ymax": 100, "ymin": 60, )");
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
         if (scenario.portfolio.size() != 2) {
@@ -3162,6 +3162,47 @@ int method_success_scenario(const std::vector<std::string>& args) {
         scenario.simulation = swr::Simulation::BOOTSTRAPPING;
         swr::multiple_wr_success_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
     }
+
+    return 0;
+}
+
+int periods_success_scenario() {
+    const bool graph = true;
+
+    swr::scenario scenario;
+
+    scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+    scenario.years      = 50;
+    scenario.start_year = 1875;
+    scenario.end_year   = 2025;
+    scenario.portfolio  = swr::parse_portfolio("us_stocks:100;", true);
+    auto inflation      = "us_inflation";
+    scenario.rebalance  = swr::parse_rebalance("yearly");
+
+    float start_wr = 3.0f;
+    float end_wr   = 5.0f;
+    float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    swr::prepare_exchange_rates(scenario, "usd");
+
+    swr::Graph g(graph);
+    g.title_ = std::format("Bootstrapping short periods - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.set_extra(R"("legend_position": "bottom", "ymax": 100, "ymin": 60, )");
+
+    scenario.start_year = 1875;
+    scenario.end_year   = 1925;
+    swr::multiple_wr_success_graph(g, "1875-1925", true, scenario, start_wr, end_wr, add_wr);
+
+    scenario.start_year = 1925;
+    scenario.end_year   = 1975;
+    swr::multiple_wr_success_graph(g, "1925-1975", true, scenario, start_wr, end_wr, add_wr);
+
+    scenario.start_year = 1975;
+    scenario.end_year   = 2025;
+    swr::multiple_wr_success_graph(g, "1975-2025", true, scenario, start_wr, end_wr, add_wr);
 
     return 0;
 }
@@ -3244,6 +3285,8 @@ int main(int argc, const char* argv[]) {
             return times_graph_scenario(args);
         } else if (command == "method_success_graph") {
             return method_success_scenario(args);
+        } else if (command == "periods_success_graph") {
+            return periods_success_scenario();
         } else if (command == "server") {
             return swr::server(args);
         } else {
