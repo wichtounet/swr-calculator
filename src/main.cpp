@@ -1829,7 +1829,7 @@ int trinity_cash_graphs_scenario(const std::vector<std::string>& args) {
             scenario_bonds.portfolio[0].allocation = static_cast<float>(100 - i);
 
             swr::multiple_wr_success_graph(success_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
-            swr::multiple_wr_avg_tv_graph(tv_graph, scenario_bonds, start_wr, end_wr, add_wr);
+            swr::multiple_wr_avg_tv_graph(tv_graph, "", scenario_bonds, start_wr, end_wr, add_wr);
             swr::multiple_wr_duration_graph(duration_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
             swr::multiple_wr_quality_graph(quality_graph, "", true, scenario_bonds, start_wr, end_wr, add_wr);
         }
@@ -1847,7 +1847,7 @@ int trinity_cash_graphs_scenario(const std::vector<std::string>& args) {
             scenario_cash.portfolio[0].allocation = static_cast<float>(100 - i);
 
             swr::multiple_wr_success_graph(success_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
-            swr::multiple_wr_avg_tv_graph(tv_graph, scenario_cash, start_wr, end_wr, add_wr);
+            swr::multiple_wr_avg_tv_graph(tv_graph, "", scenario_cash, start_wr, end_wr, add_wr);
             swr::multiple_wr_duration_graph(duration_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
             swr::multiple_wr_quality_graph(quality_graph, "", true, scenario_cash, start_wr, end_wr, add_wr);
         }
@@ -3165,6 +3165,110 @@ int method_success_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+int method_duration_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for method_duration_graph\n";
+        return 1;
+    }
+
+    const bool graph = true;
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    float start_wr = 3.0f;
+    float end_wr   = 5.0f;
+    float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    // TODO Make it flexible for Monte Carlo
+
+    swr::prepare_exchange_rates(scenario, "usd");
+
+    swr::Graph g(graph, "Worst duration (months)");
+    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.set_extra(R"("legend_position": "bottom", "ymax": 600, "ymin": 0, )");
+
+    if (total_allocation(scenario.portfolio) == 0.0f) {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "Portfolio allocation cannot be zero!\n";
+            return 1;
+        }
+
+        for (size_t i = 80; i <= 100; i += 20) {
+            scenario.portfolio[0].allocation = static_cast<float>(i);
+            scenario.portfolio[1].allocation = static_cast<float>(100 - i);
+
+            scenario.simulation = swr::Simulation::BACKTESTING;
+            swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Backtesting", true, scenario, start_wr, end_wr, add_wr);
+
+            scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+            swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+        }
+    } else {
+        swr::normalize_portfolio(scenario.portfolio);
+
+        scenario.simulation = swr::Simulation::BACKTESTING;
+        swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Backtesting", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+        swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+    }
+
+    return 0;
+}
+
+int method_tv_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 7) {
+        std::cout << "Not enough arguments for method_tv_graph\n";
+        return 1;
+    }
+
+    const bool graph = true;
+
+    swr::scenario scenario;
+
+    scenario.years      = atoi(args[1].c_str());
+    scenario.start_year = atoi(args[2].c_str());
+    scenario.end_year   = atoi(args[3].c_str());
+    scenario.portfolio  = swr::parse_portfolio(args[4], true);
+    auto inflation      = args[5];
+    scenario.rebalance  = swr::parse_rebalance(args[6]);
+
+    float start_wr = 3.0f;
+    float end_wr   = 5.0f;
+    float add_wr   = 0.1f;
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    // TODO Make it flexible for Monte Carlo
+
+    swr::prepare_exchange_rates(scenario, "usd");
+
+    swr::Graph g(graph, "Value (USD)", "bar-graph");
+    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    g.set_extra(R"("legend_position": "bottom", "ymin": 8000, )");
+
+    swr::normalize_portfolio(scenario.portfolio);
+
+    scenario.simulation = swr::Simulation::BACKTESTING;
+    swr::multiple_wr_avg_tv_graph(g, "Backtesting", scenario, start_wr, end_wr, add_wr);
+
+    scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+    swr::multiple_wr_avg_tv_graph(g, "Bootstrapping", scenario, start_wr, end_wr, add_wr);
+
+    return 0;
+}
+
 int periods_success_scenario() {
     const bool graph = true;
 
@@ -3284,6 +3388,10 @@ int main(int argc, const char* argv[]) {
             return times_graph_scenario(args);
         } else if (command == "method_success_graph") {
             return method_success_scenario(args);
+        } else if (command == "method_duration_graph") {
+            return method_duration_scenario(args);
+        } else if (command == "method_tv_graph") {
+            return method_tv_scenario(args);
         } else if (command == "periods_success_graph") {
             return periods_success_scenario();
         } else if (command == "server") {
