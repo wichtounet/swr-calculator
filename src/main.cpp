@@ -12,6 +12,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 #include "data.hpp"
 #include "portfolio.hpp"
@@ -23,8 +24,6 @@
 
 #include "cpp_utils/parallel.hpp"
 #include "cpp_utils/thread_pool.hpp"
-
-#include <httplib.h>
 
 void print_general_help() {
     std::cout
