@@ -5,23 +5,18 @@
 //  http://opensource.org/licenses/MIT)
 //=======================================================================
 
-#include <format>
 #include <string>
 #include <iostream>
 #include <string_view>
 #include <chrono>
-#include <sstream>
-#include <iomanip>
+#include <algorithm>
+#include <cmath>
+#include <numeric>
 
 #include "data.hpp"
 #include "portfolio.hpp"
 #include "simulation.hpp"
 #include "utils.hpp"
-
-#include "cpp_utils/parallel.hpp"
-#include "cpp_utils/thread_pool.hpp"
-
-#include <httplib.h>
 
 std::vector<std::string> swr::parse_args(int argc, const char* argv[]) {
     std::vector<std::string> args;
