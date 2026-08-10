@@ -174,7 +174,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     scenario.start_year = atoi(args[3].c_str());
     scenario.end_year   = atoi(args[4].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[5], false);
-    auto inflation      = args[6];
+    const auto & inflation      = args[6];
 
     if (args.size() > 7) {
         scenario.fees = atof(args[7].c_str()) / 100.0f;
@@ -280,7 +280,7 @@ int single_swr_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
 
     if (args.size() > 6) {
         scenario.fees = atof(args[6].c_str()) / 100.0f;
@@ -351,7 +351,7 @@ int multiple_swr_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     scenario.values         = swr::load_values(scenario.portfolio);
@@ -406,7 +406,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
     scenario.start_year = atoi(args[3].c_str());
     scenario.end_year   = atoi(args[4].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[5], true);
-    auto inflation      = args[6];
+    const auto & inflation      = args[6];
 
     if (args.size() > 7) {
         scenario.fees = atof(args[7].c_str()) / 100.0f;
@@ -475,7 +475,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
 
                 auto results = swr::simulation(scenario);
 
-                if (results.message.size()) {
+                if (!results.message.empty()) {
                     std::cout << results.message << "\n";
                 }
 
@@ -514,7 +514,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
 
             auto results = swr::simulation(scenario);
 
-            if (results.message.size()) {
+            if (!results.message.empty()) {
                 std::cout << results.message << "\n";
             }
 
@@ -540,7 +540,7 @@ int withdraw_frequency_scenario(std::string_view command, const std::vector<std:
 
                 auto results = swr::simulation(scenario);
 
-                if (results.message.size()) {
+                if (!results.message.empty()) {
                     std::cout << results.message << "\n";
                 }
 
@@ -1140,7 +1140,7 @@ int glidepath_scenario(std::string_view command, const std::vector<std::string>&
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float start_wr = 3.0f;
@@ -1344,7 +1344,7 @@ int failsafe_scenario(std::string_view command, const std::vector<std::string>& 
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float portfolio_add = 10;
@@ -1488,7 +1488,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float portfolio_add = 25;
@@ -1609,7 +1609,7 @@ int die_with_zero_scenario(const std::vector<std::string>& args) {
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
 
-    const auto inflation = args[5];
+    const auto & inflation = args[5];
     scenario.rebalance   = swr::parse_rebalance(args[6]);
 
     const uint32_t multiplier = atoi(args[7].c_str());
@@ -1865,7 +1865,7 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     swr::configure_withdrawal_method(scenario, args, 7);
@@ -1947,7 +1947,7 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     swr::configure_withdrawal_method(scenario, args, 7);
@@ -2001,7 +2001,7 @@ int trinity_spending_scenario(std::string_view command, const std::vector<std::s
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     swr::configure_withdrawal_method(scenario, args, 7);
@@ -2057,7 +2057,7 @@ int income_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
@@ -2112,7 +2112,7 @@ int social_scenario(std::string_view command, const std::vector<std::string>& ar
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
@@ -2185,7 +2185,7 @@ int social_pf_scenario(std::string_view command, const std::vector<std::string>&
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     if (total_allocation(scenario.portfolio) != 0.0f) {
@@ -2252,7 +2252,7 @@ int current_wr_scenario(std::string_view command, const std::vector<std::string>
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
     scenario.fees       = 0.001; // TER = 0.1%
 
@@ -2385,7 +2385,7 @@ int rebalance_scenario(std::string_view command, const std::vector<std::string>&
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
 
     const float start_wr = 3.0f;
     const float end_wr   = 6.0f;
@@ -2455,7 +2455,7 @@ int threshold_rebalance_scenario(std::string_view command, const std::vector<std
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], false);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
 
     const float start_wr = 3.0f;
     const float end_wr   = 6.0f;
@@ -2545,7 +2545,7 @@ int trinity_low_yield_scenario(std::string_view command, const std::vector<std::
     scenario.start_year      = atoi(args[2].c_str());
     scenario.end_year        = atoi(args[3].c_str());
     scenario.portfolio       = swr::parse_portfolio(args[4], true);
-    auto inflation           = args[5];
+    const auto & inflation           = args[5];
     scenario.rebalance       = swr::parse_rebalance(args[6]);
     const float yield_adjust = atof(args[7].c_str());
 
@@ -2669,7 +2669,7 @@ int times_graph_scenario(const std::vector<std::string>& args) {
     scenario.start_year     = atoi(args[2].c_str());
     scenario.end_year       = atoi(args[3].c_str());
     scenario.portfolio      = swr::parse_portfolio(args[4], true);
-    auto inflation          = args[5];
+    const auto & inflation          = args[5];
     scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -2773,7 +2773,7 @@ int selection_graph_scenario(const std::vector<std::string>& args) {
     scenario.start_year     = atoi(args[2].c_str());
     scenario.end_year       = atoi(args[3].c_str());
     scenario.portfolio      = swr::parse_portfolio(args[4], true);
-    auto inflation          = args[5];
+    const auto & inflation          = args[5];
     scenario.wmethod        = swr::WithdrawalMethod::STANDARD;
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -2896,7 +2896,7 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float portfolio_add = 25;
@@ -3118,12 +3118,12 @@ int method_success_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-    float start_wr = 3.0f;
-    float end_wr   = 5.0f;
-    float add_wr   = 0.1f;
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -3179,7 +3179,7 @@ int method_duration_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
     float start_wr = 3.0f;
@@ -3240,12 +3240,12 @@ int method_tv_scenario(const std::vector<std::string>& args) {
     scenario.start_year = atoi(args[2].c_str());
     scenario.end_year   = atoi(args[3].c_str());
     scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
+    const auto & inflation      = args[5];
     scenario.rebalance  = swr::parse_rebalance(args[6]);
 
-    float start_wr = 3.0f;
-    float end_wr   = 5.0f;
-    float add_wr   = 0.1f;
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -3279,12 +3279,12 @@ int periods_success_scenario() {
     scenario.start_year = 1875;
     scenario.end_year   = 2025;
     scenario.portfolio  = swr::parse_portfolio("us_stocks:100;", true);
-    auto inflation      = "us_inflation";
+    const auto & inflation      = "us_inflation";
     scenario.rebalance  = swr::parse_rebalance("yearly");
 
-    float start_wr = 3.0f;
-    float end_wr   = 5.0f;
-    float add_wr   = 0.1f;
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
