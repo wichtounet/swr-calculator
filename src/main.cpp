@@ -3106,7 +3106,7 @@ int trinity_cash_graph_scenario(std::string_view command, const std::vector<std:
     return 0;
 }
 
-int method_success_scenario(const std::vector<std::string>& args) {
+int method_success_scenario(const std::vector<std::string>& args, bool mc) {
     if (args.size() < 7) {
         std::cout << "Not enough arguments for method_success_graph\n";
         return 1;
@@ -3130,12 +3130,14 @@ int method_success_scenario(const std::vector<std::string>& args) {
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-    // TODO Make it flexible for Monte Carlo
-
     swr::prepare_exchange_rates(scenario, "usd");
 
     swr::Graph g(graph);
-    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    if (mc) {
+        g.title_ = std::format("Monte Carlo simulations - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else {
+        g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    }
     g.set_extra(R"("legend_position": "bottom", "ymax": 100, "ymin": 60, )");
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
@@ -3153,6 +3155,11 @@ int method_success_scenario(const std::vector<std::string>& args) {
 
             scenario.simulation = swr::Simulation::BOOTSTRAPPING;
             swr::multiple_wr_success_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+
+            if (mc) {
+                scenario.simulation = swr::Simulation::MONTE_CARLO;
+                swr::multiple_wr_success_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Monte Carlo", true, scenario, start_wr, end_wr, add_wr);
+            }
         }
     } else {
         swr::normalize_portfolio(scenario.portfolio);
@@ -3162,6 +3169,11 @@ int method_success_scenario(const std::vector<std::string>& args) {
 
         scenario.simulation = swr::Simulation::BOOTSTRAPPING;
         swr::multiple_wr_success_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+
+        if (mc) {
+            scenario.simulation = swr::Simulation::MONTE_CARLO;
+            swr::multiple_wr_success_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Monte Carlo", true, scenario, start_wr, end_wr, add_wr);
+        }
     }
 
     return 0;
@@ -3391,7 +3403,9 @@ int main(int argc, const char* argv[]) {
         } else if (command == "times_graph") {
             return times_graph_scenario(args);
         } else if (command == "method_success_graph") {
-            return method_success_scenario(args);
+            return method_success_scenario(args, false);
+        } else if (command == "method_success_graph_mc") {
+            return method_success_scenario(args, true);
         } else if (command == "method_duration_graph") {
             return method_duration_scenario(args);
         } else if (command == "method_tv_graph") {
