@@ -136,8 +136,14 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
         const auto& asset_name = asset.asset;
 
         const bool x2 = asset_name.ends_with("_x2");
+        const bool l2 = asset_name.ends_with("_l2");
+        const bool l3 = asset_name.ends_with("_l3");
 
-        const std::string filename = x2 ? std::string(asset_name.begin(), asset_name.end() - 3) : asset_name;
+        std::string filename = asset_name;
+
+        if (x2 || l2 || l3) {
+            filename = std::string(asset_name.begin(), asset_name.end() - 3);
+        }
 
         auto data = load_data(filename, "stock-data/" + filename + ".csv");
 
@@ -165,6 +171,12 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
                     curr.month = prev.month - 1;
                     curr.year  = prev.year;
                 }
+            }
+        } else if (l2 || l3) {
+            for (auto & d : data) {
+                auto ret = d.value - 1.0f;
+                ret *= l2 ? 2.0f : 3.0f;
+                d.value = 1.0f + ret;
             }
         }
 
