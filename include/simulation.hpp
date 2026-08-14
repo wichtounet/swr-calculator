@@ -152,9 +152,9 @@ struct scenario {
         // If it's the end, we need to respect the threshold
         if (final_inflation) {
             return current_value <= final_threshold * context.target_value_;
-        } else {
-            return current_value <= final_threshold * initial_value;
         }
+
+        return current_value <= final_threshold * initial_value;
     }
 };
 

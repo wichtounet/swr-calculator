@@ -354,6 +354,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
 
     // Parse the optional parameters
 
+    scenario.rebalance = swr::Rebalancing::NONE;
     if (req.has_param("rebalance")) {
         auto param = req.get_param_value("rebalance");
 
@@ -363,11 +364,7 @@ void server_retirement_api(const httplib::Request& req, httplib::Response& res) 
             scenario.rebalance = swr::Rebalancing::MONTHLY;
         } else if (param == "yearly") {
             scenario.rebalance = swr::Rebalancing::YEARLY;
-        } else {
-            scenario.rebalance = swr::Rebalancing::NONE;
         }
-    } else {
-        scenario.rebalance = swr::Rebalancing::NONE;
     }
 
     const float returns = 7.0f;

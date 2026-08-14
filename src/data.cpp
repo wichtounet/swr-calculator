@@ -54,7 +54,7 @@ swr::data_vector load_data(const std::string& name, const std::string& path) {
 
         std::erase(value, ',');
 
-        swr::data data;
+        swr::data data{};
         data.month = atoi(month.c_str());
         data.year  = atoi(year.c_str());
         data.value = atof(value.c_str());

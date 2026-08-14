@@ -237,7 +237,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
 
     auto yearly_results = swr::simulation(scenario);
 
-    if (yearly_results.message.size()) {
+    if (!yearly_results.message.empty()) {
         std::cout << yearly_results.message << "\n";
     }
 
@@ -250,7 +250,7 @@ int fixed_scenario(const std::vector<std::string>& args, swr::Simulation method)
     scenario.withdraw_frequency = 1;
     auto monthly_results        = swr::simulation(scenario);
 
-    if (monthly_results.message.size()) {
+    if (!monthly_results.message.empty()) {
         std::cout << monthly_results.message << "\n";
     }
 
@@ -314,7 +314,7 @@ int single_swr_scenario(const std::vector<std::string>& args) {
 
         auto results = swr::simulation(scenario);
 
-        if (results.message.size()) {
+        if (!results.message.empty()) {
             std::cout << results.message << "\n";
         }
 
