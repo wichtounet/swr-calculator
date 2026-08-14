@@ -25,6 +25,8 @@
 #include "cpp_utils/parallel.hpp"
 #include "cpp_utils/thread_pool.hpp"
 
+namespace {
+
 void print_general_help() {
     std::cout
             << "\nSafe Withdrawal Rate (SWR) Calculator - Command Line Tool\n"
@@ -3182,9 +3184,9 @@ int method_duration_scenario(const std::vector<std::string>& args) {
     const auto& inflation = args[5];
     scenario.rebalance    = swr::parse_rebalance(args[6]);
 
-    float start_wr = 3.0f;
-    float end_wr   = 5.0f;
-    float add_wr   = 0.1f;
+    const float start_wr = 3.0f;
+    const float end_wr   = 5.0f;
+    const float add_wr   = 0.1f;
 
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
@@ -3308,6 +3310,8 @@ int periods_success_scenario() {
     swr::multiple_wr_success_graph(g, "1975-2025", true, scenario, start_wr, end_wr, add_wr);
 
     return 0;
+}
+
 }
 
 int main(int argc, const char* argv[]) {

@@ -37,12 +37,12 @@ void server_signal_handler(int signum) {
 }
 
 void install_signal_handler() {
-    struct sigaction action;
+    struct sigaction action{};
     sigemptyset(&action.sa_mask);
     action.sa_flags   = 0;
     action.sa_handler = server_signal_handler;
-    sigaction(SIGTERM, &action, NULL);
-    sigaction(SIGINT, &action, NULL);
+    sigaction(SIGTERM, &action, nullptr);
+    sigaction(SIGINT, &action, nullptr);
 
     std::cout << "Installed the signal handler\n";
 }
