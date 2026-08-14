@@ -202,21 +202,26 @@ void swr::multiple_wr(const swr::scenario& scenario) {
 std::string swr::asset_to_string(std::string_view asset) {
     if (asset == "ch_stocks") {
         return "CH Stocks";
-    } else if (asset == "us_stocks") {
-        return "US Stocks";
-    } else if (asset == "ex_us_stocks") {
-        return "ex-US Stocks";
-    } else if (asset == "ch_bonds") {
-        return "CH Bonds";
-    } else if (asset == "us_bonds") {
-        return "US Bonds";
-    } else if (asset == "gold") {
-        return "Gold";
-    } else if (asset == "commodities") {
-        return "Commodities";
-    } else {
-        return std::string(asset);
     }
+    if (asset == "us_stocks") {
+        return "US Stocks";
+    }
+    if (asset == "ex_us_stocks") {
+        return "ex-US Stocks";
+    }
+    if (asset == "ch_bonds") {
+        return "CH Bonds";
+    }
+    if (asset == "us_bonds") {
+        return "US Bonds";
+    }
+    if (asset == "gold") {
+        return "Gold";
+    }
+    if (asset == "commodities") {
+        return "Commodities";
+    }
+    return std::string(asset);
 }
 
 std::string swr::asset_to_string_percent(std::string_view asset) {
@@ -226,21 +231,26 @@ std::string swr::asset_to_string_percent(std::string_view asset) {
 std::string_view swr::asset_to_blog_string(std::string_view asset) {
     if (asset == "ch_stocks") {
         return "Stocks";
-    } else if (asset == "us_stocks") {
-        return "Stocks";
-    } else if (asset == "ex_us_stocks") {
-        return "Stocks";
-    } else if (asset == "ch_bonds") {
-        return "Bonds";
-    } else if (asset == "us_bonds") {
-        return "Bonds";
-    } else if (asset == "gold") {
-        return "Gold";
-    } else if (asset == "commodities") {
-        return "Commodities";
-    } else {
-        return asset;
     }
+    if (asset == "us_stocks") {
+        return "Stocks";
+    }
+    if (asset == "ex_us_stocks") {
+        return "Stocks";
+    }
+    if (asset == "ch_bonds") {
+        return "Bonds";
+    }
+    if (asset == "us_bonds") {
+        return "Bonds";
+    }
+    if (asset == "gold") {
+        return "Gold";
+    }
+    if (asset == "commodities") {
+        return "Commodities";
+    }
+    return asset;
 }
 
 std::string swr::portfolio_to_blog_string(const swr::scenario& scenario, bool shortForm) {
@@ -251,8 +261,6 @@ std::string swr::portfolio_to_blog_string(const swr::scenario& scenario, bool sh
 
         if (first.allocation == 0) {
             ss << second.allocation << "% " << asset_to_blog_string(second.asset);
-        } else if (second.allocation == 0) {
-            ss << first.allocation << "% " << asset_to_blog_string(first.asset);
         } else {
             ss << first.allocation << "% " << asset_to_blog_string(first.asset);
         }
@@ -276,8 +284,6 @@ std::string swr::portfolio_to_string(const swr::scenario& scenario, bool shortFo
 
         if (first.allocation == 0) {
             ss << second.allocation << asset_to_string_percent(second.asset);
-        } else if (second.allocation == 0) {
-            ss << first.allocation << asset_to_string_percent(first.asset);
         } else {
             ss << first.allocation << asset_to_string_percent(first.asset);
         }
@@ -341,9 +347,8 @@ void swr::multiple_wr_duration_graph(
     multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results, float) {
         if (results.failures) {
             return results.worst_duration;
-        } else {
-            return scenario.years * 12;
         }
+        return scenario.years * 12;
     });
 }
 
@@ -352,9 +357,8 @@ void swr::multiple_wr_quality_graph(
     multiple_wr_graph(graph, title, shortForm, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results, float) {
         if (results.failures) {
             return results.success_rate * (results.worst_duration / (scenario.years * 12.0f));
-        } else {
-            return 1.0f * results.success_rate;
         }
+        return 1.0f * results.success_rate;
     });
 }
 
@@ -370,9 +374,8 @@ void swr::multiple_wr_duration_sheets(std::string_view title, const swr::scenari
     multiple_wr_sheets(title, scenario, start_wr, end_wr, add_wr, [&scenario](const auto& results) {
         if (results.failures) {
             return results.worst_duration;
-        } else {
-            return scenario.years * 12;
         }
+        return scenario.years * 12;
     });
 }
 

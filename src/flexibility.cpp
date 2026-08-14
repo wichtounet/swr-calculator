@@ -27,13 +27,13 @@ int swr::flexibility_graph_scenario(const std::vector<std::string>& args) {
 
     swr::scenario scenario;
 
-    scenario.years       = atoi(args[1].c_str());
-    scenario.start_year  = atoi(args[2].c_str());
-    scenario.end_year    = atoi(args[3].c_str());
-    scenario.portfolio   = swr::parse_portfolio(args[4], true);
-    auto inflation       = args[5];
-    scenario.rebalance   = swr::parse_rebalance(args[6]);
-    scenario.flexibility = swr::Flexibility::NONE;
+    scenario.years        = atoi(args[1].c_str());
+    scenario.start_year   = atoi(args[2].c_str());
+    scenario.end_year     = atoi(args[3].c_str());
+    scenario.portfolio    = swr::parse_portfolio(args[4], true);
+    const auto& inflation = args[5];
+    scenario.rebalance    = swr::parse_rebalance(args[6]);
+    scenario.flexibility  = swr::Flexibility::NONE;
 
     if (args[7] == "market") {
         scenario.flexibility = swr::Flexibility::MARKET;
@@ -90,13 +90,13 @@ int swr::flexibility_auto_graph_scenario(const std::vector<std::string>& args) {
 
     swr::scenario scenario;
 
-    scenario.years      = atoi(args[1].c_str());
-    scenario.start_year = atoi(args[2].c_str());
-    scenario.end_year   = atoi(args[3].c_str());
-    scenario.portfolio  = swr::parse_portfolio(args[4], true);
-    auto inflation      = args[5];
-    scenario.rebalance  = swr::parse_rebalance(args[6]);
-    auto flexibility    = swr::Flexibility::NONE;
+    scenario.years        = atoi(args[1].c_str());
+    scenario.start_year   = atoi(args[2].c_str());
+    scenario.end_year     = atoi(args[3].c_str());
+    scenario.portfolio    = swr::parse_portfolio(args[4], true);
+    const auto& inflation = args[5];
+    scenario.rebalance    = swr::parse_rebalance(args[6]);
+    auto flexibility      = swr::Flexibility::NONE;
 
     if (args[7] == "market") {
         flexibility = swr::Flexibility::MARKET;

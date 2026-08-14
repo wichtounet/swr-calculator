@@ -111,6 +111,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
 
     // Parse the optional parameters
 
+    scenario.rebalance = swr::Rebalancing::NONE;
     if (req.has_param("rebalance")) {
         auto param = req.get_param_value("rebalance");
 
@@ -122,11 +123,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
             scenario.rebalance = swr::Rebalancing::YEARLY;
         } else if (param == "threshold") {
             scenario.rebalance = swr::Rebalancing::THRESHOLD;
-        } else {
-            scenario.rebalance = swr::Rebalancing::NONE;
         }
-    } else {
-        scenario.rebalance = swr::Rebalancing::NONE;
     }
 
     if (req.has_param("rebalance_threshold")) {
@@ -201,6 +198,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
         scenario.wmethod = swr::WithdrawalMethod::STANDARD;
     }
 
+    scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
     if (req.has_param("withdraw_selection")) {
         auto selection = req.get_param_value("withdraw_selection");
 
@@ -208,11 +206,7 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
             scenario.wselection = swr::WithdrawalSelection::STOCKS;
         } else if (selection == "bonds") {
             scenario.wselection = swr::WithdrawalSelection::BONDS;
-        } else {
-            scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
         }
-    } else {
-        scenario.wselection = swr::WithdrawalSelection::ALLOCATION;
     }
 
     if (req.has_param("initial_cash")) {
@@ -925,8 +919,8 @@ int swr::server(const std::vector<std::string>& args) {
         return 1;
     }
 
-    const std::string listen = args[1];
-    const auto        port   = atoi(args[2].c_str());
+    const std::string& listen = args[1];
+    const auto         port   = atoi(args[2].c_str());
 
     httplib::Server server;
 

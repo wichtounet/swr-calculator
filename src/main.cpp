@@ -3312,7 +3312,7 @@ int periods_success_scenario() {
     return 0;
 }
 
-}
+} // namespace
 
 int main(int argc, const char* argv[]) {
     auto args = swr::parse_args(argc, argv);
