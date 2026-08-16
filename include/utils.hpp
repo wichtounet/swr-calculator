@@ -11,6 +11,8 @@
 #include <vector>
 
 #include "portfolio.hpp"
+#include "data.hpp"
+#include "simulation.hpp"
 
 namespace swr {
 

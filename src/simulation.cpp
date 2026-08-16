@@ -5,9 +5,6 @@
 //  http://opensource.org/licenses/MIT)
 //=======================================================================
 
-#include "simulation.hpp"
-#include "data.hpp"
-
 #include <algorithm>
 #include <random>
 #include <iostream>
@@ -17,6 +14,10 @@
 #include <cmath>
 #include <array>
 #include <chrono>
+#include <utility>
+
+#include "simulation.hpp"
+#include "data.hpp"
 
 namespace chr = std::chrono;
 
@@ -238,10 +239,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
 
             // Make sure, we don't go over the minimum
-            const float minimum_withdrawal = context.minimum / (12.0f / periods);
-            if (withdrawal_amount < minimum_withdrawal) {
-                withdrawal_amount = minimum_withdrawal;
-            }
+            withdrawal_amount = std::max(withdrawal_amount, context.minimum / (12.0f / periods));
         } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
             const auto year            = context.months / 12;
             const auto remaining_years = scenario.years - year;
@@ -306,10 +304,7 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
             withdrawal_amount = context.vanguard_withdrawal / (12.0f / periods);
 
             // Make sure, we don't go over the minimum
-            const float minimum_withdrawal = context.minimum / (12.0f / periods);
-            if (withdrawal_amount < minimum_withdrawal) {
-                withdrawal_amount = minimum_withdrawal;
-            }
+            withdrawal_amount = std::max(withdrawal_amount, context.minimum / (12.0f / periods));
         }
 
         // Social security means we have less to withdraw
@@ -623,7 +618,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                     auto stop_tp  = chr::high_resolution_clock::now();
                     auto duration = chr::duration_cast<chr::milliseconds>(stop_tp - start_tp).count();
 
-                    if (static_cast<size_t>(duration) > scenario.timeout_msecs) {
+                    if (std::cmp_greater(duration, scenario.timeout_msecs)) {
                         res.message = "The computation took too long";
                         res.error   = true;
                         std::cout << "ERROR: Timeout after " << duration << "ms\n";

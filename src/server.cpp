@@ -47,9 +47,9 @@ void install_signal_handler() {
     std::cout << "Installed the signal handler\n";
 }
 
-bool check_parameters(const httplib::Request& req, httplib::Response& res, std::vector<const char*> parameters) {
+bool check_parameters(const httplib::Request& req, httplib::Response& res, const std::vector<const char*>& parameters) {
     using namespace std::string_literals;
-    for (auto& param : parameters) {
+    for (const auto& param : parameters) {
         if (!req.has_param(param)) {
             res.set_content(R"({"results":{"message": "Missing parameter )"s + param + R"(","error": true,}})", "text/json");
             return false;
@@ -929,7 +929,7 @@ int swr::server(const std::vector<std::string>& args) {
 
     server_ptr = &server;
     std::cout << "Server is starting to listen on " << listen << ":" << port << "\n";
-    server.listen(listen.c_str(), port);
+    server.listen(listen, port);
     std::cout << "Server has exited\n";
 
     return 0;

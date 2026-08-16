@@ -56,7 +56,7 @@ float failsafe_swr_one(swr::scenario& scenario, float start_wr, float end_wr, fl
 void  failsafe_swr(swr::scenario& scenario, float start_wr, float end_wr, float step, float goal, std::ostream& out);
 void  failsafe_swr(std::string_view title, swr::scenario& scenario, float start_wr, float end_wr, float step, std::ostream& out);
 
-void multiple_wr_avg_tv_graph(swr::Graph& graph, std::string_view title, swr::scenario scenario, float start_wr, float end_wr, float add_wr);
+void multiple_wr_avg_tv_graph(swr::Graph& graph, std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr);
 
 void multiple_wr_quality_graph(
         swr::Graph& graph, std::string_view title, bool shortForm, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr);

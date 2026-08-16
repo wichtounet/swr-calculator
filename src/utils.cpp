@@ -20,6 +20,7 @@
 
 std::vector<std::string> swr::parse_args(int argc, const char* argv[]) {
     std::vector<std::string> args;
+    args.reserve(argc - 1);
 
     for (int i = 0; i < argc - 1; ++i) {
         args.emplace_back(argv[i + 1]);

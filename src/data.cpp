@@ -173,7 +173,7 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
                 }
             }
         } else if (l2 || l3) {
-            for (auto & d : data) {
+            for (auto& d : data) {
                 auto ret = d.value - 1.0f;
                 ret *= l2 ? 2.0f : 3.0f;
                 d.value = 1.0f + ret;

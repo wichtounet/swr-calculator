@@ -9,7 +9,9 @@
 
 #include <vector>
 #include <map>
+#include <sstream>
 #include <string_view>
+
 #include "cpp_utils/assert.hpp"
 
 #include "portfolio.hpp"
@@ -22,9 +24,9 @@ struct GraphBase {
 
     template <typename T1, typename T2>
     void dump_labels(const std::vector<std::map<T1, T2>>& data) {
-        cpp_assert(data.size(), "data cannot be empty");
+        cpp_assert(!data.empty(), "data cannot be empty");
 
-        std::string sep = "";
+        std::string sep;
         for (auto& [key, value] : data.front()) {
             std::cout << sep << key;
             sep = ",";

@@ -1083,7 +1083,7 @@ int term_scenario(const std::vector<std::string>& args) {
                 ++start;
             }
 
-            std::sort(results.begin(), results.end());
+            std::ranges::sort(results);
 
             size_t negative_returns = 0;
             for (size_t i = 0; i < results.size(); ++i) {
@@ -1531,7 +1531,7 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
     if (args.size() > 15) {
-        const std::string country = args[15];
+        const std::string& country = args[15];
 
         if (country == "switzerland") {
             auto exchange_data = swr::load_exchange("usd_chf");
@@ -2780,7 +2780,7 @@ int selection_graph_scenario(const std::vector<std::string>& args) {
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-    const std::string test = args[6];
+    const std::string& test = args[6];
     if (args[6] == "none") {
         scenario.rebalance = swr::parse_rebalance(args[6]);
     } else if (args[6] != "auto" && args[6] != "gp") {
