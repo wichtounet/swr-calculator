@@ -689,20 +689,28 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
     } else if (scenario.simulation == swr::Simulation::MONTE_CARLO) {
         res.terminal_values.reserve(scenario.simulations);
 
-        auto mean_data = [](const auto& data) {
+        auto mean_data = [&scenario](const auto& data) {
             float mean = 0.0f;
+            size_t count = 0;
             for (auto x : data) {
-                mean += std::log(x.value);
+                if (x.year >= scenario.start_year && x.year <= scenario.end_year) {
+                    mean += std::log(x.value);
+                    ++count;
+                }
             }
-            return mean / data.size();
+            return mean / count;
         };
 
-        auto stddev_data = [](const auto& data, float mean) {
+        auto stddev_data = [&scenario](const auto& data, float mean) {
             float std = 0.0f;
+            size_t count = 0;
             for (auto x : data) {
-                std += (std::log(x.value) - mean) * (std::log(x.value) - mean);
+                if (x.year >= scenario.start_year && x.year <= scenario.end_year) {
+                    std += (std::log(x.value) - mean) * (std::log(x.value) - mean);
+                    ++count;
+                }
             }
-            return std::sqrt(std / data.size());
+            return std::sqrt(std / count);
         };
 
         auto mean_inflation = mean_data(scenario.inflation_data);
