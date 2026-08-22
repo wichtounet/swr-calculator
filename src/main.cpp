@@ -3179,7 +3179,7 @@ int method_success_scenario(const std::vector<std::string>& args, bool mc) {
     return 0;
 }
 
-int method_duration_scenario(const std::vector<std::string>& args) {
+int method_duration_scenario(const std::vector<std::string>& args, bool mc) {
     if (args.size() < 7) {
         std::cout << "Not enough arguments for method_duration_graph\n";
         return 1;
@@ -3203,12 +3203,14 @@ int method_duration_scenario(const std::vector<std::string>& args) {
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-    // TODO Make it flexible for Monte Carlo
-
     swr::prepare_exchange_rates(scenario, "usd");
 
     swr::Graph g(graph, "Worst duration (months)");
-    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    if (mc) {
+        g.title_ = std::format("Monte Carlo simulations - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else {
+        g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    }
     g.set_extra(R"("legend_position": "bottom", "ymax": 600, "ymin": 0, )");
 
     if (total_allocation(scenario.portfolio) == 0.0f) {
@@ -3226,6 +3228,11 @@ int method_duration_scenario(const std::vector<std::string>& args) {
 
             scenario.simulation = swr::Simulation::BOOTSTRAPPING;
             swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+
+            if (mc) {
+                scenario.simulation = swr::Simulation::MONTE_CARLO;
+                swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Monte Carlo", true, scenario, start_wr, end_wr, add_wr);
+            }
         }
     } else {
         swr::normalize_portfolio(scenario.portfolio);
@@ -3235,12 +3242,17 @@ int method_duration_scenario(const std::vector<std::string>& args) {
 
         scenario.simulation = swr::Simulation::BOOTSTRAPPING;
         swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Bootstrapping", true, scenario, start_wr, end_wr, add_wr);
+
+        if (mc) {
+            scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+            swr::multiple_wr_duration_graph(g, swr::portfolio_to_blog_string(scenario, true) + " - Monte Carlo", true, scenario, start_wr, end_wr, add_wr);
+        }
     }
 
     return 0;
 }
 
-int method_tv_scenario(const std::vector<std::string>& args) {
+int method_tv_scenario(const std::vector<std::string>& args, bool mc) {
     if (args.size() < 7) {
         std::cout << "Not enough arguments for method_tv_graph\n";
         return 1;
@@ -3264,12 +3276,14 @@ int method_tv_scenario(const std::vector<std::string>& args) {
     scenario.values         = swr::load_values(scenario.portfolio);
     scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
 
-    // TODO Make it flexible for Monte Carlo
-
     swr::prepare_exchange_rates(scenario, "usd");
 
     swr::Graph g(graph, "Value (USD)", "bar-graph");
-    g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    if (mc) {
+        g.title_ = std::format("Monte Carlo simulations - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else {
+        g.title_ = std::format("Backtesting vs Bootstrapping - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    }
     g.set_extra(R"("legend_position": "bottom", "ymin": 8000, )");
 
     swr::normalize_portfolio(scenario.portfolio);
@@ -3280,15 +3294,20 @@ int method_tv_scenario(const std::vector<std::string>& args) {
     scenario.simulation = swr::Simulation::BOOTSTRAPPING;
     swr::multiple_wr_avg_tv_graph(g, "Bootstrapping", scenario, start_wr, end_wr, add_wr);
 
+    if (mc) {
+        scenario.simulation = swr::Simulation::MONTE_CARLO;
+        swr::multiple_wr_avg_tv_graph(g, "Monte Carlo", scenario, start_wr, end_wr, add_wr);
+    }
+
     return 0;
 }
 
-int periods_success_scenario() {
+int periods_success_scenario(bool mc) {
     const bool graph = true;
 
     swr::scenario scenario;
 
-    scenario.simulation   = swr::Simulation::BOOTSTRAPPING;
+    scenario.simulation   = mc ? swr::Simulation::MONTE_CARLO : swr::Simulation::BOOTSTRAPPING;
     scenario.years        = 50;
     scenario.start_year   = 1875;
     scenario.end_year     = 2025;
@@ -3306,20 +3325,50 @@ int periods_success_scenario() {
     swr::prepare_exchange_rates(scenario, "usd");
 
     swr::Graph g(graph);
-    g.title_ = std::format("Bootstrapping short periods - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    if (mc) {
+        g.title_ = std::format("Monte Carlo short periods - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    } else {
+        g.title_ = std::format("Bootstrapping short periods - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+    }
     g.set_extra(R"("legend_position": "bottom", "ymax": 100, "ymin": 60, )");
 
-    scenario.start_year = 1875;
-    scenario.end_year   = 1925;
-    swr::multiple_wr_success_graph(g, "1875-1925", true, scenario, start_wr, end_wr, add_wr);
+    if (mc) {
+        scenario.start_year = 1875;
+        scenario.end_year   = 1900;
+        swr::multiple_wr_success_graph(g, "1875-1900", true, scenario, start_wr, end_wr, add_wr);
 
-    scenario.start_year = 1925;
-    scenario.end_year   = 1975;
-    swr::multiple_wr_success_graph(g, "1925-1975", true, scenario, start_wr, end_wr, add_wr);
+        scenario.start_year = 1900;
+        scenario.end_year   = 1925;
+        swr::multiple_wr_success_graph(g, "1900-1925", true, scenario, start_wr, end_wr, add_wr);
 
-    scenario.start_year = 1975;
-    scenario.end_year   = 2025;
-    swr::multiple_wr_success_graph(g, "1975-2025", true, scenario, start_wr, end_wr, add_wr);
+        scenario.start_year = 1925;
+        scenario.end_year   = 1950;
+        swr::multiple_wr_success_graph(g, "1925-1950", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.start_year = 1950;
+        scenario.end_year   = 1975;
+        swr::multiple_wr_success_graph(g, "1950-1975", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.start_year = 1975;
+        scenario.end_year   = 2000;
+        swr::multiple_wr_success_graph(g, "1975-2000", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.start_year = 2000;
+        scenario.end_year   = 2025;
+        swr::multiple_wr_success_graph(g, "2000-2025", true, scenario, start_wr, end_wr, add_wr);
+    } else {
+        scenario.start_year = 1875;
+        scenario.end_year   = 1925;
+        swr::multiple_wr_success_graph(g, "1875-1925", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.start_year = 1925;
+        scenario.end_year   = 1975;
+        swr::multiple_wr_success_graph(g, "1925-1975", true, scenario, start_wr, end_wr, add_wr);
+
+        scenario.start_year = 1975;
+        scenario.end_year   = 2025;
+        swr::multiple_wr_success_graph(g, "1975-2025", true, scenario, start_wr, end_wr, add_wr);
+    }
 
     return 0;
 }
@@ -3407,11 +3456,17 @@ int main(int argc, const char* argv[]) {
         } else if (command == "method_success_graph_mc") {
             return method_success_scenario(args, true);
         } else if (command == "method_duration_graph") {
-            return method_duration_scenario(args);
+            return method_duration_scenario(args, false);
+        } else if (command == "method_duration_graph_mc") {
+            return method_duration_scenario(args, true);
         } else if (command == "method_tv_graph") {
-            return method_tv_scenario(args);
+            return method_tv_scenario(args, false);
+        } else if (command == "method_tv_graph_mc") {
+            return method_tv_scenario(args, true);
         } else if (command == "periods_success_graph") {
-            return periods_success_scenario();
+            return periods_success_scenario(false);
+        } else if (command == "periods_success_graph_mc") {
+            return periods_success_scenario(true);
         } else if (command == "server") {
             return swr::server(args);
         } else {
