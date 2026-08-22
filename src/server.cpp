@@ -258,9 +258,9 @@ void server_simple_api(const httplib::Request& req, httplib::Response& res) {
             scenario.simulation = swr::Simulation::BACKTESTING;
         } else if (simulation == "bootstrapping") {
             scenario.simulation = swr::Simulation::BOOTSTRAPPING;
+        } else if (simulation == "monte_carlo") {
+            scenario.simulation = swr::Simulation::MONTE_CARLO;
         }
-
-        // TODO Add monte carlo later
 
         scenario.simulations = 2500;
     } else {
