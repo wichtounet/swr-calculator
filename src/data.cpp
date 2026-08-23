@@ -174,15 +174,18 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
                 }
             }
         } else if (l1p5 || l2 || l3) {
+            float factor = 1.0f; 
+            if (l1p5) {
+                factor = 1.5f;
+            } else if (l2) {
+                factor = 2.0f;
+            } else {
+                factor = 3.0f;
+            }
+
             for (auto& d : data) {
                 auto ret = d.value - 1.0f;
-                if (l1p5) {
-                    ret *= 1.5f;
-                } else if (l2) {
-                    ret *= 2.0f;
-                } else {
-                    ret *= 3.0f;
-                }
+                ret *= factor;
                 d.value = 1.0f + ret;
             }
         }
