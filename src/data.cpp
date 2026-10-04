@@ -136,13 +136,17 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
         const auto& asset_name = asset.asset;
 
         const bool x2 = asset_name.ends_with("_x2");
+        const bool l1p1 = asset_name.ends_with("_l1p1");
+        const bool l1p2 = asset_name.ends_with("_l1p2");
+        const bool l1p3 = asset_name.ends_with("_l1p3");
+        const bool l1p4 = asset_name.ends_with("_l1p4");
         const bool l1p5 = asset_name.ends_with("_l1p5");
         const bool l2 = asset_name.ends_with("_l2");
         const bool l3 = asset_name.ends_with("_l3");
 
         std::string filename = asset_name;
 
-        if (x2 || l1p5 || l2 || l3) {
+        if (x2 || l1p1 || l1p2 || l1p3 || l1p4 ||  l1p5 || l2 || l3) {
             filename = std::string(asset_name.begin(), asset_name.begin() + asset_name.rfind('_'));
         }
 
@@ -173,18 +177,35 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
                     curr.year  = prev.year;
                 }
             }
-        } else if (l1p5 || l2 || l3) {
+        } else if (l1p1 || l1p2 || l1p3 || l1p4 || l1p5 || l2 || l3) {
             float factor = 1.0f; 
-            if (l1p5) {
+            float drag = 0.0f;
+            if (l1p1) {
+                factor = 1.1f;
+                drag = 0.02;
+            } else if (l1p2) {
+                factor = 1.2f;
+                drag = 0.04;
+            } else if (l1p3) {
+                factor = 1.3f;
+                drag = 0.06;
+            } else if (l1p4) {
+                factor = 1.4f;
+                drag = 0.08;
+            } else if (l1p5) {
                 factor = 1.5f;
+                drag = 0.1;
             } else if (l2) {
                 factor = 2.0f;
+                drag = 0.2;
             } else {
                 factor = 3.0f;
+                drag = 0.35;
             }
 
             for (auto& d : data) {
                 auto ret = d.value - 1.0f;
+                ret -= drag / 100.0f;
                 ret *= factor;
                 d.value = 1.0f + ret;
             }
