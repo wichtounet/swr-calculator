@@ -412,6 +412,14 @@ void swr::multiple_wr_avg_tv_graph(swr::Graph& graph, std::string_view title, co
     });
 }
 
+void swr::multiple_wr_max_tv_graph(swr::Graph& graph, std::string_view title, const swr::scenario& scenario, float start_wr, float end_wr, float add_wr) {
+    std::map<float, swr::results> all_results;
+    multiple_wr_graph(graph, title, true, scenario, start_wr, end_wr, add_wr, [&all_results](const auto& results, float wr) {
+        all_results[wr] = results;
+        return results.tv_maximum;
+    });
+}
+
 void swr::multiple_wr_tv_sheets(swr::scenario scenario, float start_wr, float end_wr, float add_wr) {
     std::vector<float> min_tv;
     std::vector<float> max_tv;

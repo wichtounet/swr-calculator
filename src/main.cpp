@@ -1586,6 +1586,25 @@ int trinity_success_scenario(std::string_view command, const std::vector<std::st
                 swr::multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
             }
         }
+    } else if (total_allocation(scenario.portfolio) > 100.0f) {
+        auto base = scenario.portfolio;
+
+        scenario.portfolio.resize(1);
+
+        for (size_t i = 0; i < base.size(); ++i) {
+            scenario.portfolio[0].allocation = 100;
+            scenario.portfolio[0].asset = base[i].asset;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+            swr::prepare_exchange_rates(scenario, "usd");
+
+            if (graph) {
+                swr::multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+            } else {
+                swr::multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+            }
+        }
     } else {
         swr::normalize_portfolio(scenario.portfolio);
         if (graph) {
@@ -1895,16 +1914,21 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
         std::cout << "\n";
     }
 
-    if (scenario.portfolio.size() != 2) {
-        std::cout << "trinity_duration needs 2 assets in the portfolio\n";
-        return 1;
-    }
+    swr::Graph g(graph, "Worst Duration (months)");
+    g.title_ = std::format("Retirement Worst Duration - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
 
-    {
-        swr::Graph g(graph, "Worst Duration (months)");
-        for (size_t i = 0; i <= 100; i += portfolio_add) {
-            scenario.portfolio[0].allocation = static_cast<float>(i);
-            scenario.portfolio[1].allocation = static_cast<float>(100 - i);
+    if (total_allocation(scenario.portfolio) > 100.0f) {
+        auto base = scenario.portfolio;
+
+        scenario.portfolio.resize(1);
+
+        for (size_t i = 0; i < base.size(); ++i) {
+            scenario.portfolio[0].allocation = 100;
+            scenario.portfolio[0].asset = base[i].asset;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+            swr::prepare_exchange_rates(scenario, "usd");
 
             if (graph) {
                 swr::multiple_wr_duration_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
@@ -1912,20 +1936,38 @@ int trinity_duration_scenario(std::string_view command, const std::vector<std::s
                 swr::multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
             }
         }
-    }
+    } else {
+        if (scenario.portfolio.size() != 2) {
+            std::cout << "trinity_duration needs 2 assets in the portfolio\n";
+            return 1;
+        }
 
-    std::cout << "\n\n";
+        {
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = static_cast<float>(i);
+                scenario.portfolio[1].allocation = static_cast<float>(100 - i);
 
-    {
-        swr::Graph g(graph);
-        for (size_t i = 0; i <= 100; i += portfolio_add) {
-            scenario.portfolio[0].allocation = static_cast<float>(i);
-            scenario.portfolio[1].allocation = static_cast<float>(100 - i);
+                if (graph) {
+                    swr::multiple_wr_duration_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
+                } else {
+                    swr::multiple_wr_duration_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
+            }
+        }
 
-            if (graph) {
-                swr::multiple_wr_success_graph(g, "", true, scenario, start_wr, end_wr, add_wr);
-            } else {
-                swr::multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+        std::cout << "\n\n";
+
+        {
+            swr::Graph success_graph(graph);
+            for (size_t i = 0; i <= 100; i += portfolio_add) {
+                scenario.portfolio[0].allocation = static_cast<float>(i);
+                scenario.portfolio[1].allocation = static_cast<float>(100 - i);
+
+                if (graph) {
+                    swr::multiple_wr_success_graph(success_graph, "", true, scenario, start_wr, end_wr, add_wr);
+                } else {
+                    swr::multiple_wr_success_sheets("", scenario, start_wr, end_wr, add_wr);
+                }
             }
         }
     }
@@ -1940,8 +1982,6 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
     }
 
     const bool graph = command == "trinity_tv_graph";
-
-    swr::Graph g(graph, "Value (USD)", "bar-graph");
 
     swr::scenario scenario;
 
@@ -1967,6 +2007,9 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
 
     swr::prepare_exchange_rates(scenario, "usd");
 
+    swr::Graph g(graph, "Value (USD)", "bar-graph");
+    g.title_ = std::format("Terminal values - {} Years - {}-{}", scenario.years, scenario.start_year, scenario.end_year);
+
     if (!graph) {
         std::cout << "Withdrawal Rate";
         for (float wr = start_wr; wr < end_wr + add_wr / 2.0f; wr += add_wr) {
@@ -1975,12 +2018,29 @@ int trinity_tv_scenario(std::string_view command, const std::vector<std::string>
         std::cout << "\n";
     }
 
-    swr::normalize_portfolio(scenario.portfolio);
+    if (total_allocation(scenario.portfolio) > 100.0f) {
+        auto base = scenario.portfolio;
 
-    if (graph) {
-        swr::multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
+        scenario.portfolio.resize(1);
+
+        for (size_t i = 0; i < base.size(); ++i) {
+            scenario.portfolio[0].allocation = 100;
+            scenario.portfolio[0].asset = base[i].asset;
+
+            scenario.values         = swr::load_values(scenario.portfolio);
+            scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+            swr::prepare_exchange_rates(scenario, "usd");
+
+            swr::multiple_wr_avg_tv_graph(g, "", scenario, start_wr, end_wr, add_wr);
+        }
     } else {
-        swr::multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+        swr::normalize_portfolio(scenario.portfolio);
+
+        if (graph) {
+            swr::multiple_wr_tv_graph(g, scenario, start_wr, end_wr, add_wr);
+        } else {
+            swr::multiple_wr_tv_sheets(scenario, start_wr, end_wr, add_wr);
+        }
     }
 
     return 0;

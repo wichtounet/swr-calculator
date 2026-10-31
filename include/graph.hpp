@@ -39,7 +39,11 @@ struct GraphBase {
             std::cout << serie_sep << "|";
             sep = "";
             for (auto& [key, value] : serie) {
-                std::cout << sep << value;
+                if (value > 1'000'000) {
+                    std::cout << sep << std::fixed << value;
+                } else {
+                    std::cout << sep << value;
+                }
                 sep = ",";
             }
             std::cout << "|";

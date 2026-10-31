@@ -182,31 +182,31 @@ std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation
             float drag = 0.0f;
             if (l1p1) {
                 factor = 1.1f;
-                drag = 0.02;
+                drag = 0.03;
             } else if (l1p2) {
                 factor = 1.2f;
-                drag = 0.04;
+                drag = 0.06;
             } else if (l1p3) {
                 factor = 1.3f;
-                drag = 0.06;
+                drag = 0.08;
             } else if (l1p4) {
                 factor = 1.4f;
-                drag = 0.08;
+                drag = 0.12;
             } else if (l1p5) {
                 factor = 1.5f;
-                drag = 0.1;
+                drag = 0.15;
             } else if (l2) {
                 factor = 2.0f;
-                drag = 0.2;
+                drag = 0.25;
             } else {
                 factor = 3.0f;
-                drag = 0.35;
+                drag = 0.45;
             }
 
             for (auto& d : data) {
                 auto ret = d.value - 1.0f;
-                ret -= drag / 100.0f;
                 ret *= factor;
+                ret -= drag / 100.0f;
                 d.value = 1.0f + ret;
             }
         }
