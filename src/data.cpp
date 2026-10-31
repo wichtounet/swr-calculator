@@ -20,11 +20,13 @@ std::mutex server_lock;
 
 std::unordered_map<std::string, swr::data_vector> data_cache;
 
-swr::data_vector load_data(const std::string& name, const std::string& path) {
+swr::data_vector load_data(std::string_view name, const std::string& path) {
+    std::string name_str(name);
+
     {
         const std::unique_lock l(server_lock);
-        if (data_cache.contains(name)) {
-            return data_cache[name];
+        if (data_cache.contains(name_str)) {
+            return data_cache[name_str];
         }
     }
 
@@ -64,7 +66,7 @@ swr::data_vector load_data(const std::string& name, const std::string& path) {
 
     {
         const std::unique_lock l(server_lock);
-        data_cache[name] = points;
+        data_cache[name_str] = points;
     }
 
     return points;
@@ -241,8 +243,8 @@ swr::data_vector swr::load_inflation(const std::vector<swr::data_vector>& values
     return inflation_data;
 }
 
-swr::data_vector swr::load_exchange(const std::string& exchange) {
-    auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
+swr::data_vector swr::load_exchange(std::string_view exchange) {
+    auto exchange_data = load_data(exchange, std::format("stock-data/{}.csv", exchange));
 
     if (exchange_data.empty()) {
         std::cout << "Impossible to load exchange data for " << exchange << "\n";
@@ -255,8 +257,8 @@ swr::data_vector swr::load_exchange(const std::string& exchange) {
     return exchange_data;
 }
 
-swr::data_vector swr::load_exchange_inv(const std::string& exchange) {
-    auto exchange_data = load_data(exchange, "stock-data/" + exchange + ".csv");
+swr::data_vector swr::load_exchange_inv(std::string_view exchange) {
+    auto exchange_data = load_data(exchange, std::format("stock-data/{}.csv", exchange));
 
     if (exchange_data.empty()) {
         std::cout << "Impossible to load exchange data for " << exchange << "\n";

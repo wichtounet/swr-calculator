@@ -70,8 +70,8 @@ using data_vector_iterator = data_vector::iterator;
 std::vector<data_vector> load_values(const std::vector<swr::allocation>& portfolio);
 std::vector<data_vector> load_adjusted_values(const std::vector<swr::allocation>& portfolio);
 data_vector              load_inflation(const std::vector<data_vector>& values, const std::string& inflation);
-data_vector              load_exchange(const std::string& inflation);
-data_vector              load_exchange_inv(const std::string& inflation);
+data_vector              load_exchange(std::string_view inflation);
+data_vector              load_exchange_inv(std::string_view inflation);
 
 float                get_value(const data_vector& values, size_t year, size_t month);
 data_vector_iterator get_start(data_vector& values, size_t year, size_t month);

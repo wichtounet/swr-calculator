@@ -18,6 +18,8 @@
 #include "simulation.hpp"
 #include "utils.hpp"
 
+using namespace std::literals;
+
 std::vector<std::string> swr::parse_args(int argc, const char* argv[]) {
     std::vector<std::string> args;
     args.reserve(argc - 1);
@@ -45,8 +47,8 @@ bool swr::prepare_exchange_rates(swr::scenario& scenario, const std::string& cur
     for (size_t i = 0; i < N; ++i) {
         auto& asset = scenario.portfolio[i].asset;
 
-        if (currency == "usd") {
-            if (asset == "ch_stocks" || asset == "ch_bonds") {
+        if (currency == "usd"sv) {
+            if (asset.starts_with("ch_"sv)) {
                 scenario.exchange_set[i]   = true;
                 scenario.exchange_rates[i] = inv_exchange_data;
             } else {
@@ -57,8 +59,8 @@ bool swr::prepare_exchange_rates(swr::scenario& scenario, const std::string& cur
                     v.value = 1.0f;
                 }
             }
-        } else if (currency == "chf") {
-            if (asset == "ch_stocks" || asset == "ch_bonds") {
+        } else if (currency == "chf"sv) {
+            if (asset.starts_with("ch_"sv)) {
                 scenario.exchange_set[i]   = false;
                 scenario.exchange_rates[i] = scenario.values[i]; // Must copy from values to keep full range
                 // We set everything to one
