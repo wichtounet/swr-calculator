@@ -67,6 +67,7 @@ struct data_vector {
 
 using data_vector_iterator = data_vector::iterator;
 
+data_vector              load_value(std::string_view name);
 std::vector<data_vector> load_values(const std::vector<swr::allocation>& portfolio);
 std::vector<data_vector> load_adjusted_values(const std::vector<swr::allocation>& portfolio);
 data_vector              load_inflation(const std::vector<data_vector>& values, const std::string& inflation);
