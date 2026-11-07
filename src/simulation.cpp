@@ -807,6 +807,16 @@ swr::results swr_simulation(swr::scenario& scenario) {
     // The final results
     swr::results res;
 
+    if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+        scenario.cape = swr::load_value("cape");
+
+        if (scenario.cape.empty()) {
+            res.message = "No CAPE data available";
+            res.error   = true;
+            return res;
+        }
+    }
+
     // For compatibility, we set up exchange_rates and exchange_sets
 
     if (scenario.exchange_set.empty() || exchange_rates.empty()) {
@@ -890,6 +900,18 @@ swr::results swr_simulation(swr::scenario& scenario) {
                 scenario.end_year = v.back().year;
                 changed           = true;
             }
+        }
+    }
+
+    if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+        if (scenario.cape.front().year > scenario.start_year) {
+            scenario.start_year = scenario.cape.front().year;
+            changed             = true;
+        }
+
+        if (scenario.cape.back().year < scenario.end_year) {
+            scenario.end_year = scenario.cape.back().year;
+            changed           = true;
         }
     }
 

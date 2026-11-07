@@ -24,7 +24,8 @@ enum class WithdrawalMethod : uint64_t {
     CURRENT,       // Withdraw based on the current portfolio
     VANGUARD,      // Vanguard Dynamic Spending strategy
     DIE_WITH_ZERO, // Methodology from the book
-    VPW            // Variable Pecentage Withdrawal (VPW)
+    VPW,           // Variable Pecentage Withdrawal (VPW)
+    CAPE           // Shiller Cape adjusted withdrawal
 };
 
 enum class WithdrawalSelection : uint64_t {
@@ -80,6 +81,7 @@ struct scenario {
     std::vector<data_vector>     values;
     std::vector<bool>            exchange_set;
     std::vector<data_vector>     exchange_rates;
+    data_vector                  cape;
 
     size_t              years;
     float               wr;
@@ -96,6 +98,10 @@ struct scenario {
 
     float vanguard_max_increase = 0.05f;
     float vanguard_max_decrease = 0.02f;
+
+    // Configuration for CAPE-adjusted withdrawals
+    float cape_alpha = 1.0f;
+    float cape_beta = 0.5f;
 
     // By default, simulations can run for ever but the server will set that lower
     size_t timeout_msecs = 0;

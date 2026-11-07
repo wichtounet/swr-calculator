@@ -608,6 +608,9 @@ void swr::configure_withdrawal_method(swr::scenario& scenario, std::vector<std::
     if (args.size() > n) {
         if (args[n] == "fixed") {
             scenario.wmethod = swr::WithdrawalMethod::STANDARD;
+        } else if (args[n] == "cape") {
+            scenario.wmethod = swr::WithdrawalMethod::CAPE;
+            scenario.minimum = 0.03f;
         } else if (args[n] == "current") {
             scenario.wmethod = swr::WithdrawalMethod::CURRENT;
             scenario.minimum = 0.04f;
