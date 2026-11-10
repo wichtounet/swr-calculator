@@ -197,7 +197,7 @@ bool pay_fees(const swr::scenario& scenario, swr::context& context, std::array<f
 }
 
 template <size_t N>
-bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values, const std::array<float, N>& market_values) {
+bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<float, N>& current_values, const std::array<float, N>& market_values, swr::data_vector::iterator cape) {
     if ((context.months - 1) % scenario.withdraw_frequency == 0) {
         const auto total_value = current_value(current_values);
 
@@ -238,7 +238,16 @@ bool withdraw(const swr::scenario& scenario, swr::context& context, std::array<f
         } else if (scenario.wmethod == swr::WithdrawalMethod::CURRENT) {
             withdrawal_amount = (total_value * (scenario.wr / 100.0f)) / (12.0f / periods);
 
-            // Make sure, we don't go over the minimum
+            // Make sure, we don't go below the minimum
+            withdrawal_amount = std::max(withdrawal_amount, context.minimum / (12.0f / periods));
+        } else if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+            // Use the method from ERN
+            // alpha is a percentage
+            // beta is an absolute value
+            const float adjusted = 1.0f / cape->value;
+            withdrawal_amount = (total_value * (scenario.cape_alpha / 100.0f + scenario.cape_beta * adjusted)) / (12.0f / periods);
+
+            // Make sure, we don't go below the minimum
             withdrawal_amount = std::max(withdrawal_amount, context.minimum / (12.0f / periods));
         } else if (scenario.wmethod == swr::WithdrawalMethod::DIE_WITH_ZERO) {
             const auto year            = context.months / 12;
@@ -396,7 +405,9 @@ void swr_simulation_period(swr::results&              res,
                            size_t                     current_month,
                            data_vector_array<N>       start_returns,
                            data_vector_array<N>       start_exchanges,
-                           swr::data_vector::iterator start_inflation) {
+                           swr::data_vector::iterator start_inflation,
+                           swr::data_vector::iterator start_cape
+                           ) {
     data_vector_array<N> returns;
     data_vector_array<N> exchanges;
 
@@ -443,6 +454,11 @@ void swr_simulation_period(swr::results&              res,
     }
 
     auto inflation = start_inflation++;
+    decltype(inflation) cape;
+
+    if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+        cape = start_cape++;
+    }
 
     float total_withdrawn = 0.0f;
     bool  failure         = false;
@@ -492,8 +508,12 @@ void swr_simulation_period(swr::results&              res,
             context.target_value_ *= inflation->value;
             ++inflation;
 
+            if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+                ++cape;
+            }
+
             // Monthly withdrawal
-            step([&]() { return withdraw(scenario, context, current_values, market_values); });
+            step([&]() { return withdraw(scenario, context, current_values, market_values, cape); });
 
             // Record spending
             if ((context.months - 1) % 12 == 0) {
@@ -603,6 +623,11 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
 
     auto start_inflation = swr::get_start(inflation_data, scenario.start_year, 1);
 
+    decltype(start_inflation) start_cape;
+    if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
+        start_cape = swr::get_start(scenario.cape, scenario.start_year, 1);
+    }
+
     // 3. Do the actual simulation
 
     if (scenario.simulation == swr::Simulation::BACKTESTING) {
@@ -610,7 +635,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
 
         for (size_t current_year = scenario.start_year; current_year <= scenario.end_year - scenario.years; ++current_year) {
             for (size_t current_month = 1; current_month <= 12; ++current_month) {
-                swr_simulation_period<N>(res, scenario, withdraw_index, current_year, current_month, start_returns, start_exchanges, start_inflation);
+                swr_simulation_period<N>(res, scenario, withdraw_index, current_year, current_month, start_returns, start_exchanges, start_inflation, start_cape);
 
                 // After each starting point, we check if we should timeout
 
@@ -634,6 +659,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                 }
 
                 ++start_inflation;
+                ++start_cape;
             }
         }
     } else if (scenario.simulation == swr::Simulation::BOOTSTRAPPING) {
@@ -667,6 +693,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
         }
 
         const auto copy_start_inflation = copy_inflation_data.begin();
+        const auto copy_start_cape = copy_start_inflation; // TODO Support CAPE with BOOTSTRAPPING
 
         for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
             for (size_t year = 0; year < scenario.years; ++year) {
@@ -684,7 +711,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                 overwrite_year(replacement_inflation, copy_start_inflation + year * 12);
             }
 
-            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
+            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation, copy_start_cape);
         }
     } else if (scenario.simulation == swr::Simulation::MONTE_CARLO) {
         res.terminal_values.reserve(scenario.simulations);
@@ -759,6 +786,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
         }
 
         const auto copy_start_inflation = copy_inflation_data.begin();
+        const auto copy_start_cape = copy_start_inflation; // TODO Support CAPE with MONTE_CARLO
 
         for (size_t simulation = 0; simulation < scenario.simulations; ++simulation) {
             for (size_t month = 0; month < scenario.years * 12; ++month) {
@@ -776,7 +804,7 @@ swr::results swr_simulation_inside(swr::results& res, swr::scenario& scenario, s
                 }
             }
 
-            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation);
+            swr_simulation_period<N>(res, scenario, withdraw_index, scenario.start_year, 1, copy_start_returns, copy_start_exchanges, copy_start_inflation, copy_start_cape);
         }
     } else {
         res.error   = true;
@@ -808,7 +836,13 @@ swr::results swr_simulation(swr::scenario& scenario) {
     swr::results res;
 
     if (scenario.wmethod == swr::WithdrawalMethod::CAPE) {
-        scenario.cape = swr::load_value("cape");
+        if (scenario.simulation != swr::Simulation::BACKTESTING) {
+            res.message = "CAPE currently only works with BACKTESTING";
+            res.error   = true;
+            return res;
+        }
+
+        scenario.cape = swr::load_value_direct("cape");
 
         if (scenario.cape.empty()) {
             res.message = "No CAPE data available";
@@ -1100,6 +1134,8 @@ std::ostream& swr::operator<<(std::ostream& out, const WithdrawalMethod& wmethod
         return out << "standard";
     case WithdrawalMethod::CURRENT:
         return out << "current";
+    case WithdrawalMethod::CAPE:
+        return out << "cape";
     case WithdrawalMethod::VANGUARD:
         return out << "vanguard";
     case WithdrawalMethod::DIE_WITH_ZERO:

@@ -145,6 +145,17 @@ swr::data_vector swr::load_value(std::string_view name) {
     return data;
 }
 
+swr::data_vector swr::load_value_direct(std::string_view name) {
+    auto data = load_data(name, std::format("stock-data/{}.csv", name));
+
+    if (data.empty()) {
+        std::cout << "Impossible to load data for asset " << name << "\n";
+        return {};
+    }
+
+    return data;
+}
+
 std::vector<swr::data_vector> swr::load_values(const std::vector<swr::allocation>& portfolio) {
     std::vector<swr::data_vector> values;
 
