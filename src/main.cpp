@@ -1476,6 +1476,43 @@ int data_time_graph_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+int data_time_graph_scenario_direct(const std::vector<std::string>& args) {
+    if (args.size() < 4) {
+        std::cout << "Not enough arguments for data_time_graph_direct\n";
+        return 1;
+    }
+
+    const size_t start_year = atoi(args[1].c_str());
+    const size_t end_year   = atoi(args[2].c_str());
+    auto         portfolio  = swr::parse_portfolio(args[3], false);
+    auto         values     = swr::load_values(portfolio);
+
+    swr::TimeGraph graph(true);
+
+    for (size_t i = 0; i < portfolio.size(); ++i) {
+        graph.add_legend(swr::asset_to_string_percent(portfolio[i].asset));
+
+        auto values = swr::load_value_direct(portfolio[i].asset);
+
+        std::map<int64_t, float> results;
+
+        for (auto& value : values) {
+            if (value.year >= start_year) {
+                const int64_t timestamp = (value.year - 1970) * 365 * 24 * 3600 + (value.month - 1) * 31 * 24 * 3600;
+                results[timestamp]      = value.value;
+            }
+
+            if (value.year > end_year) {
+                break;
+            }
+        }
+
+        graph.add_data(results);
+    }
+
+    return 0;
+}
+
 int trinity_success_scenario(std::string_view command, const std::vector<std::string>& args) {
     if (args.size() < 7) {
         std::cout << "Not enough arguments for trinity_sheets\n";
@@ -3475,6 +3512,8 @@ int main(int argc, const char* argv[]) {
             return data_graph_scenario(args);
         } else if (command == "data_time_graph") {
             return data_time_graph_scenario(args);
+        } else if (command == "data_time_graph_direct") {
+            return data_time_graph_scenario_direct(args);
         } else if (command == "trinity_success_sheets" || command == "trinity_success_graph") {
             return trinity_success_scenario(command, args);
         } else if (command == "die_with_zero_graph") {
