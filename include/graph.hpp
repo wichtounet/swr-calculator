@@ -11,6 +11,8 @@
 #include <map>
 #include <sstream>
 #include <string_view>
+#include <string>
+#include <print>
 
 #include "cpp_utils/assert.hpp"
 
@@ -20,15 +22,19 @@
 namespace swr {
 
 struct GraphBase {
-    explicit GraphBase(bool enabled, std::string_view ytitle, std::string_view graph) : enabled_(enabled), graph_(graph), yitle_(ytitle) {}
+    explicit GraphBase(bool enabled, std::string_view ytitle, std::string_view graph) : enabled_(enabled), graph_(graph), ytitle_(ytitle) {}
 
     template <typename T1, typename T2>
-    void dump_labels(const std::vector<std::map<T1, T2>>& data) {
+    void dump_labels(const std::vector<std::map<T1, T2>>& data, bool str = false) {
         cpp_assert(!data.empty(), "data cannot be empty");
 
         std::string sep;
         for (auto& [key, value] : data.front()) {
-            std::cout << sep << key;
+            if (str) {
+                std::print("{}\"{}\"", sep, key);
+            } else {
+                std::print("{}{}", sep, key);
+            }
             sep = ",";
         }
         std::cout << "|,\"series\":|";
@@ -52,9 +58,9 @@ struct GraphBase {
     }
 
     template <typename T1, typename T2>
-    void dump_graph(const std::vector<std::map<T1, T2>>& data) {
+    void dump_graph(const std::vector<std::map<T1, T2>>& data, bool str = false) {
         if (enabled_ && !flushed_) {
-            std::cout << "[" << graph_ << " title=\"" << title_ << "\" ytitle=\"" << yitle_ << "\" xtitle=\"" << xtitle_ << "\"";
+            std::print("[{} title=\"{}\" ytitle=\"{}\" xtitle=\"{}\"", graph_, title_, ytitle_, xtitle_);
 
             if (legends_.empty()) {
                 std::cout << "]";
@@ -70,7 +76,7 @@ struct GraphBase {
                 std::cout << " legends=\"" << legends.str() << "\"]";
             }
             std::cout << "{" << extra_ << "\"labels\":|";
-            dump_labels(data);
+            dump_labels(data, str);
             std::cout << "|}[/" << graph_ << "]";
             std::cout << '\n';
 
@@ -88,7 +94,7 @@ struct GraphBase {
 
     const bool               enabled_;
     const std::string        graph_;
-    const std::string        yitle_;
+    const std::string        ytitle_;
     std::string              xtitle_ = "Withdrawal Rate (%)";
     std::string              title_  = "TODO";
     std::string              extra_;
@@ -133,6 +139,26 @@ struct TimeGraph : GraphBase {
     }
 
     std::vector<std::map<int64_t, float>> data_;
+};
+
+struct StringGraph : GraphBase {
+    explicit StringGraph(bool enabled, std::string_view ytitle = "Success Rate (%)", std::string_view graph = "bar-graph") : GraphBase(enabled, ytitle, graph) {}
+
+    ~StringGraph() {
+        flush();
+    }
+
+    // We don't use JSON, but a form of retarded JSON for WPML to handle
+    void flush() {
+        extra_ += R"("x_data_type":"string", )";
+        dump_graph(data_, true);
+    }
+
+    void add_data(const std::map<std::string, float>& data) {
+        data_.emplace_back(data);
+    }
+
+    std::vector<std::map<std::string, float>> data_;
 };
 
 } // namespace swr
