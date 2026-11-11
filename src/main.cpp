@@ -861,6 +861,282 @@ int portfolio_analysis_scenario(const std::vector<std::string>& args) {
     return 0;
 }
 
+int cape_graph_scenario(const std::vector<std::string>& args) {
+    if (args.size() < 4) {
+        std::cout << "Error: Not enough arguments for the 'cape_graph' command.\n";
+        return 1;
+    }
+
+    swr::scenario scenario;
+
+    scenario.years        = atoi(args[1].c_str());
+    scenario.start_year   = atoi(args[2].c_str());
+    scenario.end_year     = atoi(args[3].c_str());
+    scenario.portfolio    = swr::parse_portfolio("us_stocks:100;", true);
+    const auto& inflation = "us_inflation";
+
+    scenario.values         = swr::load_values(scenario.portfolio);
+    scenario.inflation_data = swr::load_inflation(scenario.values, inflation);
+
+    swr::prepare_exchange_rates(scenario, "usd");
+
+    swr::StringGraph initial_final_graph(true, "Withdrawal (%)", "bar-graph");
+    initial_final_graph.title_  = "Initial and final withdrawals of CAPE-based strategies";
+    initial_final_graph.xtitle_ = "Method";
+    initial_final_graph.set_extra(R"("legend_position": "left",)");
+
+    initial_final_graph.add_legend("Initial");
+    initial_final_graph.add_legend("Final");
+
+    std::map<std::string, float> initial_data;
+    std::map<std::string, float> final_data;
+
+    swr::StringGraph average_median_graph(true, "Withdrawal (%)", "bar-graph");
+    average_median_graph.title_  = "Average and median withdrawals of CAPE-based strategies";
+    average_median_graph.xtitle_ = "Method";
+    average_median_graph.set_extra(R"("legend_position": "left",)");
+
+    average_median_graph.add_legend("Average");
+    average_median_graph.add_legend("Median");
+
+    std::map<std::string, float> average_data;
+    std::map<std::string, float> median_data;
+
+    swr::StringGraph min_max_graph(true, "Withdrawal (%)", "bar-graph");
+    min_max_graph.title_  = "Min and max withdrawals of CAPE-based strategies";
+    min_max_graph.xtitle_ = "Method";
+    min_max_graph.set_extra(R"("legend_position": "left",)");
+
+    min_max_graph.add_legend("Min");
+    min_max_graph.add_legend("Max");
+
+    std::map<std::string, float> min_data;
+    std::map<std::string, float> max_data;
+
+    swr::StringGraph tv_graph(true, "Value (USD)", "bar-graph");
+    tv_graph.title_  = "Terminal values of CAPE-based strategies";
+    tv_graph.xtitle_ = "Method";
+    tv_graph.set_extra(R"("legend_position": "left",)");
+
+    tv_graph.add_legend("Min");
+    tv_graph.add_legend("Median");
+    tv_graph.add_legend("Avg");
+    tv_graph.add_legend("Max");
+
+    std::map<std::string, float> min_tv_data;
+    std::map<std::string, float> median_tv_data;
+    std::map<std::string, float> avg_tv_data;
+    std::map<std::string, float> max_tv_data;
+
+    swr::StringGraph worst_graph(true, "Value (USD)", "bar-graph");
+    worst_graph.title_  = "Worst drops in spending of CAPE-based strategies";
+    worst_graph.xtitle_ = "Method";
+    worst_graph.set_extra(R"("legend_position": "left",)");
+
+    worst_graph.add_legend("1Y Drops");
+    worst_graph.add_legend("10Y Drops");
+    worst_graph.add_legend("20Y Drops");
+
+    std::map<std::string, float> worst_1y_data;
+    std::map<std::string, float> worst_10y_data;
+    std::map<std::string, float> worst_20y_data;
+
+    swr::StringGraph swr_graph(true, "SWR (%)", "bar-graph");
+    swr_graph.title_  = "SWR of CAPE-based strategies";
+    swr_graph.xtitle_ = "Method";
+    swr_graph.set_extra(R"("legend_position": "left",)");
+
+    swr_graph.add_legend("Min");
+
+    std::map<std::string, float> swr_data;
+
+    auto initial_final = [&](const std::string & name, const swr::results & results) {
+        auto initial_spending = 0.0f;
+        auto final_spending = 0.0f;
+
+        for (const auto & spending_history : results.rel_spending) {
+            initial_spending += spending_history.front();
+            final_spending += spending_history.back();
+        }
+
+        // Get the average
+        initial_spending /= results.rel_spending.size();
+        final_spending /= results.rel_spending.size();
+
+        initial_data[name] = 100.0f * initial_spending;
+        final_data[name] = 100.0f * final_spending;
+    };
+
+    auto min_max = [&](const std::string & name, const swr::results & results) {
+        auto min_spending = results.rel_spending.front().front();
+        auto max_spending = results.rel_spending.front().front();
+
+        for (const auto & spending_history : results.rel_spending) {
+            for (auto spending : spending_history) {
+                min_spending = std::min(min_spending, spending);
+                max_spending = std::max(max_spending, spending);
+            }
+        }
+
+        min_data[name] = 100.0f * min_spending;
+        max_data[name] = 100.0f * max_spending;
+    };
+
+    auto avg_median = [&](const std::string & name, const swr::results & results) {
+        std::vector<float> values;
+
+        for (const auto & spending_history : results.rel_spending) {
+            for (auto spending : spending_history) {
+                values.push_back(spending);
+            }
+        }
+
+        std::ranges::sort(values);
+
+        average_data[name] = 100.0f * std::ranges::fold_left(values, 0.0f, std::plus<float>()) / values.size();
+        median_data[name] = 100.0f * values[(values.size() / 2) + 1];
+    };
+
+    auto tv = [&](const std::string & name, const swr::results & results) {
+        min_tv_data[name] = results.tv_minimum;
+        median_tv_data[name] = results.tv_median;
+        avg_tv_data[name] = results.tv_average;
+        max_tv_data[name] = results.tv_maximum;
+    };
+    
+    auto drops = [&](const std::string & name, const swr::results & results) {
+        float worst_1y = 0.0f;
+        float worst_10y = 0.0f;
+        float worst_20y = 0.0f;
+
+        for (const auto & spending_history : results.spending) {
+            for (size_t i = 1; i < spending_history.size(); ++i) {
+                if (spending_history[i-1] > spending_history[i]) {
+                    float drop =  1.0f - spending_history[i] / spending_history[i - 1];
+                    worst_1y = std::max(worst_1y, drop * 100.0f);
+                }
+            }
+
+            for (size_t i = 10; i < spending_history.size(); ++i) {
+                if (spending_history[i-10] > spending_history[i]) {
+                    float drop =  1.0f - spending_history[i] / spending_history[i - 10];
+                    worst_10y = std::max(worst_10y, drop * 100.0f);
+                }
+            }
+
+            for (size_t i = 20; i < spending_history.size(); ++i) {
+                if (spending_history[i-20] > spending_history[i]) {
+                    float drop =  1.0f - spending_history[i] / spending_history[i - 20];
+                    worst_20y = std::max(worst_20y, drop * 100.0f);
+                }
+            }
+        }
+
+        worst_1y_data[name] = worst_1y;
+        worst_10y_data[name] = worst_10y;
+        worst_20y_data[name] = worst_20y;
+    };
+
+    scenario.minimum = 0.0f;
+
+    auto start = std::chrono::high_resolution_clock::now();
+
+    {
+        auto current_scenario = scenario;
+
+        current_scenario.wr = 4.0f;
+        current_scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+
+        auto results = swr::simulation(current_scenario);
+
+        initial_final("Fixed 4%", results);
+        min_max("Fixed 4%", results);
+        avg_median("Fixed 4%", results);
+        tv("Fixed 4%", results);
+        drops("Fixed 4%", results);
+        swr_data["Fixed 4%"] = 4.0;
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 1.0f;
+        cape_scenario.cape_beta = 0.5f;
+
+        auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=1.0/b=0.5", results);
+        min_max("a=1.0/b=0.5", results);
+        avg_median("a=1.0/b=0.5", results);
+        tv("a=1.0/b=0.5", results);
+        drops("a=1.0/b=0.5", results);
+        swr_data["a=1.0/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 1.5f;
+        cape_scenario.cape_beta = 0.5f;
+
+        auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=1.5/b=0.5", results);
+        min_max("a=1.5/b=0.5", results);
+        avg_median("a=1.5/b=0.5", results);
+        tv("a=1.5/b=0.5", results);
+        drops("a=1.5/b=0.5", results);
+        swr_data["a=1.5/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 2.0f;
+        cape_scenario.cape_beta = 0.5f;
+
+        auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=2.0/b=0.5", results);
+        min_max("a=2.0/b=0.5", results);
+        avg_median("a=2.0/b=0.5", results);
+        tv("a=2.0/b=0.5", results);
+        drops("a=2.0/b=0.5", results);
+        swr_data["a=2.0/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    auto end      = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+    std::cout << "Computed " << swr::simulations_ran() << " withdrawal rates in " << duration << "ms (" << 1000 * (swr::simulations_ran() / duration)
+              << "/s)\n";
+
+    initial_final_graph.add_data(initial_data);
+    initial_final_graph.add_data(final_data);
+
+    min_max_graph.add_data(min_data);
+    min_max_graph.add_data(max_data);
+
+    average_median_graph.add_data(average_data);
+    average_median_graph.add_data(median_data);
+
+    tv_graph.add_data(min_tv_data);
+    tv_graph.add_data(median_tv_data);
+    tv_graph.add_data(avg_tv_data);
+    tv_graph.add_data(max_tv_data);
+
+    worst_graph.add_data(worst_1y_data);
+    worst_graph.add_data(worst_10y_data);
+    worst_graph.add_data(worst_20y_data);
+
+    swr_graph.add_data(swr_data);
+
+    return 0;
+}
+
 int allocation_scenario() {
     swr::Graph g_us(true, "Annualized Yearly Returns (%)", "bar-graph");
     g_us.title_  = "US Portfolio Allocation Annualized Returns";
@@ -3566,6 +3842,8 @@ int main(int argc, const char* argv[]) {
             return periods_success_scenario(false);
         } else if (command == "periods_success_graph_mc") {
             return periods_success_scenario(true);
+        } else if (command == "cape_graph") {
+            return cape_graph_scenario(args);
         } else if (command == "server") {
             return swr::server(args);
         } else {
