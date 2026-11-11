@@ -412,6 +412,7 @@ void swr_simulation_period(swr::results&              res,
     data_vector_array<N> exchanges;
 
     res.spending.emplace_back();
+    res.rel_spending.emplace_back();
 
     swr::context context;
     context.months         = 1;
@@ -512,14 +513,18 @@ void swr_simulation_period(swr::results&              res,
                 ++cape;
             }
 
+            const auto value_before_withdrawal = current_value(current_values);
+
             // Monthly withdrawal
             step([&]() { return withdraw(scenario, context, current_values, market_values, cape); });
 
-            // Record spending
+            // Record yearly spending by accumulating monthly spending up to the end of the year
             if ((context.months - 1) % 12 == 0) {
                 res.spending.back().push_back(context.last_withdrawal_amount);
+                res.rel_spending.back().push_back(context.last_withdrawal_amount / value_before_withdrawal);
             } else {
                 res.spending.back().back() += context.last_withdrawal_amount;
+                res.rel_spending.back().back() += (context.last_withdrawal_amount / value_before_withdrawal);
             }
         }
 

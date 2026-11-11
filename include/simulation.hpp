@@ -222,6 +222,7 @@ struct results {
     void               compute_spending(std::vector<std::vector<float>>& terminal_values, size_t years);
 
     std::vector<std::vector<float>> spending;
+    std::vector<std::vector<float>> rel_spending;
 
     void record_failure(size_t months, size_t current_month, size_t current_year) {
         if (!worst_duration || months < worst_duration) {
