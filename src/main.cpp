@@ -934,12 +934,23 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
     worst_graph.set_extra(R"("legend_position": "left",)");
 
     worst_graph.add_legend("1Y Drops");
+    worst_graph.add_legend("5Y Drops");
     worst_graph.add_legend("10Y Drops");
-    worst_graph.add_legend("20Y Drops");
+    worst_graph.add_legend("15Y Drops");
 
     std::map<std::string, float> worst_1y_data;
+    std::map<std::string, float> worst_5y_data;
     std::map<std::string, float> worst_10y_data;
-    std::map<std::string, float> worst_20y_data;
+    std::map<std::string, float> worst_15y_data;
+
+    swr::StringGraph longest_graph(true, "Time (Years)", "bar-graph");
+    longest_graph.title_  = "Longest drops in spending of CAPE-based strategies";
+    longest_graph.xtitle_ = "Method";
+    longest_graph.set_extra(R"("legend_position": "none",)");
+
+    longest_graph.add_legend("Longest Drops");
+
+    std::map<std::string, float> longest_drops_data;
 
     swr::StringGraph swr_graph(true, "SWR (%)", "bar-graph");
     swr_graph.title_  = "SWR of CAPE-based strategies";
@@ -1006,13 +1017,21 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
     
     auto drops = [&](const std::string & name, const swr::results & results) {
         float worst_1y = 0.0f;
+        float worst_5y = 0.0f;
         float worst_10y = 0.0f;
-        float worst_20y = 0.0f;
+        float worst_15y = 0.0f;
 
         for (const auto & spending_history : results.spending) {
             for (size_t i = 1; i < spending_history.size(); ++i) {
                 if (spending_history[i-1] > spending_history[i]) {
                     float drop =  1.0f - spending_history[i] / spending_history[i - 1];
+                    worst_1y = std::max(worst_1y, drop * 100.0f);
+                }
+            }
+
+            for (size_t i = 5; i < spending_history.size(); ++i) {
+                if (spending_history[i-5] > spending_history[i]) {
+                    float drop =  1.0f - spending_history[i] / spending_history[i - 5];
                     worst_1y = std::max(worst_1y, drop * 100.0f);
                 }
             }
@@ -1024,17 +1043,37 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
                 }
             }
 
-            for (size_t i = 20; i < spending_history.size(); ++i) {
-                if (spending_history[i-20] > spending_history[i]) {
-                    float drop =  1.0f - spending_history[i] / spending_history[i - 20];
-                    worst_20y = std::max(worst_20y, drop * 100.0f);
+            for (size_t i = 15; i < spending_history.size(); ++i) {
+                if (spending_history[i-15] > spending_history[i]) {
+                    float drop =  1.0f - spending_history[i] / spending_history[i - 15];
+                    worst_15y = std::max(worst_15y, drop * 100.0f);
                 }
             }
         }
 
         worst_1y_data[name] = worst_1y;
+        worst_5y_data[name] = worst_5y;
         worst_10y_data[name] = worst_10y;
-        worst_20y_data[name] = worst_20y;
+        worst_15y_data[name] = worst_15y;
+    };
+    
+    auto longest = [&](const std::string & name, const swr::results & results) {
+        size_t longest_drop = 0;
+
+        for (const auto & spending_history : results.spending) {
+            auto base = 0;
+
+            for (size_t i = 1; i < spending_history.size(); ++i) {
+                if (spending_history[i] < spending_history[base]) {
+                    longest_drop = std::max(longest_drop, i - base);
+                } else {
+                    // Restart at i
+                    base = i;
+                }
+            }
+        }
+
+        longest_drops_data[name] = float(longest_drop);
     };
 
     scenario.minimum = 0.0f;
@@ -1044,16 +1083,18 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
     {
         auto current_scenario = scenario;
 
-        current_scenario.wr = 4.0f;
-        current_scenario.wmethod = swr::WithdrawalMethod::CURRENT;
+        current_scenario.cape_alpha = 4.0f;
+        current_scenario.cape_beta = 0.0f;
+        current_scenario.wmethod = swr::WithdrawalMethod::CAPE;
 
-        auto results = swr::simulation(current_scenario);
+        const auto results = swr::simulation(current_scenario);
 
         initial_final("Fixed 4%", results);
         min_max("Fixed 4%", results);
         avg_median("Fixed 4%", results);
         tv("Fixed 4%", results);
         drops("Fixed 4%", results);
+        longest("Fixed 4%", results);
         swr_data["Fixed 4%"] = 4.0;
     }
 
@@ -1064,13 +1105,14 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
         cape_scenario.cape_alpha = 1.0f;
         cape_scenario.cape_beta = 0.5f;
 
-        auto results = swr::simulation(cape_scenario);
+        const auto results = swr::simulation(cape_scenario);
 
         initial_final("a=1.0/b=0.5", results);
         min_max("a=1.0/b=0.5", results);
         avg_median("a=1.0/b=0.5", results);
         tv("a=1.0/b=0.5", results);
         drops("a=1.0/b=0.5", results);
+        longest("a=1.0/b=0.5", results);
         swr_data["a=1.0/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
     }
 
@@ -1081,14 +1123,51 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
         cape_scenario.cape_alpha = 1.5f;
         cape_scenario.cape_beta = 0.5f;
 
-        auto results = swr::simulation(cape_scenario);
+        const auto results = swr::simulation(cape_scenario);
 
         initial_final("a=1.5/b=0.5", results);
         min_max("a=1.5/b=0.5", results);
         avg_median("a=1.5/b=0.5", results);
         tv("a=1.5/b=0.5", results);
         drops("a=1.5/b=0.5", results);
+        longest("a=1.5/b=0.5", results);
         swr_data["a=1.5/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 2.08f;
+        cape_scenario.cape_beta = 0.4f;
+
+        const auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=2.08/b=0.4", results);
+        min_max("a=2.08/b=0.4", results);
+        avg_median("a=2.08/b=0.4", results);
+        tv("a=2.08/b=0.4", results);
+        drops("a=2.08/b=0.4", results);
+        longest("a=2.08/b=0.4", results);
+        swr_data["a=2.08/b=0.4"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 1.42f;
+        cape_scenario.cape_beta = 0.6f;
+
+        const auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=1.42/b=0.6", results);
+        min_max("a=1.42/b=0.6", results);
+        avg_median("a=1.42/b=0.6", results);
+        tv("a=1.42/b=0.6", results);
+        drops("a=1.42/b=0.6", results);
+        longest("a=1.42/b=0.6", results);
+        swr_data["a=1.42/b=0.6"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
     }
 
     {
@@ -1098,14 +1177,51 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
         cape_scenario.cape_alpha = 2.0f;
         cape_scenario.cape_beta = 0.5f;
 
-        auto results = swr::simulation(cape_scenario);
+        const auto results = swr::simulation(cape_scenario);
 
         initial_final("a=2.0/b=0.5", results);
         min_max("a=2.0/b=0.5", results);
         avg_median("a=2.0/b=0.5", results);
         tv("a=2.0/b=0.5", results);
         drops("a=2.0/b=0.5", results);
+        longest("a=2.0/b=0.5", results);
         swr_data["a=2.0/b=0.5"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 3.0f;
+        cape_scenario.cape_beta = 0.3f;
+
+        const auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=3.0/b=0.3", results);
+        min_max("a=3.0/b=0.3", results);
+        avg_median("a=3.0/b=0.3", results);
+        tv("a=3.0/b=0.3", results);
+        drops("a=3.0/b=0.3", results);
+        longest("a=3.0/b=0.3", results);
+        swr_data["a=3.0/b=0.3"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
+    }
+
+    {
+        auto cape_scenario = scenario;
+
+        cape_scenario.wmethod = swr::WithdrawalMethod::CAPE;
+        cape_scenario.cape_alpha = 0.0f;
+        cape_scenario.cape_beta = 1.0f;
+
+        const auto results = swr::simulation(cape_scenario);
+
+        initial_final("a=0.0/b=1.0", results);
+        min_max("a=0.0/b=1.0", results);
+        avg_median("a=0.0/b=1.0", results);
+        tv("a=0.0/b=1.0", results);
+        drops("a=0.0/b=1.0", results);
+        longest("a=0.0/b=1.0", results);
+        swr_data["a=0.0/b=1.0"] = cape_scenario.cape_alpha + 100.0f * cape_scenario.cape_beta * (1.0f / 40.0f);
     }
 
     auto end      = std::chrono::high_resolution_clock::now();
@@ -1129,8 +1245,11 @@ int cape_graph_scenario(const std::vector<std::string>& args) {
     tv_graph.add_data(max_tv_data);
 
     worst_graph.add_data(worst_1y_data);
+    worst_graph.add_data(worst_5y_data);
     worst_graph.add_data(worst_10y_data);
-    worst_graph.add_data(worst_20y_data);
+    worst_graph.add_data(worst_15y_data);
+
+    longest_graph.add_data(longest_drops_data);
 
     swr_graph.add_data(swr_data);
 
